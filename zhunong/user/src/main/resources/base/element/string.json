@@ -1,0 +1,17 @@
+{
+  "string": [
+    { "name": "module_desc", "value": "助农用户端模块" },
+    { "name": "UserEntryAbility_desc", "value": "助农用户端入口" },
+    { "name": "UserEntryAbility_label", "value": "助农" },
+    { "name": "permission_internet_reason", "value": "用于访问网络获取商品/直播/社区数据" },
+    { "name": "permission_network_reason", "value": "用于检查网络连接状态" },
+    { "name": "permission_location_reason", "value": "用于文旅地图根据当前位置推荐周边点位" },
+    { "name": "user_login_title", "value": "用户登录" },
+    { "name": "user_login_subtitle", "value": "欢迎来到助农平台" },
+    { "name": "user_home_tab_home", "value": "首页" },
+    { "name": "user_home_tab_community", "value": "社区" },
+    { "name": "user_home_tab_message", "value": "消息" },
+    { "name": "user_home_tab_cart", "value": "购物车" },
+    { "name": "user_home_tab_profile", "value": "我的" }
+  ]
+}

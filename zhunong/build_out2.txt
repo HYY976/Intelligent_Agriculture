@@ -1,0 +1,100 @@
+> hvigor [32mUP-TO-DATE :user:default@PreBuild...  [39m
+> hvigor [32mUP-TO-DATE :farmer:default@PreBuild...  [39m
+> hvigor [32mUP-TO-DATE :admin:default@PreBuild...  [39m
+> hvigor [32mFinished :user:default@CreateModuleInfo... after 2 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@GenerateMetadata...  [39m
+> hvigor [32mFinished :user:default@ConfigureCmake... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@MergeProfile...  [39m
+> hvigor [32mUP-TO-DATE :user:default@CreateBuildProfile...  [39m
+> hvigor [32mFinished :user:default@PreCheckSyscap... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@GeneratePkgContextInfo...  [39m
+> hvigor [32mFinished :user:default@GeneratePkgSdkInfo... after 7 ms [39m
+> hvigor [32mFinished :user:default@ProcessIntegratedHsp... after 2 ms [39m
+> hvigor [32mFinished :farmer:default@CreateModuleInfo... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :farmer:default@GenerateMetadata...  [39m
+> hvigor [32mFinished :farmer:default@ConfigureCmake... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :farmer:default@MergeProfile...  [39m
+> hvigor [32mUP-TO-DATE :farmer:default@CreateBuildProfile...  [39m
+> hvigor [32mFinished :farmer:default@PreCheckSyscap... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :farmer:default@GeneratePkgContextInfo...  [39m
+> hvigor [32mFinished :farmer:default@GeneratePkgSdkInfo... after 4 ms [39m
+> hvigor [32mFinished :farmer:default@ProcessIntegratedHsp... after 1 ms [39m
+> hvigor [32mFinished :admin:default@CreateModuleInfo... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :admin:default@GenerateMetadata...  [39m
+> hvigor [32mFinished :admin:default@ConfigureCmake... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :admin:default@MergeProfile...  [39m
+> hvigor [32mUP-TO-DATE :admin:default@CreateBuildProfile...  [39m
+> hvigor [32mFinished :admin:default@PreCheckSyscap... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :admin:default@GeneratePkgContextInfo...  [39m
+> hvigor [32mFinished :admin:default@GeneratePkgSdkInfo... after 4 ms [39m
+> hvigor [32mFinished :admin:default@ProcessIntegratedHsp... after 1 ms [39m
+> hvigor [32mFinished :user:default@BuildNativeWithCmake... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@MakePackInfo...  [39m
+> hvigor [32mFinished :user:default@SyscapTransform... after 22 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@ProcessProfile...  [39m
+> hvigor [32mUP-TO-DATE :user:default@ProcessRouterMap...  [39m
+> hvigor [32mUP-TO-DATE :user:default@ProcessShareConfig...  [39m
+> hvigor [32mFinished :user:default@ProcessStartupConfig... after 5 ms [39m
+> hvigor [32mFinished :farmer:default@BuildNativeWithCmake... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :farmer:default@MakePackInfo...  [39m
+> hvigor [32mFinished :farmer:default@SyscapTransform... after 3 ms [39m
+> hvigor [32mUP-TO-DATE :farmer:default@ProcessProfile...  [39m
+> hvigor [32mUP-TO-DATE :farmer:default@ProcessRouterMap...  [39m
+> hvigor [32mUP-TO-DATE :farmer:default@ProcessShareConfig...  [39m
+> hvigor [32mFinished :farmer:default@ProcessStartupConfig... after 4 ms [39m
+> hvigor [32mFinished :admin:default@BuildNativeWithCmake... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :admin:default@MakePackInfo...  [39m
+> hvigor [32mFinished :admin:default@SyscapTransform... after 3 ms [39m
+> hvigor [32mUP-TO-DATE :admin:default@ProcessProfile...  [39m
+> hvigor [32mUP-TO-DATE :admin:default@ProcessRouterMap...  [39m
+> hvigor [32mUP-TO-DATE :admin:default@ProcessShareConfig...  [39m
+> hvigor [32mFinished :admin:default@ProcessStartupConfig... after 4 ms [39m
+> hvigor [32mFinished :user:default@BuildNativeWithNinja... after 2 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@ProcessResource...  [39m
+> hvigor [32mUP-TO-DATE :user:default@GenerateLoaderJson...  [39m
+> hvigor [32mFinished :farmer:default@BuildNativeWithNinja... after 2 ms [39m
+> hvigor [32mUP-TO-DATE :farmer:default@ProcessResource...  [39m
+> hvigor [32mUP-TO-DATE :farmer:default@GenerateLoaderJson...  [39m
+> hvigor [32mFinished :admin:default@BuildNativeWithNinja... after 2 ms [39m
+> hvigor [32mUP-TO-DATE :admin:default@ProcessResource...  [39m
+> hvigor [32mUP-TO-DATE :admin:default@GenerateLoaderJson...  [39m
+> hvigor [32mUP-TO-DATE :user:default@ProcessLibs...  [39m
+> hvigor [32mUP-TO-DATE :user:default@CompileResource...  [39m
+> hvigor [32mUP-TO-DATE :farmer:default@ProcessLibs...  [39m
+> hvigor [32mUP-TO-DATE :farmer:default@CompileResource...  [39m
+> hvigor [32mUP-TO-DATE :admin:default@ProcessLibs...  [39m
+> hvigor [32mUP-TO-DATE :admin:default@CompileResource...  [39m
+> hvigor [32mUP-TO-DATE :user:default@DoNativeStrip...  [39m
+> hvigor [32mUP-TO-DATE :user:default@CompileArkTS...  [39m
+> hvigor [32mFinished :user:default@BuildJS... after 6 ms [39m
+> hvigor [32mUP-TO-DATE :farmer:default@DoNativeStrip...  [39m
+> hvigor [32mUP-TO-DATE :farmer:default@CompileArkTS...  [39m
+> hvigor [32mFinished :farmer:default@BuildJS... after 4 ms [39m
+> hvigor [32mUP-TO-DATE :admin:default@DoNativeStrip...  [39m
+> hvigor [32mUP-TO-DATE :admin:default@CompileArkTS...  [39m
+> hvigor [32mFinished :admin:default@BuildJS... after 4 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@CacheNativeLibs...  [39m
+> hvigor [32mUP-TO-DATE :farmer:default@CacheNativeLibs...  [39m
+> hvigor [32mUP-TO-DATE :admin:default@CacheNativeLibs...  [39m
+> hvigor [32mUP-TO-DATE :user:default@GeneratePkgModuleJson...  [39m
+> hvigor [32mUP-TO-DATE :farmer:default@GeneratePkgModuleJson...  [39m
+> hvigor [32mUP-TO-DATE :admin:default@GeneratePkgModuleJson...  [39m
+> hvigor [32mFinished :user:default@ProcessCompiledResources... after 2 ms [39m
+> hvigor [32mFinished :farmer:default@ProcessCompiledResources... after 2 ms [39m
+> hvigor [32mFinished :admin:default@ProcessCompiledResources... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :farmer:default@PackageHap...  [39m
+> hvigor [32mUP-TO-DATE :admin:default@PackageHap...  [39m
+> hvigor [32mFinished :farmer:default@PackingCheck... after 13 ms [39m
+> hvigor [32mFinished :farmer:default@SignHap... after 5 ms [39m
+> hvigor [32mFinished :farmer:default@CollectDebugSymbol... after 3 ms [39m
+> hvigor [32mFinished :admin:default@PackingCheck... after 9 ms [39m
+> hvigor [32mFinished :admin:default@SignHap... after 4 ms [39m
+> hvigor [32mFinished :admin:default@CollectDebugSymbol... after 2 ms [39m
+> hvigor [32mFinished :farmer:assembleHap... after 1 ms [39m
+> hvigor [32mFinished :admin:assembleHap... after 1 ms [39m
+> hvigor [32mFinished :user:default@PackageHap... after 2 s 668 ms [39m
+> hvigor [32mFinished :user:default@PackingCheck... after 7 ms [39m
+> hvigor [32mFinished :user:default@SignHap... after 3 ms [39m
+> hvigor [32mFinished :user:default@CollectDebugSymbol... after 2 ms [39m
+> hvigor [32mFinished :user:assembleHap... after 1 ms [39m
+> hvigor [32mBUILD SUCCESSFUL in 11 s 556 ms [39m

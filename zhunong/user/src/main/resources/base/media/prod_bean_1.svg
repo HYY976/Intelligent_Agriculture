@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <defs>
+    <linearGradient id="bg15" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F1F8E9"/>
+      <stop offset="100%" stop-color="#DCEDC8"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#bg15)"/>
+  <g transform="translate(200,210)">
+    <path d="M -70 -20 Q -75 30 -40 50 Q 0 60 40 50 Q 75 30 70 -20 Q 50 -45 0 -45 Q -50 -45 -70 -20 Z" fill="#558B2F"/>
+    <path d="M -60 -15 Q -65 25 -35 42 Q 0 52 35 42 Q 65 25 60 -15" fill="none" stroke="#33691E" stroke-width="2"/>
+    <ellipse cx="-30" cy="0" rx="10" ry="13" fill="#9CCC65"/>
+    <ellipse cx="0" cy="10" rx="10" ry="13" fill="#9CCC65"/>
+    <ellipse cx="30" cy="0" rx="10" ry="13" fill="#9CCC65"/>
+    <ellipse cx="-15" cy="25" rx="9" ry="12" fill="#9CCC65"/>
+    <ellipse cx="20" cy="25" rx="9" ry="12" fill="#9CCC65"/>
+    <path d="M -70 -20 Q -60 -55 -20 -60" fill="none" stroke="#33691E" stroke-width="3"/>
+  </g>
+  <text x="200" y="370" font-family="sans-serif" font-size="22" font-weight="bold" fill="#33691E" text-anchor="middle">毛豆</text>
+</svg>

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <defs>
+    <linearGradient id="bg14" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFDE7"/>
+      <stop offset="100%" stop-color="#FFF9C4"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#bg14)"/>
+  <g transform="translate(200,210)">
+    <ellipse cx="0" cy="0" rx="45" ry="90" fill="#F9A825"/>
+    <ellipse cx="-8" cy="-5" rx="38" ry="80" fill="#FBC02D"/>
+    <g fill="#F57F17">
+      <circle cx="-15" cy="-50" r="6"/>
+      <circle cx="0" cy="-55" r="6"/>
+      <circle cx="15" cy="-50" r="6"/>
+      <circle cx="-20" cy="-30" r="6"/>
+      <circle cx="-5" cy="-35" r="6"/>
+      <circle cx="10" cy="-30" r="6"/>
+      <circle cx="20" cy="-25" r="6"/>
+      <circle cx="-22" cy="-10" r="6"/>
+      <circle cx="-8" cy="-15" r="6"/>
+      <circle cx="8" cy="-10" r="6"/>
+      <circle cx="22" cy="-5" r="6"/>
+      <circle cx="-20" cy="10" r="6"/>
+      <circle cx="-5" cy="5" r="6"/>
+      <circle cx="10" cy="10" r="6"/>
+      <circle cx="22" cy="15" r="6"/>
+      <circle cx="-15" cy="30" r="6"/>
+      <circle cx="0" cy="25" r="6"/>
+      <circle cx="15" cy="30" r="6"/>
+      <circle cx="-10" cy="50" r="6"/>
+      <circle cx="8" cy="50" r="6"/>
+    </g>
+    <path d="M -40 -80 Q -60 -50 -55 0 Q -50 50 -35 80" fill="none" stroke="#558B2F" stroke-width="8"/>
+    <path d="M 40 -80 Q 60 -50 55 0 Q 50 50 35 80" fill="none" stroke="#558B2F" stroke-width="8"/>
+  </g>
+  <text x="200" y="370" font-family="sans-serif" font-size="22" font-weight="bold" fill="#E65100" text-anchor="middle">甜糯玉米</text>
+</svg>

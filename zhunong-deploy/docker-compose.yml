@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: zhunong-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - zhunong_net
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: zhunong-chromadb
+    restart: unless-stopped
+    environment:
+      PERSIST_DIRECTORY: /chroma/chroma
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    networks:
+      - zhunong_net
+
+  backend:
+    build:
+      context: ../zhunong-server
+      dockerfile: ../zhunong-deploy/backend/Dockerfile
+    container_name: zhunong-backend
+    restart: unless-stopped
+    environment:
+      FLASK_ENV: ${FLASK_ENV}
+      DB_URI: mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE}?charset=utf8mb4
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      SECRET_KEY: ${SECRET_KEY}
+      CHROMA_PERSIST_DIR: ${CHROMA_PERSIST_DIR}
+      BAIDU_MAP_AK: ${BAIDU_MAP_AK}
+    ports:
+      - "5000:5000"
+    volumes:
+      - uploads_data:/app/app/static/uploads
+    depends_on:
+      - db
+      - chromadb
+    networks:
+      - zhunong_net
+
+  nginx:
+    image: nginx:1.25
+    container_name: zhunong-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+    networks:
+      - zhunong_net
+
+volumes:
+  mysql_data:
+  chroma_data:
+  uploads_data:
+
+networks:
+  zhunong_net:
+    driver: bridge

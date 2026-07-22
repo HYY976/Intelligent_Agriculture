@@ -1,0 +1,23 @@
+{
+  "color": [
+    { "name": "color_primary", "value": "#81C784" },
+    { "name": "color_primary_light", "value": "#AED581" },
+    { "name": "color_secondary", "value": "#FFB74D" },
+    { "name": "color_accent_gold", "value": "#FFD54F" },
+    { "name": "color_bg_page", "value": "#121212" },
+    { "name": "color_bg_card", "value": "#1E1E1E" },
+    { "name": "color_bg_panel_dark", "value": "#000000" },
+    { "name": "color_text_primary", "value": "#FFFFFF" },
+    { "name": "color_text_secondary", "value": "#BDBDBD" },
+    { "name": "color_text_hint", "value": "#757575" },
+    { "name": "color_text_on_dark", "value": "#81C784" },
+    { "name": "color_error", "value": "#EF5350" },
+    { "name": "color_price", "value": "#FF7043" },
+    { "name": "color_divider", "value": "#424242" },
+    { "name": "color_button_disabled", "value": "#616161" },
+    { "name": "color_medal_gold", "value": "#FFD54F" },
+    { "name": "color_medal_silver", "value": "#9E9E9E" },
+    { "name": "color_medal_bronze", "value": "#8D6E63" },
+    { "name": "start_window_background", "value": "#121212" }
+  ]
+}

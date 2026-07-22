@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <defs>
+    <linearGradient id="bg11" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFF3E0"/>
+      <stop offset="100%" stop-color="#FFE0B2"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#bg11)"/>
+  <g transform="translate(200,210)">
+    <path d="M -70 -50 L -50 -70 L 50 -70 L 70 -50 L 70 50 L 50 70 L -50 70 L -70 50 Z" fill="#6D4C41"/>
+    <rect x="-55" y="-55" width="110" height="110" fill="#8D6E63" rx="8"/>
+    <ellipse cx="-25" cy="-20" rx="15" ry="22" fill="#A1887F" transform="rotate(-20 -25 -20)"/>
+    <ellipse cx="20" cy="-25" rx="15" ry="22" fill="#A1887F" transform="rotate(20 20 -25)"/>
+    <ellipse cx="-10" cy="15" rx="15" ry="22" fill="#A1887F"/>
+    <ellipse cx="25" cy="20" rx="15" ry="22" fill="#A1887F" transform="rotate(15 25 20)"/>
+    <ellipse cx="-30" cy="30" rx="15" ry="22" fill="#A1887F" transform="rotate(-25 -30 30)"/>
+    <ellipse cx="-22" cy="-22" rx="3" ry="4" fill="#D7CCC8" opacity="0.6"/>
+    <ellipse cx="22" cy="-27" rx="3" ry="4" fill="#D7CCC8" opacity="0.6"/>
+    <ellipse cx="-8" cy="12" rx="3" ry="4" fill="#D7CCC8" opacity="0.6"/>
+  </g>
+  <text x="200" y="370" font-family="sans-serif" font-size="22" font-weight="bold" fill="#4E342E" text-anchor="middle">红薯干</text>
+</svg>

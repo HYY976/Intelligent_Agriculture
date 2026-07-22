@@ -1,0 +1,27 @@
+{
+  "string": [
+    { "name": "module_desc", "value": "助农农户卖家端模块" },
+    { "name": "FarmerEntryAbility_desc", "value": "助农卖家端入口" },
+    { "name": "FarmerEntryAbility_label", "value": "助农卖家" },
+    { "name": "permission_internet_reason", "value": "用于访问网络进行商品上架/直播/营收管理" },
+    { "name": "permission_network_reason", "value": "用于检查网络连接状态" },
+    { "name": "permission_location_reason", "value": "用于商品发货地定位与直播推流定位" },
+    { "name": "farmer_login_title", "value": "卖家登录" },
+    { "name": "farmer_login_subtitle", "value": "欢迎来到助农卖家平台" },
+    { "name": "farmer_home_tab_home", "value": "首页" },
+    { "name": "farmer_home_tab_community", "value": "社区" },
+    { "name": "farmer_home_tab_live", "value": "直播" },
+    { "name": "farmer_home_tab_message", "value": "消息" },
+    { "name": "farmer_home_tab_profile", "value": "个人" },
+    { "name": "farmer_nav_mall", "value": "商城" },
+    { "name": "farmer_nav_live", "value": "直播" },
+    { "name": "farmer_nav_agent", "value": "智能体" },
+    { "name": "farmer_nav_search", "value": "搜索" },
+    { "name": "farmer_revenue_today", "value": "今日营收" },
+    { "name": "farmer_revenue_month", "value": "本月营收" },
+    { "name": "farmer_revenue_year", "value": "本年营收" },
+    { "name": "farmer_revenue_total", "value": "累计营收" },
+    { "name": "farmer_mode_standard", "value": "标准模式" },
+    { "name": "farmer_mode_elder", "value": "老年大字模式" }
+  ]
+}

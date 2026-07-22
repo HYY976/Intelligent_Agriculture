@@ -1,0 +1,10 @@
+{
+  "modelVersion": "6.0.0",
+  "description": "助农三端鸿蒙原生综合平台 - 工程级配置（用户端/卖家端/管理后台端三 Entry + common HSP 共享库）",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "@ohos/hypium": "1.0.24",
+    "@ohos/hamock": "1.0.0"
+  }
+}

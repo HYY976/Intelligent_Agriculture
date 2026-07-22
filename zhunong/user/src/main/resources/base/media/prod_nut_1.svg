@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <defs>
+    <linearGradient id="bg8" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFF3E0"/>
+      <stop offset="100%" stop-color="#FFE0B2"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#bg8)"/>
+  <g transform="translate(200,210)">
+    <ellipse cx="-30" cy="10" rx="32" ry="40" fill="#8D6E63"/>
+    <ellipse cx="-35" cy="0" rx="22" ry="30" fill="#A1887F"/>
+    <ellipse cx="30" cy="15" rx="32" ry="40" fill="#795548"/>
+    <ellipse cx="25" cy="5" rx="22" ry="30" fill="#8D6E63"/>
+    <ellipse cx="0" cy="-20" rx="30" ry="38" fill="#6D4C41"/>
+    <ellipse cx="-3" cy="-30" rx="20" ry="25" fill="#8D6E63"/>
+    <path d="M -10 -50 Q 0 -65 10 -50" fill="none" stroke="#5D4037" stroke-width="2"/>
+  </g>
+  <text x="200" y="370" font-family="sans-serif" font-size="22" font-weight="bold" fill="#4E342E" text-anchor="middle">山核桃</text>
+</svg>

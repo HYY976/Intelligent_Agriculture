@@ -1,0 +1,56 @@
+{
+  "module": {
+    "name": "admin",
+    "type": "entry",
+    "description": "$string:module_desc",
+    "mainElement": "AdminEntryAbility",
+    "deviceTypes": [
+      "tablet",
+      "phone",
+      "2in1"
+    ],
+    "deliveryWithInstall": true,
+    "installationFree": false,
+    "pages": "$profile:main_pages",
+    "abilities": [
+      {
+        "name": "AdminEntryAbility",
+        "srcEntry": "./ets/entryability/AdminEntryAbility.ets",
+        "description": "$string:AdminEntryAbility_desc",
+        "icon": "$media:layered_image",
+        "label": "$string:AdminEntryAbility_label",
+        "startWindowIcon": "$media:startIcon",
+        "startWindowBackground": "$color:start_window_background",
+        "exported": true,
+        "skills": [
+          {
+            "entities": [
+              "entity.system.home"
+            ],
+            "actions": [
+              "ohos.want.action.home"
+            ]
+          }
+        ]
+      }
+    ],
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.INTERNET",
+        "reason": "$string:permission_internet_reason",
+        "usedScene": {
+          "abilities": ["AdminEntryAbility"],
+          "when": "always"
+        }
+      },
+      {
+        "name": "ohos.permission.GET_NETWORK_INFO",
+        "reason": "$string:permission_network_reason",
+        "usedScene": {
+          "abilities": ["AdminEntryAbility"],
+          "when": "always"
+        }
+      }
+    ]
+  }
+}

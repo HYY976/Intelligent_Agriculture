@@ -1,0 +1,388 @@
+> hvigor [33mWARN: Will skip sign 'hos_hap'. No signingConfigs profile is configured in current project.
+             If needed, configure the signingConfigs in C:\Users\21132\Project\zhunong\build-profile.json5.[39m
+> hvigor [33mWARN: Will skip sign 'hos_hap'. No signingConfigs profile is configured in current project.
+             If needed, configure the signingConfigs in C:\Users\21132\Project\zhunong\build-profile.json5.[39m
+> hvigor [33mWARN: [33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/common/src/main/ets/utils/ToastUtil.ets:44:20
+ 'showToast' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/common/src/main/ets/components/SkeletonLoader.ets:24:5
+ 'animateTo' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/splash/splash_ad.ets:82:7
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/splash/splash_ad.ets:82:14
+ 'replaceUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/splash/splash_ad.ets:89:7
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/splash/splash_ad.ets:89:14
+ 'replaceUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/splash/splash_ad.ets:93:7
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/splash/splash_ad.ets:93:14
+ 'replaceUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/splash/splash_ad.ets:105:7
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/splash/splash_ad.ets:105:14
+ 'replaceUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/splash/splash_ad.ets:107:7
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/splash/splash_ad.ets:107:14
+ 'replaceUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/login/user_login.ets:124:16
+ 'replaceUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/viewmodel/HomeRecommendDataSource.ets:62:9
+ 'onDataAdded' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/cart/cart_page.ets:111:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/cart/cart_page.ets:111:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/cart/cart_page.ets:116:12
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/cart/cart_page.ets:333:20
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/profile_page.ets:84:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/profile_page.ets:84:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/profile_page.ets:90:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/profile_page.ets:90:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/profile_page.ets:96:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/profile_page.ets:96:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/profile_page.ets:339:20
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/viewmodel/CommunityDataSource.ets:68:9
+ 'onDataAdded' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/community/community_list.ets:64:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/community/community_list.ets:64:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/community/community_list.ets:69:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/community/community_list.ets:69:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/message/message_list.ets:74:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/message/message_list.ets:74:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/message/message_list.ets:423:20
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/home/home_page.ets:43:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/home/home_page.ets:43:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/home/home_page.ets:54:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/home/home_page.ets:54:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/search/search_page.ets:143:12
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/search/search_page.ets:148:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/search/search_page.ets:148:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/setting.ets:40:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/setting.ets:40:12
+ 'replaceUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/setting.ets:47:101
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/address_list.ets:19:51
+ 'getParams' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/address_list.ets:33:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/address_list.ets:33:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/address_list.ets:38:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/address_list.ets:38:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/address_list.ets:59:14
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/address_list.ets:67:101
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/address_edit.ets:26:51
+ 'getParams' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/address_edit.ets:64:12
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/address_edit.ets:71:101
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/favorite_list.ets:27:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/favorite_list.ets:27:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/favorite_list.ets:40:101
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/follow_list.ets:40:101
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/history_list.ets:23:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/history_list.ets:23:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/history_list.ets:29:101
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/coupon_list.ets:46:101
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/coupon_list.ets:104:123
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/wallet.ets:35:101
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/profile/wallet.ets:84:35
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/category_list.ets:22:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/category_list.ets:22:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/category_list.ets:34:20
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/viewmodel/ProductListDataSource.ets:54:9
+ 'onDataAdded' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/product_list.ets:46:51
+ 'getParams' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/product_list.ets:73:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/product_list.ets:73:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/product_list.ets:91:20
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/product_detail.ets:44:51
+ 'getParams' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/product_detail.ets:64:14
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/product_detail.ets:103:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/product_detail.ets:103:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/product_detail.ets:132:20
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/product_detail.ets:143:20
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/order_confirm.ets:66:51
+ 'getParams' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/order_confirm.ets:177:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/order_confirm.ets:177:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/order_confirm.ets:237:14
+ 'replaceUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/order_confirm.ets:249:20
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/order_list.ets:39:51
+ 'getParams' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/order_list.ets:59:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/order_list.ets:59:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/order_list.ets:66:101
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/order_list.ets:143:51
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/order_detail.ets:24:51
+ 'getParams' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/order_detail.ets:61:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/order_detail.ets:61:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/order_detail.ets:75:101
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/review_create.ets:29:51
+ 'getParams' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/review_create.ets:59:14
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/mall/review_create.ets:81:101
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/viewmodel/LiveDataSource.ets:69:9
+ 'onDataAdded' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/live/live_list.ets:32:12
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/live/live_list.ets:37:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/live/live_list.ets:37:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/live/live_list.ets:42:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/live/live_list.ets:42:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/live/live_room.ets:54:51
+ 'getParams' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/live/live_room.ets:66:14
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/live/live_room.ets:86:12
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/live/live_room.ets:154:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/live/live_room.ets:154:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/live/live_room.ets:160:7
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/live/live_room.ets:160:14
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/travel/travel_map.ets:68:12
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/travel/travel_map.ets:113:5
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/travel/travel_map.ets:113:12
+ 'pushUrl' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/travel/poi_detail.ets:24:51
+ 'getParams' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/travel/poi_detail.ets:36:14
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/travel/poi_detail.ets:44:12
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/community/post_detail.ets:43:51
+ 'getParams' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/community/post_detail.ets:55:14
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/community/post_detail.ets:68:12
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/community/post_create.ets:53:12
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/community/post_create.ets:131:14
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/message/chat_detail.ets:58:51
+ 'getParams' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/message/chat_detail.ets:64:14
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/message/chat_detail.ets:71:14
+ 'back' has been deprecated.
+[39m[39m
+[33mWARN: [33m[33mArkTS:WARN File: C:/Users/21132/Project/zhunong/user/src/main/ets/pages/message/chat_detail.ets:286:12
+ 'back' has been deprecated.
+[39m[39m
+[39m
+> hvigor [91mERROR: Failed :user:default@PackageHap... [39m
+> hvigor [91mERROR: [31mError Code: 00308018 Unknown Error
+spawn java ENOENT
+
+* Try the following:
+  > This error is unknown, view the detailed error logs in the '.hvigor > outputs > build-logs' directory in the project directory for analysis, or contact the developer's official website for help.
+  > More info: https://developer.huawei.com/consumer/cn/doc/harmonyos-faqs/faqs-compiling-and-building
+
+
+[31m* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --debug option to get more log output.
+[39m
+> hvigor [91mERROR: BUILD FAILED in 38 s 163 ms [39m

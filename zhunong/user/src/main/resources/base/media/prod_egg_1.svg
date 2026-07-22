@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <defs>
+    <linearGradient id="bg6" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFF3E0"/>
+      <stop offset="100%" stop-color="#FFE0B2"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#bg6)"/>
+  <g transform="translate(200,210)">
+    <ellipse cx="-45" cy="20" rx="30" ry="38" fill="#A1887F" transform="rotate(-15 -45 20)"/>
+    <ellipse cx="45" cy="20" rx="30" ry="38" fill="#8D6E63" transform="rotate(15 45 20)"/>
+    <ellipse cx="0" cy="-10" rx="32" ry="40" fill="#BCAAA4"/>
+    <ellipse cx="-12" cy="-22" rx="8" ry="12" fill="#D7CCC8" opacity="0.7"/>
+    <ellipse cx="-50" cy="8" rx="5" ry="8" fill="#D7CCC8" opacity="0.5" transform="rotate(-15 -50 8)"/>
+    <ellipse cx="40" cy="8" rx="5" ry="8" fill="#D7CCC8" opacity="0.5" transform="rotate(15 40 8)"/>
+  </g>
+  <text x="200" y="370" font-family="sans-serif" font-size="22" font-weight="bold" fill="#5D4037" text-anchor="middle">土鸡蛋</text>
+</svg>

@@ -1,0 +1,11 @@
+{
+  "name": "farmer",
+  "version": "1.0.0",
+  "description": "助农平台农户卖家端 - 商品上架/直播/营收管理/智能体预留",
+  "main": "",
+  "author": "zhunong",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "common": "file:../common"
+  }
+}

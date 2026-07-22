@@ -1,0 +1,72 @@
+{
+  "module": {
+    "name": "farmer",
+    "type": "entry",
+    "description": "$string:module_desc",
+    "mainElement": "FarmerEntryAbility",
+    "deviceTypes": [
+      "phone",
+      "tablet",
+      "2in1"
+    ],
+    "deliveryWithInstall": true,
+    "installationFree": false,
+    "pages": "$profile:main_pages",
+    "abilities": [
+      {
+        "name": "FarmerEntryAbility",
+        "srcEntry": "./ets/entryability/FarmerEntryAbility.ets",
+        "description": "$string:FarmerEntryAbility_desc",
+        "icon": "$media:layered_image",
+        "label": "$string:FarmerEntryAbility_label",
+        "startWindowIcon": "$media:startIcon",
+        "startWindowBackground": "$color:start_window_background",
+        "exported": true,
+        "skills": [
+          {
+            "entities": [
+              "entity.system.home"
+            ],
+            "actions": [
+              "ohos.want.action.home"
+            ]
+          }
+        ]
+      }
+    ],
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.INTERNET",
+        "reason": "$string:permission_internet_reason",
+        "usedScene": {
+          "abilities": ["FarmerEntryAbility"],
+          "when": "always"
+        }
+      },
+      {
+        "name": "ohos.permission.GET_NETWORK_INFO",
+        "reason": "$string:permission_network_reason",
+        "usedScene": {
+          "abilities": ["FarmerEntryAbility"],
+          "when": "always"
+        }
+      },
+      {
+        "name": "ohos.permission.LOCATION",
+        "reason": "$string:permission_location_reason",
+        "usedScene": {
+          "abilities": ["FarmerEntryAbility"],
+          "when": "inuse"
+        }
+      },
+      {
+        "name": "ohos.permission.APPROXIMATELY_LOCATION",
+        "reason": "$string:permission_location_reason",
+        "usedScene": {
+          "abilities": ["FarmerEntryAbility"],
+          "when": "inuse"
+        }
+      }
+    ]
+  }
+}

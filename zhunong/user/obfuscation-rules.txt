@@ -1,0 +1,2 @@
+# HAR obfuscation rules (placeholder, disabled by default)
+-disable-obfuscation

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFEBEE"/>
+      <stop offset="100%" stop-color="#FFCDD2"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#bg2)"/>
+  <g transform="translate(200,210)">
+    <circle cx="0" cy="0" r="85" fill="#E53935"/>
+    <circle cx="-15" cy="-15" r="70" fill="#EF5350"/>
+    <ellipse cx="-30" cy="-30" rx="18" ry="12" fill="#FFCDD2" opacity="0.7"/>
+    <path d="M -10 -75 Q 0 -95 10 -75 L 15 -70 Q 0 -65 -15 -70 Z" fill="#43A047"/>
+    <path d="M -8 -78 L 0 -88 L 8 -78" fill="#2E7D32" stroke="none"/>
+  </g>
+  <text x="200" y="370" font-family="sans-serif" font-size="22" font-weight="bold" fill="#C62828" text-anchor="middle">新鲜番茄</text>
+</svg>
