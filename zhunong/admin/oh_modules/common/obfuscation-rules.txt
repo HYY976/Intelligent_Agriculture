@@ -1,2 +1,0 @@
-# HAR obfuscation rules (placeholder, disabled by default in build-profile.json5)
--disable-obfuscation
