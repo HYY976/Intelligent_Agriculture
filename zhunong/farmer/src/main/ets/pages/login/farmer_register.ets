@@ -1,39 +1,35 @@
 /**
- * farmer_login - 农户卖家端登录页
- * 遵循 spec 11.2：
- *  - 登录方式：账号（手机号）+ 密码
- *  - 保留《卖家资质承诺》勾选
- *  - JWT 7天有效期，存储到 Preferences
- *  - 登录成功跳转首页 pages/home/home_page
+ * farmer_register - 农户卖家端注册页
+ * 遵循 spec 11.3：
+ *  - 注册方式：账号（手机号）+ 密码 + 确认密码
+ *  - 密码至少6位，两次密码必须一致
+ *  - 注册成功自动登录并跳转首页
  */
-import { Logger, AppConstants, HttpUtil, TokenStore, ToastUtil, NavigationHelper, RouteName } from 'common';
+
+import { Logger, AppConstants, HttpUtil, TokenStore, ToastUtil, RouteName, NavigationHelper } from 'common';
 import { ApiResponse, UserInfo } from 'common';
 
-interface FarmerLoginRequest {
+interface FarmerRegisterRequest {
   phone: string;
   password: string;
   userType: 'farmer';
-  /** 资质认证：已勾选资质承诺 */
-  certAgreed: boolean;
 }
 
-interface FarmerLoginResponse {
+interface FarmerRegisterResponse {
   token: string;
   userInfo: UserInfo;
-  /** 资质认证状态：pending=待认证 / approved=已认证 / rejected=驳回 */
-  certStatus: 'pending' | 'approved' | 'rejected';
 }
 
 @ComponentV2
-export struct FarmerLogin {
+export struct FarmerRegister {
   /** 账号（手机号） */
   @Local phone: string = '';
   /** 密码 */
   @Local password: string = '';
-  /** 资质认证：是否已勾选资质承诺 */
-  @Local certAgreed: boolean = false;
-  /** 是否正在登录 */
-  @Local isLogging: boolean = false;
+  /** 确认密码 */
+  @Local confirmPassword: string = '';
+  /** 是否正在注册 */
+  @Local isSubmitting: boolean = false;
 
   /** 校验手机号格式 */
   private isPhoneValid(): boolean {
@@ -41,8 +37,8 @@ export struct FarmerLogin {
     return phoneRegex.test(this.phone);
   }
 
-  /** 登录 */
-  private async doLogin(): Promise<void> {
+  /** 注册 */
+  private async doRegister(): Promise<void> {
     if (!this.isPhoneValid()) {
       ToastUtil.warning('请输入正确的手机号');
       return;
@@ -51,45 +47,40 @@ export struct FarmerLogin {
       ToastUtil.warning('密码至少6位');
       return;
     }
-    if (!this.certAgreed) {
-      ToastUtil.warning('请先勾选卖家资质承诺');
+    if (this.password !== this.confirmPassword) {
+      ToastUtil.warning('两次输入的密码不一致');
       return;
     }
-    this.isLogging = true;
+    this.isSubmitting = true;
     try {
-      const req: FarmerLoginRequest = {
+      const req: FarmerRegisterRequest = {
         phone: this.phone,
         password: this.password,
-        userType: 'farmer',
-        certAgreed: this.certAgreed
+        userType: 'farmer'
       };
-      const resp: ApiResponse<FarmerLoginResponse> = await HttpUtil.post<FarmerLoginResponse>('/farmer/login', req, {
+      const resp: ApiResponse<FarmerRegisterResponse> = await HttpUtil.post<FarmerRegisterResponse>('/farmer/register', req, {
         withAuth: false
       });
       if (resp.code === AppConstants.CODE_SUCCESS && resp.data) {
         await TokenStore.setToken(resp.data.token);
         await TokenStore.setUserInfo(resp.data.userInfo);
-        ToastUtil.success('登录成功');
-        Logger.info(AppConstants.SCENE_FARMER, {
-          action: 'login_success',
-          userId: resp.data.userInfo.userId,
-          certStatus: resp.data.certStatus
-        });
+        ToastUtil.success('注册成功');
+        Logger.info(AppConstants.SCENE_FARMER, { action: 'register_success', userId: resp.data.userInfo.userId });
         NavigationHelper.replace(RouteName.FARMER_HOME);
       } else {
-        ToastUtil.error(resp.msg || '登录失败');
+        ToastUtil.error(resp.msg || '注册失败');
       }
     } catch (err) {
-      Logger.error(AppConstants.SCENE_FARMER, { action: 'login_fail', error: (err as Error).message });
-      ToastUtil.error('登录失败，请稍后重试');
+      Logger.error(AppConstants.SCENE_FARMER, { action: 'register_fail', error: (err as Error).message });
+      ToastUtil.error('注册失败，请稍后重试');
     } finally {
-      this.isLogging = false;
+      this.isSubmitting = false;
     }
   }
 
-  /** 跳转注册页 */
-  private gotoRegister(): void {
-    NavigationHelper.push(RouteName.FARMER_REGISTER);
+  /** 返回登录页 */
+  private gotoLogin(): void {
+    NavigationHelper.pop();
   }
 
   build() {
@@ -98,18 +89,18 @@ export struct FarmerLogin {
         // 顶部品牌区
         Column({ space: 8 }) {
           Text('🌾')
-            .fontSize(72)
-            .margin({ bottom: 16 })
-          Text('助农卖家')
-            .fontSize(24)
+            .fontSize(56)
+            .margin({ bottom: 8 })
+          Text('注册卖家账号')
+            .fontSize(22)
             .fontColor($r('app.color.color_text_primary'))
             .fontWeight(FontWeight.Bold)
-          Text('商品上架 · 直播带货 · 营收管理')
-            .fontSize(14)
+          Text('加入助农平台，开启卖货之旅')
+            .fontSize(13)
             .fontColor($r('app.color.color_text_secondary'))
         }
         .width('100%')
-        .margin({ top: 60, bottom: 24 })
+        .margin({ top: 48, bottom: 24 })
 
         // 账号输入框
         Column({ space: 8 }) {
@@ -151,49 +142,47 @@ export struct FarmerLogin {
         }
         .width('100%')
 
-        // 资质承诺勾选
-        Row({ space: 8 }) {
-          Checkbox()
-            .select(this.certAgreed)
-            .selectedColor($r('app.color.color_secondary'))
-            .width(20)
-            .height(20)
-            .onChange((checked: boolean) => {
-              this.certAgreed = checked;
-            })
-          Text('我已阅读并同意《卖家资质承诺》，承诺所售农产品来源合法、质量合格')
-            .fontSize(12)
+        // 确认密码输入框
+        Column({ space: 8 }) {
+          Text('确认密码')
+            .fontSize(14)
             .fontColor($r('app.color.color_text_secondary'))
-            .layoutWeight(1)
-            .onClick(() => {
-              this.certAgreed = !this.certAgreed;
+            .alignSelf(ItemAlign.Start)
+          TextInput({ text: this.confirmPassword, placeholder: '请再次输入密码' })
+            .type(InputType.Password)
+            .maxLength(32)
+            .height(48)
+            .borderRadius(12)
+            .backgroundColor($r('app.color.color_bg_page'))
+            .padding({ left: 16, right: 16 })
+            .fontSize(16)
+            .onChange((value: string) => {
+              this.confirmPassword = value;
             })
         }
         .width('100%')
-        .alignItems(VerticalAlign.Top)
-        .padding({ top: 8 })
 
-        // 登录按钮
-        Button('卖家登录')
+        // 注册按钮
+        Button('注册')
           .width('100%')
           .height(48)
           .borderRadius(24)
-          .backgroundColor(this.isLogging ? $r('app.color.color_button_disabled') : $r('app.color.color_secondary'))
+          .backgroundColor(this.isSubmitting ? $r('app.color.color_button_disabled') : $r('app.color.color_secondary'))
           .fontColor(Color.White)
           .fontSize(16)
           .fontWeight(FontWeight.Medium)
-          .enabled(!this.isLogging)
-          .margin({ top: 8 })
+          .enabled(!this.isSubmitting)
+          .margin({ top: 12 })
           .onClick(() => {
-            this.doLogin();
+            this.doRegister();
           })
 
-        // 去注册
+        // 去登录
         Row({ space: 4 }) {
-          Text('还没有账号？')
+          Text('已有账号？')
             .fontSize(14)
             .fontColor($r('app.color.color_text_secondary'))
-          Text('去注册')
+          Text('去登录')
             .fontSize(14)
             .fontColor($r('app.color.color_secondary'))
             .fontWeight(FontWeight.Medium)
@@ -202,20 +191,14 @@ export struct FarmerLogin {
         .justifyContent(FlexAlign.Center)
         .margin({ top: 8 })
         .onClick(() => {
-          this.gotoRegister();
+          this.gotoLogin();
         })
 
-        // 资质认证提示
-        Text('资质认证将在个人中心完成（Mock 认证）')
-          .fontSize(12)
-          .fontColor($r('app.color.color_text_hint'))
-          .margin({ top: 12 })
-
         // 用户协议
-        Text('登录即表示同意《用户协议》和《隐私政策》')
+        Text('注册即表示同意《用户协议》和《隐私政策》')
           .fontSize(12)
           .fontColor($r('app.color.color_text_hint'))
-          .margin({ top: 4 })
+          .margin({ top: 16 })
       }
       .width('100%')
       .height('100%')

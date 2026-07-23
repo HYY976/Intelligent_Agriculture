@@ -241,6 +241,8 @@ export class RouteName {
   static readonly FARMER_SPLASH: string = 'splash_ad';
   /** 农户登录 */
   static readonly FARMER_LOGIN: string = 'farmer_login';
+  /** 农户注册 */
+  static readonly FARMER_REGISTER: string = 'farmer_register';
   /** 首页Tab（营收面板） */
   static readonly FARMER_HOME: string = 'home_page';
   /** 营收明细 */

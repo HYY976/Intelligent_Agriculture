@@ -1,7 +1,7 @@
 /**
  * ConfigUtil - 全局配置工具
  * 遵循 spec 1.2.3：通过 common 模块统一管理 baseUrl（dev/prod 环境切换）
- * 当前 dev: http://10.0.2.2:5000/api，prod: 留空待部署后填写
+ * 当前 dev: http://192.168.1.100:5000/api，prod: 留空待部署后填写
  */
 
 import { AppConstants } from '../constants/AppConstants';
@@ -22,9 +22,9 @@ interface ServerConfig {
 class ConfigUtilImpl {
   /** 开发环境配置（本机调试） */
   private readonly devConfig: ServerConfig = {
-    baseUrl: 'http://10.0.2.2:5000/api',
-    wsUrl: 'ws://10.0.2.2:5000/api/ws',
-    staticUrl: 'http://10.0.2.2:5000/static',
+    baseUrl: 'http://192.168.1.100:5000/api',
+    wsUrl: 'ws://192.168.1.100:5000/api/ws',
+    staticUrl: 'http://192.168.1.100:5000/static',
     baiduMapAk: 'PLACEHOLDER_BAIDU_MAP_AK',
     isDev: true
   };

@@ -19,7 +19,7 @@ farmer_controller - 农户卖家端 API
 import time
 import uuid
 from flask import Blueprint, jsonify, request, g
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 from app.extensions import db
 from app.models.user import User, FarmerProfile, CertificationInfo
 from app.models.product import Product, ProductSku, Category
@@ -52,38 +52,23 @@ def send_sms_code():
 @farmer_bp.route('/login', methods=['POST'])
 def login():
     """
-    卖家手机号+验证码登录（任意6位码通过）
+    卖家账号+密码登录
     POST /api/farmer/login
-    body: { phone, code }
+    body: { phone, password, userType }
     return: { token, userInfo }
     """
     body = request.get_json(silent=True) or {}
     phone = body.get('phone', '')
-    code = body.get('code', '')
+    password = body.get('password', '')
 
     if not phone or len(phone) != 11:
         return error_response(400, '手机号格式不正确')
-    if not code or len(code) != 6:
-        return error_response(400, '验证码为6位数字')
+    if not password or len(password) < 6:
+        return error_response(400, '密码至少6位')
 
     user = User.query.filter_by(phone=phone, user_type='farmer').first()
-    if user is None:
-        # 首次登录自动注册为农户
-        user = User(
-            phone=phone,
-            nickname=f'农户{phone[-4:]}',
-            password_hash=generate_password_hash('123456'),
-            user_type='farmer',
-        )
-        db.session.add(user)
-        db.session.flush()
-        # 自动创建 FarmerProfile
-        fp = FarmerProfile(
-            user_id=user.id,
-            shop_name=f'农户{phone[-4:]}的店铺',
-        )
-        db.session.add(fp)
-        db.session.commit()
+    if user is None or not check_password_hash(user.password_hash, password):
+        return error_response(401, '账号或密码错误')
 
     if user.status == 'banned':
         return error_response(403, '账号已被封禁')
@@ -105,6 +90,59 @@ def login():
         'createdAt': user.created_at,
         'lastLoginAt': user.last_login_at,
         'certStatus': fp.certification_status if fp else 'none',
+    }
+
+    return success_response({'token': token, 'userInfo': user_info})
+
+
+@farmer_bp.route('/register', methods=['POST'])
+def register():
+    """
+    卖家账号+密码注册
+    POST /api/farmer/register
+    body: { phone, password, userType }
+    return: { token, userInfo }
+    """
+    body = request.get_json(silent=True) or {}
+    phone = body.get('phone', '')
+    password = body.get('password', '')
+
+    if not phone or len(phone) != 11:
+        return error_response(400, '手机号格式不正确')
+    if not password or len(password) < 6:
+        return error_response(400, '密码至少6位')
+
+    existing = User.query.filter_by(phone=phone, user_type='farmer').first()
+    if existing is not None:
+        return error_response(409, '该手机号已注册')
+
+    user = User(
+        phone=phone,
+        nickname=f'农户{phone[-4:]}',
+        password_hash=generate_password_hash(password),
+        user_type='farmer',
+    )
+    db.session.add(user)
+    db.session.flush()
+
+    fp = FarmerProfile(
+        user_id=user.id,
+        shop_name=f'农户{phone[-4:]}的店铺',
+    )
+    db.session.add(fp)
+    db.session.commit()
+
+    token = generate_user_token(user.id, user.user_type)
+    user_info = {
+        'userId': user.id,
+        'phone': user.phone,
+        'nickname': user.nickname or '',
+        'avatar': user.avatar or '',
+        'userType': 'farmer',
+        'status': user.status,
+        'createdAt': user.created_at,
+        'lastLoginAt': user.last_login_at,
+        'certStatus': fp.certification_status,
     }
 
     return success_response({'token': token, 'userInfo': user_info})

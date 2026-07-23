@@ -17,6 +17,7 @@ import { RouteName, NavigationHelper } from 'common';
 // 启动链路
 import { SplashAd } from '../splash/splash_ad';
 import { FarmerLogin } from '../login/farmer_login';
+import { FarmerRegister } from '../login/farmer_register';
 import { FarmerHomePage } from '../home/home_page';
 import { RevenueDetail } from '../home/revenue_detail';
 
@@ -78,6 +79,8 @@ struct RootPage {
       SplashAd()
     } else if (name === RouteName.FARMER_LOGIN) {
       FarmerLogin()
+    } else if (name === RouteName.FARMER_REGISTER) {
+      FarmerRegister()
     } else if (name === RouteName.FARMER_HOME) {
       FarmerHomePage()
     } else if (name === RouteName.FARMER_REVENUE_DETAIL) {

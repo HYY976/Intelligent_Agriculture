@@ -1,7 +1,7 @@
 # 助农三端鸿蒙原生综合平台 需求规格说明书 (spec.md)
 
-> 文档版本：v3.0
-> 生成日期：2026-07-22
+> 文档版本：v3.1
+> 生成日期：2026-07-23
 > 编写依据：HarmonyOS NEXT ArkTS 原生开发规范、百度地图鸿蒙 SDK 规范、用户26批需求确认回执
 > 适用范围：普通用户端 APP、农户卖家端 APP、系统管理后台端 APP、Flask 后端服务（前后端分离 + Docker 容器化）
 > 更新记录：
@@ -26,6 +26,7 @@
 > - v2.8（2026-07-22）：ConfirmDialog V1→V2 方案 C 迁移完成——10.16 节落地完整迁移记录：删除 common/components/ConfirmDialog.ets（V1 @CustomDialog）+ 移除 ConfirmDialogOptions 接口 + common/Index.ets 导出清理；farmer/pages/profile/setting.ets 迁移至方案 C 自建模态（@Local showLogoutDialog + build() Stack + @Builder LogoutConfirmDialog，视觉对齐 admin/api_key.ets RevokeConfirmDialog）；全项目 V1 例外清单清零，100% V2 化；spec 10.12 / 10.15 章节同步更新（详见第 10.16 节）
 > - v2.9（2026-07-22）：三端 empty 态统一落地——10.17 节落地完整记录：调查发现 spec 2.3.5.2 / 10.14.6 / 10.15.4 所称"5 页面使用 EmptyState"失实（EmptyState common 组件实际 0 引用=死代码），三端 empty 态实为三套实现（user=EmptyStateCard 插画卡片 ~12 处/9 页 / farmer=内联 emoji+文本 5 页 / admin=内联 @Builder 文本 3 页 / ListStateView empty 态 0 使用）；增强 ListStateView empty 态支持双模式（image 模式默认：empty_state.svg 移入 common HAR media + Image 160×128 + title 16px + desc 13px + 按钮 / emoji 模式：emptyUseEmoji=true 时 emoji 64px + 文本 + 按钮）；迁移全部 ~20 处空态到 ListStateView；删除 EmptyState(死代码)+EmptyStateCard(吸收)；修正 spec 2.3.5.2/10.14.6/10.15.4 失实记录（详见第 10.17 节）
 > - v3.0（2026-07-22）：老年大字模式响应式监听根因修复——10.18 节落地完整记录：spec 10.10.7 标注"任务5 老年大字模式验证可立即启动"，代码核查发现响应式监听从未真正落地。根因有二：①CurrentModeKey / CurrentThemeKey（CommonModels.ets）为普通 class，缺 `@ObservedV2` + `@Trace value` 装饰器，setMode 的 `modeRef.value = mode` 仅普通赋值不触发 UI 刷新；②3 个页面用 `@Local currentMode: string` + aboutToAppear 中 `await ModeStore.getMode()` 一次性读取，模式切换后已打开页面不刷新。另发现 spec 10.9.3.3 原定的 `@Consumer('currentMode')` 方案为误报（@Consumer 属 V1 联动语义，与项目 V2 路线冲突，且无法跨 UIAbility 共享）。修复方案（经华为官方文档验证）：AppStorageV2.connect 同 key 返回同一共享实例 + @ObservedV2 + @Trace 装饰后，`ref.value` 变化自动触发引用了该值的 build() 重新执行；新增 `ModeStore.connectModeRef()` / `ThemeStore.connectThemeRef()` 封装；6 文件改造（common 3 文件 + farmer 2 页面 + user 1 页面），isElderMode() 30+ 调用点 0 改动（仅改内部实现读取 modeRef.value）；更正 spec 2.1.3 / 6.6.1 / 10.9.3.3 / 10.10.7 共 4 处误报；新增 10.18 节（10.18.1~10.18.8）；10.18.6 三端 BUILD SUCCESSFUL in 31 s 529 ms（0 ERROR，仅签名配置 WARN），10.18.7 v3.0 正式收口（详见第 10.18 节）
+> - v3.1（2026-07-23）：卖家端登录注册改造——将农户卖家端登录方式由"手机号+验证码"调整为与用户端一致的"账号（手机号）+密码"登录，并新增卖家注册页（账号/密码/确认密码）；保留登录页《卖家资质承诺》勾选；后端 `/api/farmer/login` 改为账号密码校验，`/api/farmer/register` 新增注册接口；前端 farmer_login.ets / farmer_register.ets / AppRouter / farmer/root_page.ets 同步改造（详见新增第 11 章）
 
 ---
 
@@ -5256,5 +5257,162 @@ v3.0 老年大字模式响应式监听根因修复**正式收口**：
 > 本 spec.md 已涵盖项目概述、三端产品定位、全局技术规范、分端页面清单+布局规范、完整数据实体Model、路由清单、业务全流程、权限清单、AI预留接口清单、交互规则、榜单广告规则、切换模式规则、开发实现顺序、待确认疑问清单全部章节。
 >
 > 所有需求模糊点已通过 16 批 user question tool 与用户确认完毕，可作为后续开发的唯一基线依据。
+>
+> 如需变更需求，需重新走需求确认流程并更新 spec.md 版本号。
+
+---
+
+# 11 卖家端登录注册改造（v3.1 新增）
+
+## 11.1 改造目标
+
+将农户卖家端（farmer 模块）的登录方式从 **手机号 + 验证码 + 资质承诺勾选** 改造为与 **用户端一致的账号（手机号）+ 密码** 登录，并新增独立的卖家注册页面。
+
+**核心原则：**
+- 登录逻辑与用户端 `user_login.ets` 保持一致：账号（手机号）+ 密码 + JWT 落 Preferences。
+- 注册逻辑与用户端 `user_register.ets` 保持一致：账号（手机号）+ 密码 + 确认密码，注册成功后自动登录并跳转首页。
+- 保留卖家登录页原有的 **《卖家资质承诺》勾选** 流程（用户已确认保留）。
+- 后端 `/api/farmer/login` 改为账号密码校验；新增 `/api/farmer/register` 注册接口。
+- 所有改造遵循项目现有 V2 状态管理、ArkTSCheck、命名规范、路由规范。
+
+## 11.2 卖家登录页（farmer_login.ets）
+
+### 11.2.1 页面路径
+`zhunong/farmer/src/main/ets/pages/login/farmer_login.ets`
+
+### 11.2.2 界面调整
+- 顶部品牌区保留：🌾 + "助农卖家" + "商品上架 · 直播带货 · 营收管理"。
+- 移除「手机号」+「验证码」+「获取验证码」相关 UI。
+- 新增账号输入框：
+  - Label：账号（手机号）
+  - Placeholder：请输入手机号
+  - InputType.PhoneNumber，maxLength 11
+- 新增密码输入框：
+  - Label：密码
+  - Placeholder：请输入密码（至少6位）
+  - InputType.Password，maxLength 32
+- 保留「卖家资质承诺」复选框：未勾选时点击「卖家登录」toast 提示"请先勾选卖家资质承诺"。
+- 登录按钮文案保持「卖家登录」。
+- 底部新增「还没有账号？去注册」入口，点击跳转 `RouteName.FARMER_REGISTER`。
+- 保留「资质认证将在个人中心完成（Mock 认证）」提示与「登录即表示同意《用户协议》和《隐私政策》」。
+
+### 11.2.3 字段与校验
+```typescript
+interface FarmerLoginRequest {
+  phone: string;      // 手机号，11 位大陆号段
+  password: string;   // 至少 6 位
+  userType: 'farmer';
+  certAgreed: boolean;
+}
+```
+
+- 手机号正则：`/^1[3-9]\d{9}$/`
+- 密码长度 >= 6
+- `certAgreed` 必须为 true
+
+### 11.2.4 登录接口
+- 调用 `HttpUtil.post<FarmerLoginResponse>('/farmer/login', req, { withAuth: false })`
+- 成功后：`TokenStore.setToken` + `TokenStore.setUserInfo` + `NavigationHelper.replace(RouteName.FARMER_HOME)`
+
+## 11.3 卖家注册页（farmer_register.ets）
+
+### 11.3.1 页面路径
+`zhunong/farmer/src/main/ets/pages/login/farmer_register.ets`（新增）
+
+### 11.3.2 界面
+- 顶部品牌区：🌾 + "注册卖家账号" + "加入助农平台，开启卖货之旅"
+- 账号输入框：Label「账号（手机号）」，InputType.PhoneNumber，maxLength 11
+- 密码输入框：Label「密码」，InputType.Password，maxLength 32
+- 确认密码输入框：Label「确认密码」，InputType.Password，maxLength 32
+- 注册按钮：「注册」
+- 底部：「已有账号？去登录」→ pop 回登录页
+- 底部文案：「注册即表示同意《用户协议》和《隐私政策》」
+
+### 11.3.3 字段与校验
+```typescript
+interface FarmerRegisterRequest {
+  phone: string;
+  password: string;
+  userType: 'farmer';
+}
+```
+
+- 手机号正则校验
+- 密码 >= 6 位
+- 确认密码与密码一致
+
+### 11.3.4 注册接口
+- 调用 `HttpUtil.post<FarmerLoginResponse>('/farmer/register', req, { withAuth: false })`
+- 成功后：自动登录（setToken/setUserInfo）并 `NavigationHelper.replace(RouteName.FARMER_HOME)`
+
+## 11.4 路由与入口改造
+
+### 11.4.1 AppRouter.ets
+在 `RouteName` 中新增：
+```typescript
+/** 农户注册 */
+static readonly FARMER_REGISTER: string = 'farmer_register';
+```
+
+### 11.4.2 farmer/root_page.ets
+在 `pageMap` 中新增分支：
+```typescript
+else if (name === RouteName.FARMER_REGISTER) {
+  FarmerRegister()
+}
+```
+并在顶部 `import { FarmerRegister } from '../login/farmer_register'`。
+
+## 11.5 后端接口改造（farmer_controller.py）
+
+### 11.5.1 `/api/farmer/login` 改造
+由「手机号 + 验证码任意通过」改为：
+- body: `{ phone, password, userType }`
+- 校验手机号 11 位、密码 >= 6 位
+- `User.query.filter_by(phone=phone, user_type='farmer').first()` 查询
+- `check_password_hash(user.password_hash, password)` 校验密码
+- 账号不存在或密码错误 → `error_response(401, '账号或密码错误')`
+- 账号被封禁 → `error_response(403, '账号已被封禁')`
+- 更新 `last_login_at`，返回 `{ token, userInfo }`（含 `certStatus`）
+
+### 11.5.2 新增 `/api/farmer/register`
+- body: `{ phone, password, userType }`
+- 校验手机号 11 位、密码 >= 6 位
+- 检查 `phone` + `user_type='farmer'` 是否已存在，存在则 `error_response(409, '该手机号已注册')`
+- 创建 `User`（password_hash 用 `generate_password_hash`）
+- 自动创建 `FarmerProfile`，店铺名默认 `农户{phone[-4:]}的店铺`
+- 提交事务，生成 JWT，返回 `{ token, userInfo }`
+
+### 11.5.3 废弃接口说明
+原 `/api/farmer/sms_code` 不再被新登录/注册流程调用，保留但不影响本次改造。
+
+## 11.6 文件变更清单
+
+| 文件 | 变更类型 | 说明 |
+| --- | --- | --- |
+| `zhunong/farmer/src/main/ets/pages/login/farmer_login.ets` | 修改 | 改为账号密码登录，保留资质承诺勾选，新增去注册入口 |
+| `zhunong/farmer/src/main/ets/pages/login/farmer_register.ets` | 新增 | 卖家注册页 |
+| `zhunong/common/src/main/ets/router/AppRouter.ets` | 修改 | 新增 `FARMER_REGISTER` 路由名 |
+| `zhunong/farmer/src/main/ets/pages/root/root_page.ets` | 修改 | 注册 `farmer_register` 路由 |
+| `zhunong-server/app/controllers/farmer_controller.py` | 修改 | 改造 login + 新增 register |
+
+## 11.7 验收标准
+
+1. 卖家登录页显示账号、密码输入框，原验证码相关 UI 消失。
+2. 未勾选「卖家资质承诺」时点击登录，toast 提示"请先勾选卖家资质承诺"。
+3. 输入未注册手机号/错误密码，后端返回 401，前端 toast "账号或密码错误"。
+4. 输入正确账号密码且勾选承诺，登录成功并跳转卖家首页。
+5. 从登录页点击「去注册」跳转注册页；注册页输入已存在手机号，toast "该手机号已注册"。
+6. 注册页输入两次一致密码，注册成功后自动登录并跳转卖家首页。
+7. 改造后 `hvigorw assembleHap` farmer 模块 BUILD SUCCESSFUL，0 ERROR。
+8. Docker 容器 `zhunong-backend` 重启后 `/api/farmer/login` 与 `/api/farmer/register` 可正常联调。
+
+---
+
+**文档结束（v3.1）**
+
+> 本 spec.md v3.1 已涵盖项目概述、三端产品定位、全局技术规范、分端页面清单+布局规范、完整数据实体Model、路由清单、业务全流程、权限清单、AI预留接口清单、交互规则、榜单广告规则、切换模式规则、开发实现顺序、待确认疑问清单，以及第 11 章卖家端登录注册改造全部章节。
+>
+> 第 11 章需求已通过与用户确认，可作为后续开发的唯一基线依据。
 >
 > 如需变更需求，需重新走需求确认流程并更新 spec.md 版本号。
