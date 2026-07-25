@@ -6,7 +6,7 @@
 
 import { BaseRepository, AppConstants } from 'common';
 import { ChatSession, ChatMessage, SessionListResult } from '../model/FarmerMessageModels';
-import { getMockSessions, getMockMessagesBySessionId } from '../mock/FarmerMessageMock';
+import { getMockSessions, getMockMessagesBySessionId, mockSendMessage } from '../mock/FarmerMessageMock';
 
 /** 会话列表查询参数 */
 interface SessionListQuery {

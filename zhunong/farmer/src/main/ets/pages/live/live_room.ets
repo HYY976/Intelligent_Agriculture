@@ -182,7 +182,7 @@ export struct LiveRoom {
   build() {
     NavDestination() {
       Stack() {
-        // 直播画面背景 spec 15.6.3：黑底占位
+        // 直播画面背景（全屏黑底）
         Column() {
           Text('📹')
             .fontSize(120)
@@ -197,17 +197,28 @@ export struct LiveRoom {
         .alignItems(HorizontalAlign.Center)
         .backgroundColor('#1A1A1A')
 
-        // 顶部主播信息栏 spec 15.6.2：头像/昵称/在线人数/关注按钮/收入 + 直播间标题
-        this.TopAnchorBar()
+        // 主内容层（参考抖音直播间布局）
+        Column() {
+          // 顶部主播信息栏（固定高度，不遮挡内容）
+          this.TopAnchorBar()
 
-        // 弹幕区 spec 15.6.2：左侧竖排
-        this.DanmakuList()
+          // 中间区域：左侧弹幕 + 右侧操作按钮（水平分布）
+          Row() {
+            // 左侧弹幕区（占60%宽度）
+            this.DanmakuList()
+            // 中间空白弹性区
+            Column().layoutWeight(1).height('100%')
+            // 右侧悬浮操作（固定宽度，垂直居中）
+            this.RightActions()
+          }
+          .layoutWeight(1)
+          .width('100%')
 
-        // 右侧悬浮操作 spec 15.6.2：点赞/礼物/分享/商品袋
-        this.RightActions()
-
-        // 底部互动栏 spec 15.6.2：评论输入框 + 发送 + 面板切换
-        this.BottomActionBar()
+          // 底部互动栏（固定高度，不遮挡内容）
+          this.BottomActionBar()
+        }
+        .width('100%')
+        .height('100%')
       }
       .width('100%')
       .height('100%')
@@ -319,14 +330,14 @@ export struct LiveRoom {
     .align(Alignment.Start)
   }
 
-  /** 右侧悬浮操作 spec 15.6.2 / 15.6.3：点赞/礼物/分享/商品袋 */
+  /** 右侧悬浮操作（垂直居中排列，参考抖音布局） */
   @Builder
   RightActions() {
-    Column({ space: 22 }) {
+    Column({ space: 18 }) {
       // 点赞
       Column({ space: 4 }) {
         Text('❤️')
-          .fontSize(34)
+          .fontSize(36)
           .onClick(() => {
             this.onlineCount++;
             ToastUtil.success('已点赞');
@@ -340,7 +351,7 @@ export struct LiveRoom {
       // 商品袋入口 spec 15.6.3：黄色购物车
       Column({ space: 4 }) {
         Text('🛒')
-          .fontSize(34)
+          .fontSize(36)
         Text(`${this.productBag.length}件`)
           .fontSize(11)
           .fontColor($r('app.color.color_text_primary'))
@@ -361,7 +372,7 @@ export struct LiveRoom {
       if (this.role === 'viewer') {
         Column({ space: 4 }) {
           Text('🎁')
-            .fontSize(34)
+            .fontSize(36)
           Text('送礼')
             .fontSize(11)
             .fontColor(Color.White)
@@ -373,7 +384,7 @@ export struct LiveRoom {
       // 分享
       Column({ space: 4 }) {
         Text('🔗')
-          .fontSize(30)
+          .fontSize(32)
         Text('分享')
           .fontSize(11)
           .fontColor(Color.White)
@@ -383,11 +394,15 @@ export struct LiveRoom {
         ToastUtil.info('分享功能开发中');
       })
     }
-    .position({ right: 12, bottom: 180 })
+    .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
+    .width(80)
+    .height('100%')
+    .padding({ right: 12, top: 20, bottom: 20 })
   }
 
   /** 底部互动栏 spec 15.6.2 */
+  /** 底部互动栏（固定高度，参考抖音布局） */
   @Builder
   BottomActionBar() {
     Column({ space: 8 }) {
@@ -431,9 +446,12 @@ export struct LiveRoom {
       .width('100%')
     }
     .width('100%')
-    .padding({ left: 12, right: 12, bottom: 12, top: 8 })
-    .backgroundColor('rgba(0,0,0,0.5)')
-    .align(Alignment.Bottom)
+    .height(80)
+    .padding({ left: 16, right: 16, bottom: 16, top: 12 })
+    .linearGradient({
+      direction: GradientDirection.Top,
+      colors: [['rgba(0,0,0,0)', 0], ['rgba(0,0,0,0.7)', 1]]
+    })
   }
 
   /** 礼物面板 */

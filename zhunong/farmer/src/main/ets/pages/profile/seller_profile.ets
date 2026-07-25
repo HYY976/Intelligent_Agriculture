@@ -131,28 +131,28 @@ export struct SellerProfile {
     .hideTitleBar(true)
   }
 
-  /** 黄色头部区 */
+  /** 黄色头部区（缩小高度至170，避免遮挡下方统计数据） */
   @Builder
   YellowHeader() {
     Stack() {
       // 渐变背景 + 装饰圆
       Column()
         .width('100%')
-        .height(220)
+        .height(170)
         .linearGradient({
           angle: 135,
           colors: [[$r('app.color.color_yellow'), 0.0], [$r('app.color.color_yellow_deep'), 1.0]]
         })
-      // 右上装饰圆
+      // 右上装饰圆（进一步缩小至50×50并右移）
       Column()
-        .width(140)
-        .height(140)
-        .borderRadius(70)
-        .backgroundColor('rgba(255,255,255,0.3)')
-        .position({ x: '78%', y: -30 })
+        .width(50)
+        .height(50)
+        .borderRadius(25)
+        .backgroundColor('rgba(255,255,255,0.2)')
+        .position({ x: '90%', y: -15 })
 
       // 卖家信息区 + 顶栏（z=3）
-      Column({ space: 12 }) {
+      Column({ space: 8 }) {
         this.TopBar()
         this.SellerInfoRow()
       }
@@ -160,7 +160,7 @@ export struct SellerProfile {
       .padding({ left: 16, right: 16 })
     }
     .width('100%')
-    .height(220)
+    .height(170)
     .alignContent(Alignment.TopStart)
   }
 

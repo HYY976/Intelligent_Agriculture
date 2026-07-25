@@ -2,9 +2,10 @@
  * user_login - 用户端登录页（UI 复刻 v4.0，对齐 login.html 设计稿）
  * 遵循 spec 15.5.1：整页重写，1:1 还原设计稿
  *  - 顶部装饰气泡 + 吉祥物 + 品牌标题
- *  - 账号 + 密码登录表单（默认用户身份，无需选择）
+ *  - 角色选择卡片（用户/农民/管理员三端切换）
+ *  - 手机号 + 验证码登录表单
  *  - 协议勾选 + 一键登录 + 第三方登录
- *  - 去注册入口
+ *  - 底部黄色波浪装饰
  * 业务逻辑保留：HttpUtil.post /user/login + TokenStore + NavigationHelper
  */
 
@@ -24,18 +25,87 @@ interface LoginResponse {
   userInfo: UserInfo;
 }
 
+/** 角色类型 */
+type LoginRole = 'user' | 'farmer' | 'admin';
+
+/** 角色卡片数据 */
+interface RoleCardData {
+  role: LoginRole;
+  icon: string;
+  name: string;
+  desc: string;
+}
+
 @ComponentV2
 export struct UserLogin {
-  /** 账号（兼容后端 phone 字段） */
-  @Local account: string = '';
-  /** 密码 */
-  @Local password: string = '';
-  /** 是否显示密码 */
-  @Local showPassword: boolean = false;
+  /** 手机号 */
+  @Local phone: string = '';
+  /** 验证码（作为密码发送到后端） */
+  @Local code: string = '';
+  /** 当前选中角色 */
+  @Local selectedRole: LoginRole = 'user';
   /** 是否已同意协议 */
   @Local agreementChecked: boolean = true;
   /** 是否正在登录 */
   @Local isLogging: boolean = false;
+  /** 验证码倒计时秒数（0 表示可发送） */
+  @Local codeCountdown: number = 0;
+
+  /** 倒计时定时器 */
+  private countdownTimerId: number = -1;
+
+  /** 角色卡片数据 */
+  private readonly roleCards: RoleCardData[] = [
+    { role: 'user', icon: '👤', name: '用户端', desc: '买菜购物' },
+    { role: 'farmer', icon: '🌱', name: '农民端', desc: '开店带货' },
+    { role: 'admin', icon: '🛡️', name: '管理员端', desc: '后台运营' }
+  ];
+
+  aboutToDisappear(): void {
+    if (this.countdownTimerId !== -1) {
+      clearInterval(this.countdownTimerId);
+      this.countdownTimerId = -1;
+    }
+  }
+
+  /** 校验手机号格式 */
+  private isPhoneValid(): boolean {
+    const phoneRegex: RegExp = /^1[3-9]\d{9}$/;
+    return phoneRegex.test(this.phone);
+  }
+
+  /** 发送验证码（mock：提示已发送 + 启动 60s 倒计时） */
+  private sendCode(): void {
+    if (this.codeCountdown > 0) {
+      return;
+    }
+    if (!this.isPhoneValid()) {
+      ToastUtil.warning('请输入正确的手机号');
+      return;
+    }
+    ToastUtil.success('验证码已发送');
+    this.codeCountdown = 60;
+    this.countdownTimerId = setInterval(() => {
+      this.codeCountdown -= 1;
+      if (this.codeCountdown <= 0) {
+        this.codeCountdown = 0;
+        if (this.countdownTimerId !== -1) {
+          clearInterval(this.countdownTimerId);
+          this.countdownTimerId = -1;
+        }
+      }
+    }, 1000);
+  }
+
+  /** 选择角色 */
+  private selectRole(role: LoginRole): void {
+    this.selectedRole = role;
+    if (role === 'farmer') {
+      NavigationHelper.replace(RouteName.FARMER_LOGIN);
+    } else if (role === 'admin') {
+      NavigationHelper.replace(RouteName.ADMIN_LOGIN);
+    }
+  }
 
   /** 一键登录 */
   private async doLogin(): Promise<void> {
@@ -43,19 +113,19 @@ export struct UserLogin {
       ToastUtil.warning('请先同意用户协议和隐私政策');
       return;
     }
-    if (this.account.trim().length === 0) {
-      ToastUtil.warning('请输入账号');
+    if (!this.isPhoneValid()) {
+      ToastUtil.warning('请输入正确的手机号');
       return;
     }
-    if (this.password.length === 0) {
-      ToastUtil.warning('请输入密码');
+    if (this.code.length < 6) {
+      ToastUtil.warning('请输入6位验证码');
       return;
     }
     this.isLogging = true;
     try {
       const req: LoginRequest = {
-        phone: this.account,
-        password: this.password,
+        phone: this.phone,
+        password: this.code,
         userType: 'user'
       };
       const resp: ApiResponse<LoginResponse> = await HttpUtil.post<LoginResponse>('/user/login', req, {
@@ -100,17 +170,17 @@ export struct UserLogin {
             // 2. 吉祥物 + 品牌标题区
             this.BrandHero()
 
-            // 3. 表单区（账号 + 密码）
+            // 3. 角色选择区
+            this.RoleSection()
+
+            // 4. 表单区（手机号 + 验证码）
             this.FormSection()
 
-            // 4. 协议勾选
+            // 5. 协议勾选
             this.AgreementSection()
 
-            // 5. 一键登录按钮
+            // 6. 一键登录按钮
             this.LoginButton()
-
-            // 6. 去注册链接
-            this.GoRegisterLink()
 
             // 7. 分割线
             this.OrDivider()
@@ -129,6 +199,9 @@ export struct UserLogin {
         .height('100%')
         .scrollBar(BarState.Off)
         .align(Alignment.Top)
+
+        // 10. 底部黄色波浪装饰
+        this.WaveDecoration()
       }
       .width('100%')
       .height('100%')
@@ -161,10 +234,10 @@ export struct UserLogin {
           angle: 0,
           colors: [['rgba(126,211,33,0.22)', 0.0], ['rgba(126,211,33,0)', 0.7]]
         })
-        .position({ x: -30, y: 100 })
+        .position({ x: -30, y: 180 })
     }
     .width('100%')
-    .height(120)
+    .height(280)
   }
 
   /** 吉祥物 + 品牌标题 */
@@ -185,7 +258,7 @@ export struct UserLogin {
           offsetY: 10
         })
         .objectFit(ImageFit.Cover)
-        .margin({ top: 16 })
+        .margin({ top: 56 })
 
       // 品牌标题 "趣农" + 绿色圆点
       Row({ space: 6 }) {
@@ -200,7 +273,7 @@ export struct UserLogin {
           .borderRadius(AppConstants.RADIUS_PILL)
           .backgroundColor($r('app.color.color_green'))
       }
-      .margin({ top: 12 })
+      .margin({ top: 18 })
 
       // 副标题
       Text('新鲜直达 · 助农优选')
@@ -213,26 +286,115 @@ export struct UserLogin {
     .alignItems(HorizontalAlign.Center)
   }
 
+  /** 角色选择区 */
+  @Builder
+  RoleSection() {
+    Column({ space: 10 }) {
+      // 标签
+      Row({ space: 6 }) {
+        Text('')
+          .width(12)
+          .height(2)
+          .backgroundColor($r('app.color.color_yellow_deep'))
+          .borderRadius(AppConstants.RADIUS_PILL)
+        Text('选择登录身份')
+          .fontSize(12)
+          .fontColor($r('app.color.color_text_3'))
+      }
+      .width('100%')
+      .padding({ left: 2 })
+      .margin({ top: 28, bottom: 10 })
+
+      // 角色卡片行
+      Row({ space: 10 }) {
+        ForEach(this.roleCards, (card: RoleCardData, index: number) => {
+          this.RoleCard(card)
+        }, (card: RoleCardData, index: number) => `role_${card.role}`)
+      }
+      .width('100%')
+    }
+    .width('100%')
+  }
+
+  /** 单个角色卡片 */
+  @Builder
+  RoleCard(card: RoleCardData) {
+    Stack({ alignContent: Alignment.TopEnd }) {
+      Column({ space: 8 }) {
+        // 图标
+        Text(card.icon)
+          .fontSize(22)
+          .width(40)
+          .height(40)
+          .borderRadius(AppConstants.RADIUS_SM)
+          .backgroundColor(this.selectedRole === card.role ? $r('app.color.color_bg_card') : $r('app.color.color_fill'))
+          .textAlign(TextAlign.Center)
+
+        // 名称
+        Text(card.name)
+          .fontSize(13)
+          .fontWeight(this.selectedRole === card.role ? FontWeight.Bold : FontWeight.Medium)
+          .fontColor(this.selectedRole === card.role ? $r('app.color.color_ink') : $r('app.color.color_ink_2'))
+
+        // 描述
+        Text(card.desc)
+          .fontSize(10)
+          .fontColor(this.selectedRole === card.role ? '#6B5B00' : $r('app.color.color_text_3'))
+      }
+      .width('100%')
+      .padding({ top: 14, bottom: 12, left: 6, right: 6 })
+      .borderRadius(AppConstants.RADIUS_MD)
+      .backgroundColor(this.selectedRole === card.role ? Color.Transparent : $r('app.color.color_bg_card'))
+      .linearGradient(this.selectedRole === card.role ? {
+        angle: 135,
+        colors: [[$r('app.color.color_yellow'), 0.0], [$r('app.color.color_yellow_deep'), 1.0]]
+      } : { angle: 0, colors: [['rgba(0,0,0,0)', 0.0], ['rgba(0,0,0,0)', 1.0]] })
+      .border({ width: 1.5, color: this.selectedRole === card.role ? $r('app.color.color_yellow_deep') : $r('app.color.color_line') })
+      .shadow(this.selectedRole === card.role ? {
+        radius: 16,
+        color: 'rgba(255,217,61,0.4)',
+        offsetX: 0,
+        offsetY: 6
+      } : { radius: 0, color: Color.Transparent, offsetX: 0, offsetY: 0 })
+      .alignItems(HorizontalAlign.Center)
+      .onClick(() => this.selectRole(card.role))
+
+      // 选中角标
+      if (this.selectedRole === card.role) {
+        Text('✓')
+          .fontSize(10)
+          .fontColor(Color.White)
+          .width(16)
+          .height(16)
+          .borderRadius(AppConstants.RADIUS_PILL)
+          .backgroundColor($r('app.color.color_ink'))
+          .textAlign(TextAlign.Center)
+          .position({ x: '88%', y: 6 })
+      }
+    }
+    .layoutWeight(1)
+  }
+
   /** 表单区 */
   @Builder
   FormSection() {
     Column({ space: 12 }) {
-      // 账号输入框
+      // 手机号输入框
       Row() {
-        Text('👤')
+        Text('📱')
           .fontSize(18)
           .margin({ right: 10 })
-        TextInput({ text: this.account, placeholder: '请输入账号' })
+        TextInput({ text: this.phone, placeholder: '请输入手机号' })
           .layoutWeight(1)
-          .type(InputType.Normal)
-          .maxLength(32)
+          .type(InputType.PhoneNumber)
+          .maxLength(11)
           .backgroundColor(Color.Transparent)
           .borderRadius(0)
           .fontSize(14)
           .fontColor($r('app.color.color_ink'))
           .placeholderColor($r('app.color.color_text_4'))
           .placeholderFont({ size: 14 })
-          .onChange((val: string) => { this.account = val; })
+          .onChange((val: string) => { this.phone = val; })
       }
       .width('100%')
       .height(46)
@@ -240,33 +402,34 @@ export struct UserLogin {
       .backgroundColor($r('app.color.color_fill'))
       .padding({ left: 16, right: 16 })
       .alignItems(VerticalAlign.Center)
-      .margin({ top: 28 })
+      .margin({ top: 22 })
 
-      // 密码输入框 + 显示密码切换
+      // 验证码输入框 + 获取验证码按钮
       Row() {
         Text('🔒')
           .fontSize(18)
           .margin({ right: 10 })
-        TextInput({ text: this.password, placeholder: '请输入密码' })
+        TextInput({ text: this.code, placeholder: '请输入验证码' })
           .layoutWeight(1)
-          .type(this.showPassword ? InputType.Normal : InputType.Password)
-          .maxLength(32)
+          .type(InputType.Number)
+          .maxLength(6)
           .backgroundColor(Color.Transparent)
           .borderRadius(0)
           .fontSize(14)
           .fontColor($r('app.color.color_ink'))
           .placeholderColor($r('app.color.color_text_4'))
           .placeholderFont({ size: 14 })
-          .onChange((val: string) => { this.password = val; })
+          .onChange((val: string) => { this.code = val; })
 
-        // 显示/隐藏密码
-        Text(this.showPassword ? '👁️' : '🙈')
-          .fontSize(18)
-          .width(28)
-          .height(28)
-          .textAlign(TextAlign.Center)
+        // 获取验证码按钮
+        Text(this.codeCountdown > 0 ? `${this.codeCountdown}s 后重发` : '获取验证码')
+          .fontSize(13)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.codeCountdown > 0 ? $r('app.color.color_text_4') : $r('app.color.color_ink'))
+          .padding({ left: 12 })
           .margin({ left: 8 })
-          .onClick(() => { this.showPassword = !this.showPassword; })
+          .border({ width: { left: 1 }, color: $r('app.color.color_line_2') })
+          .onClick(() => this.sendCode())
       }
       .width('100%')
       .height(46)
@@ -310,6 +473,9 @@ export struct UserLogin {
           .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Bold)
           .fontSize(12)
+        Span('，未注册手机号将自动创建账号')
+          .fontColor($r('app.color.color_text_3'))
+          .fontSize(12)
       }
       .layoutWeight(1)
       .lineHeight(18)
@@ -343,25 +509,6 @@ export struct UserLogin {
     .onClick(() => { if (!this.isLogging) this.doLogin(); })
   }
 
-  /** 去注册链接 */
-  @Builder
-  GoRegisterLink() {
-    Row({ space: 4 }) {
-      Text('还没有账号？')
-        .fontSize(13)
-        .fontColor($r('app.color.color_text_3'))
-      Text('去注册')
-        .fontSize(13)
-        .fontWeight(FontWeight.Bold)
-        .fontColor($r('app.color.color_ink'))
-        .decoration({ type: TextDecorationType.Underline })
-        .onClick(() => this.gotoRegister())
-    }
-    .width('100%')
-    .justifyContent(FlexAlign.Center)
-    .margin({ top: 16 })
-  }
-
   /** 分割线 */
   @Builder
   OrDivider() {
@@ -379,7 +526,7 @@ export struct UserLogin {
         .backgroundColor($r('app.color.color_line'))
     }
     .width('100%')
-    .margin({ top: 18, bottom: 18 })
+    .margin({ top: 22, bottom: 18 })
     .alignItems(VerticalAlign.Center)
   }
 
@@ -435,9 +582,25 @@ export struct UserLogin {
       Text('登录即代表同意趣农 服务协议 与 隐私政策')
         .fontSize(12)
         .fontColor($r('app.color.color_text_3'))
+      Text('未注册的手机号验证后将自动注册账号')
+        .fontSize(12)
+        .fontColor($r('app.color.color_text_3'))
     }
     .width('100%')
     .alignItems(HorizontalAlign.Center)
     .margin({ top: 8 })
+  }
+
+  /** 底部黄色波浪装饰 */
+  @Builder
+  WaveDecoration() {
+    Column()
+      .width('100%')
+      .height(60)
+      .linearGradient({
+        angle: 0,
+        colors: [['rgba(255,226,52,0.55)', 0.0], ['rgba(255,217,61,0.85)', 1.0]]
+      })
+      .position({ x: 0, y: '92%' })
   }
 }

@@ -3,7 +3,7 @@
  * 遵循 spec 15.5.1：整页重写，1:1 还原设计稿
  *  - 顶部装饰气泡 + 状态栏 + 返回按钮
  *  - 品牌 Logo 区（黄色渐变方块 + 吉祥物装饰）
- *  - 账号 + 密码 + 确认密码表单（带眼睛切换）
+ *  - 手机号 + 密码 + 确认密码表单（带眼睛切换）
  *  - 注册按钮 + 去登录链接
  *  - 底部黄色波浪装饰
  * 业务逻辑保留：HttpUtil.post /user/register + TokenStore + NavigationHelper
@@ -28,8 +28,8 @@ interface RegisterResponse {
 
 @ComponentV2
 export struct UserRegister {
-  /** 账号（兼容后端 phone 字段） */
-  @Local account: string = '';
+  /** 手机号 */
+  @Local phone: string = '';
   /** 密码 */
   @Local password: string = '';
   /** 确认密码 */
@@ -41,10 +41,16 @@ export struct UserRegister {
   /** 是否正在注册 */
   @Local isSubmitting: boolean = false;
 
+  /** 校验手机号格式 */
+  private isPhoneValid(): boolean {
+    const phoneRegex: RegExp = /^1[3-9]\d{9}$/;
+    return phoneRegex.test(this.phone);
+  }
+
   /** 注册 */
   private async doRegister(): Promise<void> {
-    if (this.account.trim().length === 0) {
-      ToastUtil.warning('请输入账号');
+    if (!this.isPhoneValid()) {
+      ToastUtil.warning('请输入正确的手机号');
       return;
     }
     if (this.password.length < 6) {
@@ -58,7 +64,7 @@ export struct UserRegister {
     this.isSubmitting = true;
     try {
       const req: RegisterRequest = {
-        phone: this.account,
+        phone: this.phone,
         password: this.password,
         nickname: '',
         userType: 'user'
@@ -122,6 +128,9 @@ export struct UserRegister {
         .height('100%')
         .scrollBar(BarState.Off)
         .align(Alignment.Top)
+
+        // 8. 底部黄色波浪装饰
+        this.WaveDecoration()
       }
       .width('100%')
       .height('100%')
@@ -154,10 +163,10 @@ export struct UserRegister {
           angle: 0,
           colors: [['rgba(126,211,33,0.20)', 0.0], ['rgba(126,211,33,0)', 0.7]]
         })
-        .position({ x: -34, y: 120 })
+        .position({ x: -34, y: 200 })
     }
     .width('100%')
-    .height(140)
+    .height(300)
   }
 
   /** 返回按钮 */
@@ -205,7 +214,7 @@ export struct UserRegister {
           })
           .border({ width: 3, color: $r('app.color.color_bg_card') })
           .textAlign(TextAlign.Center)
-          .margin({ top: 8 })
+          .margin({ top: 24 })
 
         // 品牌标题
         Text('趣农')
@@ -213,7 +222,7 @@ export struct UserRegister {
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.color_ink'))
           .letterSpacing(1)
-          .margin({ top: 12 })
+          .margin({ top: 16 })
 
         // 副标题
         Text('新鲜农货 产地直发')
@@ -243,22 +252,22 @@ export struct UserRegister {
   @Builder
   FormSection() {
     Column({ space: 14 }) {
-      // 账号输入框
+      // 手机号输入框
       Row() {
-        Text('👤')
+        Text('📱')
           .fontSize(18)
           .margin({ right: 12 })
-        TextInput({ text: this.account, placeholder: '请输入账号' })
+        TextInput({ text: this.phone, placeholder: '请输入手机号' })
           .layoutWeight(1)
-          .type(InputType.Normal)
-          .maxLength(32)
+          .type(InputType.PhoneNumber)
+          .maxLength(11)
           .backgroundColor(Color.Transparent)
           .borderRadius(0)
           .fontSize(14)
           .fontColor($r('app.color.color_ink'))
           .placeholderColor($r('app.color.color_text_4'))
           .placeholderFont({ size: 14 })
-          .onChange((val: string) => { this.account = val; })
+          .onChange((val: string) => { this.phone = val; })
       }
       .width('100%')
       .height(52)
@@ -383,5 +392,18 @@ export struct UserRegister {
       .fontColor($r('app.color.color_text_3'))
       .textAlign(TextAlign.Center)
       .margin({ top: 24 })
+  }
+
+  /** 底部黄色波浪装饰 */
+  @Builder
+  WaveDecoration() {
+    Column()
+      .width('100%')
+      .height(50)
+      .linearGradient({
+        angle: 0,
+        colors: [['rgba(255,226,52,0.5)', 0.0], ['rgba(255,217,61,0.8)', 1.0]]
+      })
+      .position({ x: 0, y: '90%' })
   }
 }

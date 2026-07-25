@@ -1,4 +1,4 @@
-﻿/**
+/**
  * community_list - 社区列表（spec 3.2.4.2）
  *
  * 与用户端社区互通（共用同一套社区数据）
@@ -46,7 +46,22 @@ export struct CommunityList {
   async aboutToAppear(): Promise<void> {
     Logger.info(AppConstants.SCENE_FARMER, { action: 'community_list_appear' });
     this.postDataSource.setFilter(this.currentTopicId, this.sortBy);
-    await this.refresh();
+    // 首次加载数据，使用 try-catch 确保异常不会阻塞渲染
+    try {
+      await this.refresh();
+    } catch (err) {
+      Logger.error(AppConstants.SCENE_FARMER, { action: 'community_list_init_fail', error: (err as Error).message });
+    }
+  }
+
+  /** 页面显示时刷新数据（解决从发帖页返回后列表不更新的问题） */
+  async onPageShow(): Promise<void> {
+    Logger.info(AppConstants.SCENE_FARMER, { action: 'community_list_onPageShow' });
+    try {
+      await this.refresh();
+    } catch (err) {
+      Logger.error(AppConstants.SCENE_FARMER, { action: 'community_list_onPageShow_fail', error: (err as Error).message });
+    }
   }
 
   /** 刷新（spec 10.11.4 Step 3：交由 DataSource.refresh 处理分页/状态） */

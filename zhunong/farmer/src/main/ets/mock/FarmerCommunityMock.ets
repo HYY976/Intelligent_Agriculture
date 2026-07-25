@@ -133,6 +133,40 @@ export function getMockCommentsByPostId(postId: string): Comment[] {
 }
 
 /**
+ * Mock 创建帖子（将新帖子插入列表，使其发布后可立即在列表中查看）
+ */
+export function mockCreatePost(
+  authorId: string,
+  topicId: string,
+  title: string,
+  content: string,
+  images: string[]
+): string {
+  const now: number = Date.now();
+  const postId: string = `p_${now}`;
+  const post: Post = {
+    postId,
+    authorId,
+    authorType: 'farmer',
+    topicId,
+    title,
+    content,
+    images,
+    likeCount: 0,
+    commentCount: 0,
+    favoriteCount: 0,
+    shareCount: 0,
+    status: 'normal',
+    createdAt: now,
+    authorNickname: '青禾农庄',
+    authorAvatar: 'avatar_farmer_1',
+    isSeller: true
+  };
+  MOCK_POSTS.unshift(post);
+  return postId;
+}
+
+/**
  * 获取预设话题列表
  */
 export function getMockTopics() {

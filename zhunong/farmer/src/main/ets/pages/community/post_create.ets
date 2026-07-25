@@ -1,4 +1,4 @@
-﻿/**
+/**
  * post_create - 发帖页（spec 3.2.4.2）
  *
  * 卖家发帖昵称带"卖家"V标
@@ -23,8 +23,8 @@ export struct PostCreate {
   @Local images: string[] = [];
   /** 是否正在提交 */
   @Local isSubmitting: boolean = false;
-  /** 话题列表 */
-  @Local topics: Topic[] = PRESET_TOPICS;
+  /** 话题列表（发帖时排除"全部"聚合标签，只按现有分类发布） */
+  @Local topics: Topic[] = PRESET_TOPICS.filter((t: Topic) => t.topicId !== 't0');
 
   /** 图片预设 key */
   private imageKeys: string[] = [

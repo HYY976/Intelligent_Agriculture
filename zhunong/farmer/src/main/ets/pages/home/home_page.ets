@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿/**
+﻿﻿﻿﻿﻿﻿﻿﻿/**
  * home_page - 农户卖家端首页
  * 对齐设计稿 pages/farmer-home.html：
  *  - 顶部 4 入口导航栏（商城/直播/智能体/搜索）白底圆角18浮卡 56vp
@@ -318,21 +318,41 @@ export struct FarmerHomePage {
     .shadow({ radius: 24, color: 'rgba(26,26,26,0.18)', offsetX: 0, offsetY: 8 })
   }
 
-  /** 右上角圆形模式开关（对齐 qn-mode-switch：48×48 深灰底 + 太阳图标） */
+  /** 右上角模式开关（滑动式：默认⇄老人，点击切换） */
   @Builder
   ModeToggle() {
-    Column() {
-      Text(this.isElderMode() ? '☀' : '☾')
-        .fontSize(22)
-        .fontColor($r('app.color.color_yellow_deep'))
+    Row({ space: 8 }) {
+      // 文字标签
+      Text(this.isElderMode() ? '老人' : '默认')
+        .fontSize(11)
+        .fontColor('rgba(255,255,255,0.75)')
+        .fontWeight(FontWeight.Medium)
+
+      // 滑轨 + 滑块
+      Stack() {
+        Row() {
+          Text(this.isElderMode() ? '老' : '默')
+            .fontSize(10)
+            .fontColor($r('app.color.color_ink'))
+            .fontWeight(FontWeight.Bold)
+        }
+        .width(22)
+        .height(22)
+        .borderRadius(11)
+        .backgroundColor(this.isElderMode() ? $r('app.color.color_yellow') : Color.White)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+        .shadow({ radius: 4, color: 'rgba(0,0,0,0.25)', offsetX: 0, offsetY: 2 })
+        .position({ x: this.isElderMode() ? 25 : 3, y: 3 })
+        .animation({ duration: 200, curve: Curve.EaseInOut })
+      }
+      .width(50)
+      .height(28)
+      .borderRadius(14)
+      .backgroundColor(this.isElderMode() ? 'rgba(255,217,61,0.4)' : $r('app.color.color_dark_soft'))
+      .onClick(() => { this.toggleMode(); })
     }
-    .width(48)
-    .height(48)
-    .borderRadius(24)
-    .backgroundColor($r('app.color.color_dark_soft'))
-    .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Center)
-    .onClick(() => { this.toggleMode(); })
+    .alignItems(VerticalAlign.Center)
   }
 
   /** 营收辅助数据项（对齐 qn-rev-cell：数字+单位 / 标签） */
@@ -355,7 +375,7 @@ export struct FarmerHomePage {
         .fontColor('rgba(255,255,255,0.62)')
     }
     .layoutWeight(1)
-    .alignItems(HorizontalAlign.Start)
+    .alignItems(HorizontalAlign.Center)
     .border({ width: { left: 0 }, color: Color.Transparent })
   }
 

@@ -140,16 +140,13 @@ export struct FarmerRegister {
             this.FooterSection()
           }
           .width('100%')
-          .padding({ left: 24, right: 24, bottom: 80 })
+          .padding({ left: 24, right: 24, bottom: 24 })
           .alignItems(HorizontalAlign.Center)
         }
         .width('100%')
         .height('100%')
         .scrollBar(BarState.Off)
         .backgroundColor($r('app.color.color_bg_page'))
-
-        // 6. 底部黄色波浪装饰
-        this.BottomWave()
       }
       .width('100%')
       .height('100%')
@@ -164,22 +161,22 @@ export struct FarmerRegister {
     Stack() {
       // 黄色气泡（右上角）
       Column()
-        .width(130)
-        .height(130)
-        .borderRadius(65)
+        .width(70)
+        .height(70)
+        .borderRadius(35)
         .backgroundColor('rgba(255,226,52,0.28)')
-        .position({ right: -42, top: -36 })
+        .position({ right: -24, top: -24 })
 
       // 绿色气泡（左侧）
       Column()
-        .width(96)
-        .height(96)
-        .borderRadius(48)
+        .width(48)
+        .height(48)
+        .borderRadius(24)
         .backgroundColor('rgba(126,211,33,0.18)')
-        .position({ left: -34, top: 180 })
+        .position({ left: -20, top: 30 })
     }
     .width('100%')
-    .height(280)
+    .height(80)
     .hitTestBehavior(HitTestMode.Transparent)
   }
 
@@ -246,7 +243,7 @@ export struct FarmerRegister {
           .letterSpacing(0.5)
       }
       .width('100%')
-      .margin({ top: 18 })
+      .margin({ top: 0 })
       .alignItems(HorizontalAlign.Center)
 
       // 右侧吉祥物装饰
@@ -297,7 +294,7 @@ export struct FarmerRegister {
       .shadow(AppConstants.SHADOW_CARD)
       .alignItems(VerticalAlign.Center)
 
-      // b) 密码输入框（含显隐切换）
+      // b) 密码输入框（含左侧锁图标，系统 Password 类型自带显隐切换）
       Row({ space: 12 }) {
         Text('🔒')
           .fontSize(18)
@@ -316,13 +313,6 @@ export struct FarmerRegister {
           .onChange((value: string) => {
             this.password = value;
           })
-        Text(this.passwordVisible ? '👁' : '🙈')
-          .fontSize(16)
-          .fontColor($r('app.color.color_text_3'))
-          .width(28)
-          .height(28)
-          .textAlign(TextAlign.Center)
-          .onClick(() => { this.togglePasswordVisible(); })
       }
       .width('100%')
       .height(52)
@@ -333,7 +323,7 @@ export struct FarmerRegister {
       .shadow(AppConstants.SHADOW_CARD)
       .alignItems(VerticalAlign.Center)
 
-      // c) 确认密码输入框（含显隐切换）
+      // c) 确认密码输入框（含左侧锁图标，系统 Password 类型自带显隐切换）
       Row({ space: 12 }) {
         Text('🔒')
           .fontSize(18)
@@ -352,13 +342,6 @@ export struct FarmerRegister {
           .onChange((value: string) => {
             this.confirmPassword = value;
           })
-        Text(this.confirmPasswordVisible ? '👁' : '🙈')
-          .fontSize(16)
-          .fontColor($r('app.color.color_text_3'))
-          .width(28)
-          .height(28)
-          .textAlign(TextAlign.Center)
-          .onClick(() => { this.toggleConfirmPasswordVisible(); })
       }
       .width('100%')
       .height(52)
@@ -472,24 +455,7 @@ export struct FarmerRegister {
       .justifyContent(FlexAlign.Center)
     }
     .width('100%')
-    .margin({ top: 24 })
+    .margin({ top: 8 })
     .alignItems(HorizontalAlign.Center)
-  }
-
-  /** 底部黄色波浪装饰 */
-  @Builder
-  BottomWave() {
-    Column()
-      .width('100%')
-      .height(50)
-      .linearGradient({
-        direction: GradientDirection.Right,
-        colors: [
-          ['rgba(255,226,52,0.5)', 0],
-          ['rgba(255,217,61,0.8)', 0.5],
-          ['rgba(255,226,52,0.5)', 1]
-        ]
-      })
-      .hitTestBehavior(HitTestMode.Transparent)
   }
 }

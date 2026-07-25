@@ -5,7 +5,13 @@
 
 import { BaseRepository, AppConstants, PageResult } from 'common';
 import { Post, Comment, Topic, PostSortBy } from '../model/FarmerCommunityModels';
-import { getMockPostList, getMockPostById, getMockCommentsByPostId, getMockTopics } from '../mock/FarmerCommunityMock';
+import {
+  getMockPostList,
+  getMockPostById,
+  getMockCommentsByPostId,
+  getMockTopics,
+  mockCreatePost
+} from '../mock/FarmerCommunityMock';
 
 /** 帖子列表查询参数 */
 interface PostListQuery {
@@ -135,9 +141,7 @@ class CommunityRepositoryImpl {
     const result: string = await BaseRepository.postWithFallback<string>(
       'community/post/create',
       body,
-      async (): Promise<string> => {
-        return `p_${Date.now()}`;
-      },
+      async (): Promise<string> => mockCreatePost(authorId, topicId, title, content, images),
       AppConstants.SCENE_FARMER
     );
     return result;
