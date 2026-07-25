@@ -1,0 +1,42 @@
+﻿> hvigor [32mUP-TO-DATE :user:default@PreBuild...  [39m
+> hvigor [32mFinished :user:default@CreateModuleInfo... after 2 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@GenerateMetadata...  [39m
+> hvigor [32mFinished :user:default@ConfigureCmake... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@MergeProfile...  [39m
+> hvigor [32mUP-TO-DATE :user:default@CreateBuildProfile...  [39m
+> hvigor [32mFinished :user:default@PreCheckSyscap... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@GeneratePkgContextInfo...  [39m
+> hvigor [32mFinished :user:default@GeneratePkgSdkInfo... after 4 ms [39m
+> hvigor [32mFinished :user:default@ProcessIntegratedHsp... after 1 ms [39m
+> hvigor [32mFinished :user:default@BuildNativeWithCmake... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@MakePackInfo...  [39m
+> hvigor [32mFinished :user:default@SyscapTransform... after 13 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@ProcessProfile...  [39m
+> hvigor [32mUP-TO-DATE :user:default@ProcessRouterMap...  [39m
+> hvigor [32mUP-TO-DATE :user:default@ProcessShareConfig...  [39m
+> hvigor [32mFinished :user:default@ProcessStartupConfig... after 3 ms [39m
+> hvigor [32mFinished :user:default@BuildNativeWithNinja... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@ProcessResource...  [39m
+> hvigor [32mUP-TO-DATE :user:default@GenerateLoaderJson...  [39m
+> hvigor [32mUP-TO-DATE :user:default@ProcessLibs...  [39m
+> hvigor [32mUP-TO-DATE :user:default@CompileResource...  [39m
+> hvigor [32mUP-TO-DATE :user:default@DoNativeStrip...  [39m
+> hvigor [32mFinished :user:default@BuildJS... after 4 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@CacheNativeLibs...  [39m
+> hvigor [32mFinished :user:default@CompileArkTS... after 9 s 136 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@GeneratePkgModuleJson...  [39m
+> hvigor [32mFinished :user:default@ProcessCompiledResources... after 1 ms [39m
+> hvigor [32mFinished :user:default@PackageHap... after 586 ms [39m
+> hvigor [32mFinished :user:default@PackingCheck... after 8 ms [39m
+hvigorw.bat : > hvigor [33mWARN: Will skip sign 'hos_hap'. No signingConfigs profile is configured in current project.
+At line:15 char:6017
++ ... o\jbr\bin"; & "E:\DevEco Studio\tools\hvigor\bin\hvigorw.bat" assembl ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (> hvigor [33mW...urrent project.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+             If needed, configure the signingConfigs in C:\Users\21132\Project\zhunong\build-profile.json5.[39m
+> hvigor [32mFinished :user:default@SignHap... after 3 ms [39m
+> hvigor [32mFinished :user:default@CollectDebugSymbol... after 1 ms [39m
+> hvigor [32mFinished :user:assembleHap... after 1 ms [39m
+> hvigor [32mBUILD SUCCESSFUL in 15 s 645 ms [39m

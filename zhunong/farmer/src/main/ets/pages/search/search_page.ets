@@ -1,4 +1,4 @@
-/**
+﻿/**
  * search_page - 搜索页（spec 3.2.1）
  *
  * 与用户端搜索页完全一致（含双榜单）
@@ -242,7 +242,7 @@ export struct SearchPage {
           Row({ space: 4 }) {
             Text(`${item.rank}`)
               .fontSize(11)
-              .fontColor(item.rank <= 3 ? $r('app.color.color_secondary') : $r('app.color.color_text_hint'))
+              .fontColor(item.rank <= 3 ? $r('app.color.color_cta_black') : $r('app.color.color_text_hint'))
               .fontWeight(FontWeight.Bold)
             Text(item.keyword)
               .fontSize(12)
@@ -271,12 +271,12 @@ export struct SearchPage {
       Row({ space: 12 }) {
         Text('商品热销榜')
           .fontSize(14)
-          .fontColor(this.rankTab === 0 ? $r('app.color.color_secondary') : $r('app.color.color_text_secondary'))
+          .fontColor(this.rankTab === 0 ? $r('app.color.color_cta_black') : $r('app.color.color_text_secondary'))
           .fontWeight(this.rankTab === 0 ? FontWeight.Bold : FontWeight.Normal)
           .onClick(() => { this.switchRankTab(0); })
         Text('直播人气榜')
           .fontSize(14)
-          .fontColor(this.rankTab === 1 ? $r('app.color.color_secondary') : $r('app.color.color_text_secondary'))
+          .fontColor(this.rankTab === 1 ? $r('app.color.color_cta_black') : $r('app.color.color_text_secondary'))
           .fontWeight(this.rankTab === 1 ? FontWeight.Bold : FontWeight.Normal)
           .onClick(() => { this.switchRankTab(1); })
       }
@@ -309,14 +309,14 @@ export struct SearchPage {
         .width(28)
         .height(28)
         .borderRadius(14)
-        .backgroundColor(idx === 0 ? $r('app.color.color_secondary') : (idx < 3 ? $r('app.color.color_primary') : $r('app.color.color_bg_page')))
+        .backgroundColor(idx === 0 ? $r('app.color.color_cta_black') : (idx < 3 ? $r('app.color.color_cta_black') : $r('app.color.color_bg_page')))
         .textAlign(TextAlign.Center)
       Text('🥬')
         .fontSize(28)
         .width(48)
         .height(48)
         .borderRadius(8)
-        .backgroundColor($r('app.color.color_primary_light'))
+        .backgroundColor($r('app.color.color_card_yellow'))
         .textAlign(TextAlign.Center)
       Column({ space: 2 }) {
         Text(item.title)
@@ -356,7 +356,7 @@ export struct SearchPage {
         .width(28)
         .height(28)
         .borderRadius(14)
-        .backgroundColor(idx === 0 ? $r('app.color.color_secondary') : (idx < 3 ? $r('app.color.color_primary') : $r('app.color.color_bg_page')))
+        .backgroundColor(idx === 0 ? $r('app.color.color_cta_black') : (idx < 3 ? $r('app.color.color_cta_black') : $r('app.color.color_bg_page')))
         .textAlign(TextAlign.Center)
       Text('📹')
         .fontSize(28)

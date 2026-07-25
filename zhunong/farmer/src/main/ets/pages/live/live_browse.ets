@@ -93,17 +93,36 @@ export struct LiveBrowse {
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Center)
         } else if (this.liveList.length === 0) {
-          Column({ space: 8 }) {
+          // spec 15.6.4：空状态增加引导文案 + 主 CTA 按钮
+          Column({ space: 12 }) {
             Text('📺')
-              .fontSize(48)
+              .fontSize(64)
             Text('暂无直播')
-              .fontSize(14)
+              .fontSize(18)
               .fontColor(Color.White)
+              .fontWeight(FontWeight.Bold)
+            Text('直播间空空如也，快去开启你的第一场直播吧')
+              .fontSize(13)
+              .fontColor('rgba(255,255,255,0.7)')
+              .maxLines(2)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+            Button('去开播')
+              .height(40)
+              .borderRadius(20)
+              .backgroundColor($r('app.color.color_cta_black'))
+              .fontColor(Color.White)
+              .fontSize(14)
+              .padding({ left: 24, right: 24 })
+              .margin({ top: 12 })
+              .onClick(() => {
+                NavigationHelper.push(RouteName.FARMER_LIVE_CREATE);
+              })
           }
           .width('100%')
           .height('100%')
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Center)
+          .padding({ left: 32, right: 32 })
         } else {
           Swiper() {
             ForEach(this.liveList, (item: LiveListItem, _idx: number) => {
@@ -127,10 +146,10 @@ export struct LiveBrowse {
             ForEach(this.sortOptions, (opt: SortOption) => {
               Text(opt.label)
                 .fontSize(12)
-                .fontColor(this.sortBy === opt.value ? Color.White : 'rgba(255,255,255,0.6)')
+                .fontColor(this.sortBy === opt.value ? $r('app.color.color_text_primary') : 'rgba(255,255,255,0.6)')
                 .fontWeight(this.sortBy === opt.value ? FontWeight.Bold : FontWeight.Normal)
                 .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-                .backgroundColor(this.sortBy === opt.value ? 'rgba(255,152,0,0.8)' : 'rgba(0,0,0,0.3)')
+                .backgroundColor(this.sortBy === opt.value ? $r('app.color.color_card_yellow') : 'rgba(0,0,0,0.3)')
                 .borderRadius(14)
                 .margin({ left: 6 })
                 .onClick(() => { this.onSortChange(opt.value); })
@@ -184,7 +203,7 @@ export struct LiveBrowse {
         .position({ x: 16, y: 64 })
       }
 
-      // 右侧操作栏（仿抖音）
+      // 右侧操作栏（仿抖音）spec 15.6.4：商品袋入口改黄色
       Column({ space: 24 }) {
         Column({ space: 4 }) {
           Text('👁')
@@ -202,14 +221,18 @@ export struct LiveBrowse {
             .fontColor(Color.White)
         }
         .alignItems(HorizontalAlign.Center)
+        // 商品袋入口 spec 15.6.4：黄色背景 + 黑字
         Column({ space: 4 }) {
           Text('🛒')
             .fontSize(28)
           Text('商品袋')
             .fontSize(11)
-            .fontColor(Color.White)
+            .fontColor($r('app.color.color_text_primary'))
         }
         .alignItems(HorizontalAlign.Center)
+        .padding({ left: 8, right: 8, top: 6, bottom: 6 })
+        .borderRadius(24)
+        .backgroundColor($r('app.color.color_card_yellow'))
       }
       .position({ x: '85%', y: '40%' })
       .alignItems(HorizontalAlign.Center)
@@ -222,7 +245,7 @@ export struct LiveBrowse {
             .width(40)
             .height(40)
             .borderRadius(20)
-            .backgroundColor($r('app.color.color_primary'))
+            .backgroundColor($r('app.color.color_cta_black'))
             .textAlign(TextAlign.Center)
           Column({ space: 2 }) {
             Text(item.farmerName)
@@ -238,8 +261,8 @@ export struct LiveBrowse {
           Button('+ 关注')
             .height(28)
             .borderRadius(14)
-            .backgroundColor($r('app.color.color_secondary'))
-            .fontColor(Color.White)
+            .backgroundColor($r('app.color.color_card_yellow'))
+            .fontColor($r('app.color.color_text_primary'))
             .fontSize(11)
             .padding({ left: 12, right: 12 })
         }
@@ -255,7 +278,7 @@ export struct LiveBrowse {
           .width('100%')
           .height(40)
           .borderRadius(20)
-          .backgroundColor($r('app.color.color_secondary'))
+          .backgroundColor($r('app.color.color_cta_black'))
           .fontColor(Color.White)
           .fontSize(13)
           .onClick(() => this.gotoLiveRoom(item.liveId))

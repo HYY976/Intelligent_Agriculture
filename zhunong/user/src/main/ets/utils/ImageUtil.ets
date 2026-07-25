@@ -34,6 +34,12 @@ export class ImageUtil {
       case 'avatar_farmer_1': return $r('app.media.avatar_farmer_1');
       case 'avatar_farmer_2': return $r('app.media.avatar_farmer_2');
       case 'avatar_farmer_3': return $r('app.media.avatar_farmer_3');
+      // 吉祥物
+      case 'mascot_farmer': return $r('app.media.mascot_farmer');
+      case 'hero_harvest': return $r('app.media.hero_harvest');
+      // 文旅
+      case 'farm_picking': return $r('app.media.farm_picking');
+      case 'live_orchard': return $r('app.media.live_orchard');
       // 店铺 Logo
       case 'shop_logo_default': return $r('app.media.shop_logo_default');
       // 开屏广告

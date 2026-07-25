@@ -1,13 +1,17 @@
 /**
  * address_list - 收货地址列表页
- * 遵循 spec 3.1.3.5：地址管理（增删改查 + 默认地址 + 编辑跳转）
+ * 遵循 spec 3.1.3.5 + 设计稿 address-list.html 1:1 复刻：
+ *  - 顶栏：白色圆形返回按钮 + 居中标题"收货地址" + 右侧"管理"文字
+ *  - 地址卡：白底圆角卡 + 默认地址左侧 3px 绿色竖条 + 姓名/电话/默认标签 + 地址文本 + 编辑/删除操作
+ *  - 右下角 FAB：56×56 黑色圆形"+"浮动按钮
+ *  - 底部固定栏：白底 + 全宽"新增地址"黑色按钮
  *
  * spec 10.11.4 Step 2：ForEach → LazyForEach + keyGenerator + cachedCount
  */
 
-import { UserRoutes, Logger, AppConstants, ToastUtil, RouteName, NavigationHelper, ListStateView } from 'common';
+import { Logger, AppConstants, ToastUtil, RouteName, NavigationHelper, ListStateView } from 'common';
 import { Address } from '../../model/ProfileModels';
-import { setMockDefaultAddress, deleteMockAddress, getMockDefaultAddress } from '../../mock/ProfileMock';
+import { setMockDefaultAddress, deleteMockAddress } from '../../mock/ProfileMock';
 import { AddressListDataSource } from '../../viewmodel/AddressListDataSource';
 
 /** 地址列表参数 */
@@ -71,73 +75,247 @@ export struct AddressList {
   /** 选择地址（从订单确认页进入时） */
   private onSelect(address: Address): void {
     if (this.from === 'order_confirm') {
-      Logger.info(AppConstants.SCENE_USER, JSON.stringify({ action: 'select_address', addressId: address.addressId }));
+      Logger.info(AppConstants.SCENE_USER, { action: 'select_address', addressId: address.addressId });
       NavigationHelper.pop();
     }
   }
 
   build() {
     NavDestination() {
-      Column() {
-        // 顶部栏
-        Row() {
-          Text('‹').fontSize(28).fontColor($r('app.color.color_text_primary')).onClick(() => { NavigationHelper.pop(); })
-          Text('收货地址').fontSize(18).fontColor($r('app.color.color_text_primary')).fontWeight(FontWeight.Medium).layoutWeight(1).textAlign(TextAlign.Center)
-          Text('+').fontSize(28).fontColor($r('app.color.color_primary')).onClick(() => { this.gotoAdd(); })
-        }
-        .width('100%').height(56).padding({ left: 16, right: 16 }).backgroundColor($r('app.color.color_bg_card')).alignItems(VerticalAlign.Center)
+      Stack({ alignContent: Alignment.BottomEnd }) {
+        // 主内容区
+        Column() {
+          this.TopBar()
 
-        // 地址列表（spec 10.11.4 Step 4：4 态状态机 error / loading / empty / list）
-        if (this.dataSource.getLoadFailed()) {
-          ListStateView({ state: 'error', onRefresh: () => this.refreshList() })
-        } else if (this.dataSource.getIsFirstLoad()) {
-          ListStateView({ state: 'loading' })
-        } else if (this.dataSource.totalCount() === 0) {
-          this.EmptyView()
-        } else {
-        List({ space: 12 }) {
-          LazyForEach(this.dataSource, (addr: Address, _i: number) => {
-            ListItem() {
-              Column({ space: 8 }) {
-                Row({ space: 8 }) {
-                  Text(addr.receiverName).fontSize(14).fontColor($r('app.color.color_text_primary')).fontWeight(FontWeight.Medium)
-                  Text(addr.phone).fontSize(13).fontColor($r('app.color.color_text_secondary'))
-                  if (addr.isDefault) {
-                    Text('默认').fontSize(10).fontColor(Color.White).backgroundColor($r('app.color.color_primary')).borderRadius(4).padding({ left: 4, right: 4, top: 1, bottom: 1 })
-                  }
-                  if (addr.tag && addr.tag.length > 0) {
-                    Text(addr.tag).fontSize(10).fontColor($r('app.color.color_secondary')).border({ width: 1, color: $r('app.color.color_secondary') }).borderRadius(4).padding({ left: 4, right: 4, top: 1, bottom: 1 })
-                  }
+          // 地址列表（spec 10.11.4 Step 4：4 态状态机 error / loading / empty / list）
+          if (this.dataSource.getLoadFailed()) {
+            ListStateView({ state: 'error', onRefresh: () => this.refreshList() })
+          } else if (this.dataSource.getIsFirstLoad()) {
+            ListStateView({ state: 'loading' })
+          } else if (this.dataSource.totalCount() === 0) {
+            this.EmptyView()
+          } else {
+            List({ space: 10 }) {
+              LazyForEach(this.dataSource, (addr: Address, _i: number) => {
+                ListItem() {
+                  this.AddressCard(addr)
                 }
-                Text(`${addr.province}${addr.city}${addr.district} ${addr.detail}`).fontSize(12).fontColor($r('app.color.color_text_secondary'))
-                Divider().color($r('app.color.color_divider'))
-                Row() {
-                  if (!addr.isDefault) {
-                    Text('设为默认').fontSize(12).fontColor($r('app.color.color_text_secondary')).onClick(() => { this.setDefault(addr); })
-                  }
-                  Blank()
-                  Text('编辑').fontSize(12).fontColor($r('app.color.color_text_secondary')).margin({ right: 16 }).onClick(() => { this.gotoEdit(addr); })
-                  Text('删除').fontSize(12).fontColor($r('app.color.color_error')).onClick(() => { this.onDelete(addr); })
-                }.width('100%')
-              }
-              .width('100%').padding(16).backgroundColor($r('app.color.color_bg_card')).borderRadius(12)
-              .onClick(() => { this.onSelect(addr); })
+              }, (addr: Address) => addr.addressId + `_${addr.isDefault}`)
             }
-          }, (addr: Address) => addr.addressId + `_${addr.isDefault}`)
-        }
-        .width('100%').layoutWeight(1).padding({ left: 12, right: 12, top: 12 }).scrollBar(BarState.Off)
-        .cachedCount(AppConstants.LIST_CACHED_COUNT)
-        }
+            .width('100%')
+            .layoutWeight(1)
+            .padding({ left: 16, right: 16, top: 12, bottom: 100 })
+            .scrollBar(BarState.Off)
+            .cachedCount(AppConstants.LIST_CACHED_COUNT)
+          }
 
-        // 底部新增按钮
-        Button('+ 新增收货地址')
-          .width('90%').height(44).borderRadius(22).backgroundColor($r('app.color.color_primary')).fontColor(Color.White).fontSize(15)
-          .margin({ bottom: 16 })
-          .onClick(() => { this.gotoAdd(); })
+          // 底部固定新增按钮栏（对齐设计稿 qn-addr-footbar）
+          this.BottomBar()
+        }
+        .width('100%')
+        .height('100%')
+        .backgroundColor($r('app.color.color_bg_page'))
+
+        // 右下角 FAB（对齐设计稿 qn-addr-fab：56×56 黑色圆形）
+        Row() {
+          Text('+')
+            .fontSize(26)
+            .fontColor(Color.White)
+            .fontWeight(FontWeight.Bold)
+        }
+        .width(56)
+        .height(56)
+        .borderRadius(28)
+        .backgroundColor($r('app.color.color_ink'))
+        .shadow(AppConstants.SHADOW_FAB)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+        .margin({ right: 16, bottom: 78 })
+        .onClick(() => { this.gotoAdd(); })
       }
-      .width('100%').height('100%').backgroundColor($r('app.color.color_bg_page'))
+      .width('100%')
+      .height('100%')
     }
     .hideTitleBar(true)
+  }
+
+  /** 顶栏（对齐设计稿 qn-topbar） */
+  @Builder
+  TopBar() {
+    Row() {
+      // 返回按钮（白色圆形）
+      Row() {
+        Text('‹')
+          .fontSize(22)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+      }
+      .width(32)
+      .height(32)
+      .borderRadius(16)
+      .backgroundColor($r('app.color.color_bg_card'))
+      .shadow(AppConstants.SHADOW_CARD)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .onClick(() => { NavigationHelper.pop(); })
+
+      // 居中标题
+      Text('收货地址')
+        .fontSize(17)
+        .fontColor($r('app.color.color_ink'))
+        .fontWeight(FontWeight.Bold)
+        .layoutWeight(1)
+        .textAlign(TextAlign.Center)
+
+      // 右侧"管理"文字
+      Text('管理')
+        .fontSize(14)
+        .fontColor($r('app.color.color_text_3'))
+        .fontWeight(FontWeight.Medium)
+        .width(32)
+        .textAlign(TextAlign.Center)
+        .onClick(() => { ToastUtil.show('管理功能开发中'); })
+    }
+    .width('100%')
+    .padding({ left: 16, right: 16, top: 8, bottom: 10 })
+    .backgroundColor($r('app.color.color_bg_card'))
+    .alignItems(VerticalAlign.Center)
+  }
+
+  /** 地址卡片（对齐设计稿 qn-addr-card） */
+  @Builder
+  AddressCard(addr: Address) {
+    Stack({ alignContent: Alignment.Start }) {
+      // 卡片内容（白底圆角 + 阴影）
+      Column({ space: 0 }) {
+        // 顶行：姓名 + 电话 + 默认标签
+        Row({ space: 10 }) {
+          Text(addr.receiverName)
+            .fontSize(16)
+            .fontColor($r('app.color.color_ink'))
+            .fontWeight(FontWeight.Bold)
+
+          Text(addr.phone)
+            .fontSize(13)
+            .fontColor($r('app.color.color_text_2'))
+
+          Blank()
+
+          // 默认标签（对齐设计稿 qn-pill-green）
+          if (addr.isDefault) {
+            Text('默认')
+              .fontSize(11)
+              .fontColor($r('app.color.color_green_deep'))
+              .fontWeight(FontWeight.Bold)
+              .padding({ left: 10, right: 10, top: 3, bottom: 3 })
+              .borderRadius(AppConstants.RADIUS_PILL)
+              .backgroundColor($r('app.color.color_green_soft'))
+          }
+
+          // 标签（家/学校/公司）
+          if (addr.tag && addr.tag.length > 0) {
+            Text(addr.tag)
+              .fontSize(11)
+              .fontColor($r('app.color.color_yellow_text'))
+              .fontWeight(FontWeight.Bold)
+              .padding({ left: 10, right: 10, top: 3, bottom: 3 })
+              .borderRadius(AppConstants.RADIUS_PILL)
+              .backgroundColor($r('app.color.color_yellow_soft'))
+          }
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
+
+        // 地址文本
+        Text(`${addr.province}${addr.city}${addr.district} ${addr.detail}`)
+          .fontSize(13)
+          .fontColor($r('app.color.color_ink_2'))
+          .margin({ top: 8 })
+          .maxLines(2)
+
+        // 分割线（对齐设计稿 qn-addr-divider）
+        Divider()
+          .color($r('app.color.color_line'))
+          .strokeWidth(1)
+          .margin({ top: 12, bottom: 10 })
+
+        // 操作行（右对齐，对齐设计稿 qn-addr-actions）
+        Row({ space: 22 }) {
+          Blank()
+          // 设为默认（非默认地址才显示）
+          if (!addr.isDefault) {
+            Row({ space: 4 }) {
+              Text('⭐')
+                .fontSize(14)
+              Text('设为默认')
+                .fontSize(13)
+                .fontColor($r('app.color.color_text_3'))
+            }
+            .alignItems(VerticalAlign.Center)
+            .onClick(() => { this.setDefault(addr); })
+          }
+          // 编辑
+          Row({ space: 4 }) {
+            Text('✏️')
+              .fontSize(14)
+            Text('编辑')
+              .fontSize(13)
+              .fontColor($r('app.color.color_text_3'))
+          }
+          .alignItems(VerticalAlign.Center)
+          .onClick(() => { this.gotoEdit(addr); })
+
+          // 删除
+          Row({ space: 4 }) {
+            Text('🗑️')
+              .fontSize(14)
+            Text('删除')
+              .fontSize(13)
+              .fontColor($r('app.color.color_text_3'))
+          }
+          .alignItems(VerticalAlign.Center)
+          .onClick(() => { this.onDelete(addr); })
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
+      }
+      .width('100%')
+      .padding(16)
+      .backgroundColor($r('app.color.color_bg_card'))
+
+      // 默认地址左侧 3px 绿色竖条（对齐设计稿 qn-addr-card.is-default::before）
+      if (addr.isDefault) {
+        Column()
+          .width(3)
+          .height('100%')
+          .backgroundColor($r('app.color.color_green'))
+      }
+    }
+    .width('100%')
+    .borderRadius(AppConstants.RADIUS_LG)
+    .clip(true)
+    .shadow(AppConstants.SHADOW_CARD)
+    .onClick(() => { this.onSelect(addr); })
+  }
+
+  /** 底部固定新增按钮栏（对齐设计稿 qn-addr-footbar） */
+  @Builder
+  BottomBar() {
+    Row() {
+      Button('新增地址')
+        .width('100%')
+        .height(46)
+        .borderRadius(AppConstants.RADIUS_MD)
+        .backgroundColor($r('app.color.color_ink'))
+        .fontColor(Color.White)
+        .fontSize(16)
+        .fontWeight(FontWeight.Bold)
+        .onClick(() => { this.gotoAdd(); })
+    }
+    .width('100%')
+    .padding({ left: 16, right: 16, top: 10, bottom: 10 })
+    .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_NAV)
   }
 
   /** 空状态（spec 10.13：4 态状态机） */
@@ -152,15 +330,14 @@ export struct AddressList {
       Button('新增地址')
         .height(36)
         .borderRadius(18)
-        .backgroundColor($r('app.color.color_primary'))
+        .backgroundColor($r('app.color.color_cta_black'))
         .fontColor(Color.White)
         .fontSize(14)
         .onClick(() => this.gotoAdd())
     }
     .width('100%')
-    .height('100%')
+    .layoutWeight(1)
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
   }
-
 }

@@ -36,13 +36,6 @@
       "dynamicDependencies": {},
       "maskedByOverrideDependencyMap": false
     },
-    "common": {
-      "name": "common",
-      "dependencies": {},
-      "devDependencies": {},
-      "dynamicDependencies": {},
-      "maskedByOverrideDependencyMap": false
-    },
     "farmer": {
       "name": "farmer",
       "dependencies": {
@@ -69,14 +62,6 @@
     }
   },
   "packages": {
-    "common@file:common": {
-      "storePath": "common",
-      "dependencies": {},
-      "dynamicDependencies": {},
-      "dev": false,
-      "dynamic": false,
-      "maskedByOverrideDependencyMap": false
-    },
     "@ohos/hypium@1.0.24": {
       "integrity": "sha512-3dCqc+BAR5LqEGG2Vtzi8O3r7ci/3fYU+FWjwvUobbfko7DUnXGOccaror0yYuUhJfXzFK0aZNMGSnXaTwEnbw==",
       "storePath": "oh_modules/.ohpm/@ohos+hypium@1.0.24",
@@ -92,6 +77,14 @@
       "dependencies": {},
       "dynamicDependencies": {},
       "dev": true,
+      "dynamic": false,
+      "maskedByOverrideDependencyMap": false
+    },
+    "common@file:common": {
+      "storePath": "common",
+      "dependencies": {},
+      "dynamicDependencies": {},
+      "dev": false,
       "dynamic": false,
       "maskedByOverrideDependencyMap": false
     }

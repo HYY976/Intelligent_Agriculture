@@ -1,4 +1,4 @@
-/**
+﻿/**
  * splash_ad - 卖家端开屏广告页
  * 遵循 spec 3.1.2.2 / 5.2：
  *  - 卖家端冷启动同样展示开屏广告（5秒倒计时 + 跳过按钮）
@@ -137,7 +137,7 @@ export struct SplashAd {
           .width('100%')
           .height('100%')
           .justifyContent(FlexAlign.Center)
-          .backgroundColor($r('app.color.color_secondary'))
+          .backgroundColor($r('app.color.color_cta_black'))
         } else if (this.adList.length === 1) {
           // 单广告展示
           this.SplashAdView(this.adList[0])
@@ -196,7 +196,7 @@ export struct SplashAd {
         Text('月热销商品榜 #1')
           .fontSize(14)
           .fontColor(Color.White)
-          .backgroundColor($r('app.color.color_secondary'))
+          .backgroundColor($r('app.color.color_cta_black'))
           .padding({ left: 12, right: 12, top: 6, bottom: 6 })
           .borderRadius(4)
           .position({ x: 16, y: 48 })
@@ -204,7 +204,7 @@ export struct SplashAd {
         Text('月热销直播榜 #1')
           .fontSize(14)
           .fontColor(Color.White)
-          .backgroundColor($r('app.color.color_secondary'))
+          .backgroundColor($r('app.color.color_cta_black'))
           .padding({ left: 12, right: 12, top: 6, bottom: 6 })
           .borderRadius(4)
           .position({ x: 16, y: 48 })

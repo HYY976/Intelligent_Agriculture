@@ -1,14 +1,19 @@
 /**
  * setting - 设置页（spec 3.2.4.5）
  *
- * 同用户端设置（主题/字号/退出登录）
- * - 主题切换：跟随系统 / 浅色 / 深色
- * - 字号切换：标准 / 老年大字（仅卖家端生效，spec 3.2.3.2）
- * - 清除缓存
- * - 退出登录
+ * 对齐设计稿 pages/farmer-setting.html：
+ *  - 顶部导航（圆形返回键 + 居中标题 + 占位）
+ *  - 主题模式卡（segmented control: 跟随系统 / 浅色 / 深色）
+ *  - 字号模式卡（segmented control: 标准 / 老年大字 + 提示文案）
+ *  - 其他设置卡（清除缓存 / 意见反馈 / 关于我们，彩色图标）
+ *  - 退出登录按钮（白底卡片 + 红字）
+ *  - 退出确认弹窗（居中 + 遮罩）
+ *
+ * spec 10.18：@Local themeRef / modeRef 持有 AppStorageV2 共享 ref，@Trace value 变更自动刷新
+ * spec 10.16：方案 C 自建模态（@Local show + Stack + @Builder）
  */
 
-import { Logger, AppConstants, ToastUtil, ModeStore, ThemeStore, TokenStore, FarmerRoutes, NavigationHelper, RouteName } from 'common';
+import { Logger, AppConstants, ToastUtil, ModeStore, ThemeStore, TokenStore, NavigationHelper, RouteName } from 'common';
 import type { CurrentModeKey, CurrentThemeKey } from 'common';
 
 /** 主题选项 */
@@ -23,24 +28,35 @@ interface FontSizeOption {
   label: string;
 }
 
+/** 图标底色 */
+type IconTone = 'orange' | 'green' | 'blue' | 'soft';
+
 /** 设置项 */
 interface SettingItem {
+  /** 主标题 */
   label: string;
-  desc: string;
+  /** 图标 emoji */
   icon: string;
-  action: 'theme' | 'fontSize' | 'clearCache' | 'about' | 'feedback' | 'logout';
+  /** 图标底色 */
+  tone: IconTone;
+  /** 右侧值文案（可空） */
+  value: string;
+  /** 是否显示箭头 */
+  showArrow: boolean;
+  /** 点击行为 */
+  action: 'clearCache' | 'feedback' | 'about';
 }
 
 @ComponentV2
 export struct Setting {
-  /** 当前主题 — spec 10.18：@Local themeRef 持有 AppStorageV2 共享 ref，@Trace value 变更自动刷新 */
+  /** 当前主题 — spec 10.18：@Local themeRef 持有 AppStorageV2 共享 ref */
   @Local themeRef: CurrentThemeKey = ThemeStore.connectThemeRef();
-  /** 当前模式（标准 / 老年大字）— spec 10.18：@Local modeRef 持有 AppStorageV2 共享 ref */
+  /** 当前模式 — spec 10.18：@Local modeRef 持有 AppStorageV2 共享 ref */
   @Local modeRef: CurrentModeKey = ModeStore.connectModeRef();
-  /** 当前版本号 */
+  /** 版本号 */
   @Local readonly version: string = 'v1.0.0';
   /** 缓存大小 */
-  @Local cacheSize: string = '12.3 MB';
+  @Local cacheSize: string = '23.5MB';
 
   /** 主题选项 */
   private themeOptions: ThemeOption[] = [
@@ -55,16 +71,25 @@ export struct Setting {
     { value: AppConstants.MODE_ELDER, label: '老年大字' }
   ];
 
-  /** 退出登录确认弹窗显示状态（spec 10.16：方案 C 自建模态，替代 V1 CustomDialogController） */
+  /** 其他设置项 */
+  private otherItems: SettingItem[] = [
+    { label: '清除缓存', icon: '🧹', tone: 'orange', value: '23.5MB', showArrow: true, action: 'clearCache' },
+    { label: '意见反馈', icon: '💬', tone: 'green', value: '', showArrow: true, action: 'feedback' },
+    { label: '关于我们', icon: 'ℹ', tone: 'blue', value: 'v1.0.0', showArrow: true, action: 'about' }
+  ];
+
+  /** 退出登录确认弹窗显示状态（spec 10.16：方案 C 自建模态） */
   @Local showLogoutDialog: boolean = false;
 
   async aboutToAppear(): Promise<void> {
     Logger.info(AppConstants.SCENE_FARMER, { action: 'setting_appear' });
-    // spec 10.18：modeRef 通过 connectModeRef() 持有共享实例，无需手动 getMode
   }
 
   /** 切换主题 */
   private async onThemeChange(theme: string): Promise<void> {
+    if (theme === this.themeRef.value) {
+      return;
+    }
     this.themeRef.value = theme;
     Logger.info(AppConstants.SCENE_FARMER, { action: 'theme_change', theme });
     ToastUtil.success('主题已切换');
@@ -87,17 +112,34 @@ export struct Setting {
 
   /** 清除缓存 */
   private async clearCache(): Promise<void> {
-    this.cacheSize = '0 MB';
+    this.cacheSize = '0MB';
     ToastUtil.success('缓存已清除');
     Logger.info(AppConstants.SCENE_FARMER, { action: 'clear_cache' });
   }
 
-  /** 退出登录：打开确认弹窗（spec 10.16：方案 C 自建模态 @Local show 控制） */
+  /** 处理其他设置项点击 */
+  private onOtherItemTap(action: string): void {
+    switch (action) {
+      case 'clearCache':
+        this.clearCache();
+        break;
+      case 'feedback':
+        ToastUtil.info('意见反馈功能开发中');
+        break;
+      case 'about':
+        ToastUtil.info('助农卖家 v1.0.0');
+        break;
+      default:
+        break;
+    }
+  }
+
+  /** 退出登录：打开确认弹窗 */
   private logout(): void {
     this.showLogoutDialog = true;
   }
 
-  /** 执行退出登录（方案 C 自建模态确认回调） */
+  /** 执行退出登录 */
   private async doLogout(): Promise<void> {
     this.showLogoutDialog = false;
     try {
@@ -110,28 +152,49 @@ export struct Setting {
     }
   }
 
+  /** 取图标底色 */
+  private toneBg(tone: IconTone): Resource {
+    switch (tone) {
+      case 'orange': return $r('app.color.color_warn_soft');
+      case 'green': return $r('app.color.color_green_soft');
+      case 'blue': return $r('app.color.color_info_soft');
+      case 'soft':
+      default: return $r('app.color.color_fill');
+    }
+  }
+
+  /** 取图标前景色 */
+  private toneFg(tone: IconTone): Resource {
+    switch (tone) {
+      case 'orange': return $r('app.color.color_warn');
+      case 'green': return $r('app.color.color_green_deep');
+      case 'blue': return $r('app.color.color_info');
+      case 'soft':
+      default: return $r('app.color.color_text_2');
+    }
+  }
+
   build() {
     NavDestination() {
       Stack() {
         Column() {
           this.TopBar()
           Scroll() {
-            Column({ space: 16 }) {
-              this.ThemeSection()
-              this.FontSizeSection()
-              this.OtherSection()
-              this.AboutSection()
+            Column({ space: 12 }) {
+              this.ThemeCard()
+              this.FontSizeCard()
+              this.OtherSettingsCard()
               this.LogoutButton()
             }
             .width('100%')
-            .padding({ left: 16, right: 16, top: 16, bottom: 24 })
+            .padding({ left: 16, right: 16, top: 12, bottom: 16 })
           }
           .layoutWeight(1)
           .scrollBar(BarState.Off)
         }
         .width('100%')
         .height('100%')
-        .backgroundColor($r('app.color.color_bg_page'))
+        .backgroundColor($r('app.color.color_cream'))
 
         // 退出登录确认弹窗（spec 10.16：方案 C 自建模态）
         if (this.showLogoutDialog) {
@@ -144,162 +207,194 @@ export struct Setting {
     .hideTitleBar(true)
   }
 
-  /** 顶部导航 */
+  /** 顶部导航（圆形返回键 + 居中标题 + 占位） */
   @Builder
   TopBar() {
-    Row({ space: 12 }) {
+    Row() {
       Text('‹')
-        .fontSize(28)
-        .fontColor($r('app.color.color_text_primary'))
+        .fontSize(20)
+        .fontColor($r('app.color.color_ink'))
+        .width(32)
+        .height(32)
+        .borderRadius(16)
+        .backgroundColor($r('app.color.color_bg_card'))
+        .shadow(AppConstants.SHADOW_CARD)
+        .textAlign(TextAlign.Center)
         .onClick(() => NavigationHelper.pop())
       Text('设置')
-        .fontSize(18)
-        .fontColor($r('app.color.color_text_primary'))
-        .fontWeight(FontWeight.Medium)
+        .fontSize(17)
+        .fontColor($r('app.color.color_ink'))
+        .fontWeight(FontWeight.Bold)
         .layoutWeight(1)
+        .textAlign(TextAlign.Center)
+      // 占位（保持标题居中）
+      Text('')
+        .width(32)
+        .height(32)
+    }
+    .width('100%')
+    .height(48)
+    .padding({ left: 16, right: 16, bottom: 10 })
+    .alignItems(VerticalAlign.Center)
+  }
+
+  /** 主题模式卡（segmented control） */
+  @Builder
+  ThemeCard() {
+    Row() {
+      Text('主题模式')
+        .fontSize(15)
+        .fontColor($r('app.color.color_ink_2'))
+        .fontWeight(FontWeight.Medium)
+      Blank()
+      // 胶囊分段选项组
+      Row({ space: 0 }) {
+        ForEach(this.themeOptions, (opt: ThemeOption) => {
+          Text(opt.label)
+            .fontSize(12)
+            .fontColor(this.themeRef.value === opt.value ? $r('app.color.color_ink') : $r('app.color.color_text_3'))
+            .backgroundColor(this.themeRef.value === opt.value ? $r('app.color.color_yellow') : Color.Transparent)
+            .fontWeight(this.themeRef.value === opt.value ? FontWeight.Bold : FontWeight.Medium)
+            .padding({ left: 12, right: 12, top: 5, bottom: 5 })
+            .borderRadius(AppConstants.RADIUS_PILL)
+            .onClick(() => { this.onThemeChange(opt.value); })
+        }, (opt: ThemeOption) => opt.value)
+      }
+      .padding(2)
+      .borderRadius(AppConstants.RADIUS_PILL)
+      .backgroundColor($r('app.color.color_fill'))
     }
     .width('100%')
     .height(56)
     .padding({ left: 16, right: 16 })
+    .borderRadius(AppConstants.RADIUS_LG)
     .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
     .alignItems(VerticalAlign.Center)
   }
 
-  /** 主题设置 */
+  /** 字号模式卡（segmented control + 提示文案） */
   @Builder
-  ThemeSection() {
-    Column({ space: 12 }) {
-      Text('主题')
-        .fontSize(14)
-        .fontColor($r('app.color.color_text_secondary'))
-        .alignSelf(ItemAlign.Start)
+  FontSizeCard() {
+    Column({ space: 8 }) {
       Row() {
-        ForEach(this.themeOptions, (opt: ThemeOption) => {
-          Text(opt.label)
-            .fontSize(13)
-            .fontColor(this.themeRef.value === opt.value ? Color.White : $r('app.color.color_text_primary'))
-            .backgroundColor(this.themeRef.value === opt.value ? $r('app.color.color_primary') : $r('app.color.color_bg_page'))
-            .padding({ left: 16, right: 16, top: 8, bottom: 8 })
-            .borderRadius(16)
-            .margin({ right: 8 })
-            .onClick(() => { this.onThemeChange(opt.value); })
-        }, (opt: ThemeOption) => opt.value)
+        Text('字号模式')
+          .fontSize(15)
+          .fontColor($r('app.color.color_ink_2'))
+          .fontWeight(FontWeight.Medium)
+        Blank()
+        // 胶囊分段选项组
+        Row({ space: 0 }) {
+          ForEach(this.fontSizeOptions, (opt: FontSizeOption) => {
+            Text(opt.label)
+              .fontSize(12)
+              .fontColor(this.modeRef.value === opt.value ? $r('app.color.color_ink') : $r('app.color.color_text_3'))
+              .backgroundColor(this.modeRef.value === opt.value ? $r('app.color.color_yellow') : Color.Transparent)
+              .fontWeight(this.modeRef.value === opt.value ? FontWeight.Bold : FontWeight.Medium)
+              .padding({ left: 12, right: 12, top: 5, bottom: 5 })
+              .borderRadius(AppConstants.RADIUS_PILL)
+              .onClick(() => { this.onModeChange(opt.value); })
+          }, (opt: FontSizeOption) => opt.value)
+        }
+        .padding(2)
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .backgroundColor($r('app.color.color_fill'))
       }
       .width('100%')
+      .height(48)
+      .alignItems(VerticalAlign.Center)
+      // 提示文案
+      Text('老年大字模式仅卖家端生效，字体全局放大')
+        .fontSize(11)
+        .fontColor($r('app.color.color_text_3'))
+        .width('100%')
     }
     .width('100%')
-    .padding(16)
-    .borderRadius(12)
+    .padding({ left: 16, right: 16, top: 0, bottom: 14 })
+    .borderRadius(AppConstants.RADIUS_LG)
     .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
+    .alignItems(HorizontalAlign.Start)
   }
 
-  /** 字号模式设置 */
+  /** 其他设置卡（清除缓存 / 意见反馈 / 关于我们） */
   @Builder
-  FontSizeSection() {
-    Column({ space: 12 }) {
-      Text('字号模式（仅卖家端生效）')
-        .fontSize(14)
-        .fontColor($r('app.color.color_text_secondary'))
-        .alignSelf(ItemAlign.Start)
-      Row() {
-        ForEach(this.fontSizeOptions, (opt: FontSizeOption) => {
-          Text(opt.label)
-            .fontSize(13)
-            .fontColor(this.modeRef.value === opt.value ? Color.White : $r('app.color.color_text_primary'))
-            .backgroundColor(this.modeRef.value === opt.value ? $r('app.color.color_secondary') : $r('app.color.color_bg_page'))
-            .padding({ left: 16, right: 16, top: 8, bottom: 8 })
-            .borderRadius(16)
-            .margin({ right: 8 })
-            .onClick(() => { this.onModeChange(opt.value); })
-        }, (opt: FontSizeOption) => opt.value)
-      }
-      .width('100%')
-    }
-    .width('100%')
-    .padding(16)
-    .borderRadius(12)
-    .backgroundColor($r('app.color.color_bg_card'))
-  }
-
-  /** 其他设置项 */
-  @Builder
-  OtherSection() {
+  OtherSettingsCard() {
     Column({ space: 0 }) {
-      this.SettingRow('🧹', '清除缓存', this.cacheSize, () => this.clearCache())
-      Divider().strokeWidth(0.5).color($r('app.color.color_divider')).margin({ left: 56 })
-      this.SettingRow('💬', '意见反馈', '', () => {
-        ToastUtil.info('意见反馈功能开发中');
-      })
-      Divider().strokeWidth(0.5).color($r('app.color.color_divider')).margin({ left: 56 })
-      this.SettingRow('ℹ️', '关于我们', this.version, () => {
-        ToastUtil.info('助农卖家 v1.0.0');
-      })
+      ForEach(this.otherItems, (item: SettingItem, idx: number) => {
+        this.SettingRow(item)
+        if (idx < this.otherItems.length - 1) {
+          Divider()
+            .strokeWidth(1)
+            .color($r('app.color.color_line'))
+        }
+      }, (item: SettingItem) => item.label)
     }
     .width('100%')
-    .borderRadius(12)
+    .padding({ left: 16, right: 16 })
+    .borderRadius(AppConstants.RADIUS_LG)
     .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
   }
 
-  /** 设置项 */
+  /** 单个设置行 */
   @Builder
-  SettingRow(icon: string, label: string, value: string, action: () => void) {
+  SettingRow(item: SettingItem) {
     Row({ space: 12 }) {
-      Text(icon)
-        .fontSize(20)
+      // 彩色图标
+      Text(item.icon)
+        .fontSize(16)
         .width(32)
         .height(32)
-        .borderRadius(16)
-        .backgroundColor($r('app.color.color_bg_page'))
+        .borderRadius(AppConstants.RADIUS_SM)
+        .backgroundColor(this.toneBg(item.tone))
+        .fontColor(this.toneFg(item.tone))
         .textAlign(TextAlign.Center)
-      Text(label)
-        .fontSize(14)
-        .fontColor($r('app.color.color_text_primary'))
+      // 标题
+      Text(item.label)
+        .fontSize(15)
+        .fontColor($r('app.color.color_ink_2'))
+        .fontWeight(FontWeight.Medium)
         .layoutWeight(1)
-      if (value.length > 0) {
-        Text(value)
-          .fontSize(12)
-          .fontColor($r('app.color.color_text_hint'))
+      // 右侧值
+      if (item.value.length > 0) {
+        Text(item.value)
+          .fontSize(13)
+          .fontColor($r('app.color.color_text_3'))
       }
-      Text('›')
-        .fontSize(20)
-        .fontColor($r('app.color.color_text_hint'))
+      // 箭头
+      if (item.showArrow) {
+        Text('›')
+          .fontSize(20)
+          .fontColor($r('app.color.color_text_4'))
+      }
     }
     .width('100%')
-    .padding({ left: 12, right: 16, top: 12, bottom: 12 })
-    .onClick(() => action())
-  }
-
-  /** 关于信息 */
-  @Builder
-  AboutSection() {
-    Column({ space: 4 }) {
-      Text('助农卖家')
-        .fontSize(13)
-        .fontColor($r('app.color.color_text_secondary'))
-      Text(this.version)
-        .fontSize(11)
-        .fontColor($r('app.color.color_text_hint'))
-    }
-    .width('100%')
-    .padding({ top: 12, bottom: 12 })
-    .alignItems(HorizontalAlign.Center)
+    .height(56)
+    .alignItems(VerticalAlign.Center)
+    .onClick(() => this.onOtherItemTap(item.action))
   }
 
   /** 退出登录按钮 */
   @Builder
   LogoutButton() {
-    Button('退出登录')
-      .width('100%')
-      .height(48)
-      .borderRadius(24)
-      .backgroundColor($r('app.color.color_bg_card'))
-      .fontColor($r('app.color.color_error'))
-      .fontSize(15)
-      .fontWeight(FontWeight.Medium)
-      .onClick(() => this.logout())
+    Row() {
+      Text('退出登录')
+        .fontSize(16)
+        .fontColor($r('app.color.color_live'))
+        .fontWeight(FontWeight.Bold)
+    }
+    .width('100%')
+    .height(48)
+    .borderRadius(AppConstants.RADIUS_LG)
+    .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
+    .justifyContent(FlexAlign.Center)
+    .alignItems(VerticalAlign.Center)
+    .onClick(() => this.logout())
   }
 
-  /** 退出登录确认弹窗（spec 10.16：方案 C 自建模态，视觉对齐 admin/api_key.ets RevokeConfirmDialog） */
+  /** 退出登录确认弹窗（spec 10.16：方案 C 自建模态） */
   @Builder
   LogoutConfirmDialog() {
     Stack({ alignContent: Alignment.Center }) {
@@ -307,44 +402,55 @@ export struct Setting {
       Column()
         .width('100%')
         .height('100%')
-        .backgroundColor('rgba(0,0,0,0.5)')
+        .backgroundColor('rgba(26,26,26,0.45)')
         .onClick(() => { this.showLogoutDialog = false; })
 
       // 对话框内容
-      Column({ space: 12 }) {
-        Text('退出登录')
-          .fontSize(16)
-          .fontColor($r('app.color.color_error'))
-          .fontWeight(FontWeight.Medium)
-        Text('确定要退出当前账号吗？')
-          .fontSize(12)
-          .fontColor($r('app.color.color_text_secondary'))
-          .width('100%')
+      Column({ space: 8 }) {
+        // 标题
+        Text('确认退出登录？')
+          .fontSize(17)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+        // 描述
+        Text('退出后需要重新登录才能继续使用趣农助农服务，是否确认退出当前账号？')
+          .fontSize(13)
+          .fontColor($r('app.color.color_text_3'))
+          .lineHeight(20)
           .textAlign(TextAlign.Center)
-        Row({ space: 8 }) {
+          .width('100%')
+          .margin({ bottom: 12 })
+        // 操作按钮
+        Row({ space: 12 }) {
+          // 取消
           Button('取消')
             .layoutWeight(1)
-            .height(40)
-            .borderRadius(20)
-            .backgroundColor($r('app.color.color_bg_page'))
-            .fontColor($r('app.color.color_text_primary'))
-            .fontSize(14)
+            .height(44)
+            .borderRadius(AppConstants.RADIUS_MD)
+            .backgroundColor($r('app.color.color_bg_card'))
+            .fontColor($r('app.color.color_text_2'))
+            .fontSize(15)
+            .fontWeight(FontWeight.Bold)
+            .border({ width: 1, color: $r('app.color.color_line_2') })
             .onClick(() => { this.showLogoutDialog = false; })
+          // 确定
           Button('确定')
             .layoutWeight(1)
-            .height(40)
-            .borderRadius(20)
-            .backgroundColor($r('app.color.color_error'))
+            .height(44)
+            .borderRadius(AppConstants.RADIUS_MD)
+            .backgroundColor($r('app.color.color_live'))
             .fontColor(Color.White)
-            .fontSize(14)
+            .fontSize(15)
+            .fontWeight(FontWeight.Bold)
             .onClick(() => { this.doLogout(); })
         }
         .width('100%')
       }
-      .width('80%')
-      .padding(20)
-      .borderRadius(12)
+      .width('calc(100% - 64px)')
+      .padding(24)
+      .borderRadius(AppConstants.RADIUS_LG)
       .backgroundColor($r('app.color.color_bg_card'))
+      .shadow(AppConstants.SHADOW_FLOAT)
     }
     .width('100%')
     .height('100%')

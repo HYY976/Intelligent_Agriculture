@@ -1,4 +1,4 @@
-/**
+﻿/**
  * product_edit - 商品编辑页（spec 3.2.3.1 / 3.2.4.5）
  *
  * 复刻 product_publish 表单，进入时根据 productId 预填字段
@@ -398,7 +398,7 @@ export struct ProductEdit {
             .width('100%')
             .height(96)
             .borderRadius(8)
-            .backgroundColor($r('app.color.color_primary_light'))
+            .backgroundColor($r('app.color.color_card_yellow'))
             .alignContent(Alignment.Center)
           }
         }, (imgKey: string, idx: number) => `${imgKey}_${idx}`)
@@ -536,7 +536,7 @@ export struct ProductEdit {
             Text(opt.label)
               .fontSize(13)
               .fontColor(this.freight === opt.value ? Color.White : $r('app.color.color_text_primary'))
-              .backgroundColor(this.freight === opt.value ? $r('app.color.color_primary') : $r('app.color.color_bg_page'))
+              .backgroundColor(this.freight === opt.value ? $r('app.color.color_cta_black') : $r('app.color.color_bg_page'))
               .padding({ left: 16, right: 16, top: 8, bottom: 8 })
               .borderRadius(16)
               .margin({ right: 8 })
@@ -585,7 +585,7 @@ export struct ProductEdit {
         .width('100%')
         .height(48)
         .borderRadius(24)
-        .backgroundColor(this.isSubmitting ? $r('app.color.color_button_disabled') : $r('app.color.color_secondary'))
+        .backgroundColor(this.isSubmitting ? $r('app.color.color_button_disabled') : $r('app.color.color_cta_black'))
         .fontColor(Color.White)
         .fontSize(16)
         .fontWeight(FontWeight.Medium)

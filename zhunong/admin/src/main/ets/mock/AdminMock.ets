@@ -21,7 +21,14 @@ import {
   ContentReview,
   ReviewListQuery,
   ReviewDetailAggregate,
-  ReviewHistoryItem
+  ReviewHistoryItem,
+  AdRecord,
+  AdListQuery,
+  AdOverviewStats,
+  AdCreateRequest,
+  AdSlot,
+  AdStatus,
+  AdAudience
 } from '../model/AdminModels';
 import { PageResult } from 'common';
 
@@ -287,28 +294,34 @@ export const MOCK_API_ERROR_LOGS: ApiErrorLog[] = [
 
 // ===== Mock 限流配置 =====
 export const MOCK_RATE_LIMIT_CONFIGS: RateLimitConfig[] = MOCK_APIS.map((api: ApiInfo, index: number): RateLimitConfig => {
+  // 根据接口路径差异化配置（对齐 rate-limit.html 设计稿：QPS 200 / 并发 50 / 熔断 500 / 恢复 30s）
+  const qps: number = index === 0 ? 200 : 100;
+  const currentQps: number = index === 0 ? 156 : Math.floor(qps * 0.6);
   return {
     configId: `rl_${index + 1}`,
     apiId: api.apiId,
-    qpsLimit: 100,
+    qpsLimit: qps,
     concurrentLimit: 50,
-    circuitBreakThreshold: 0.05
+    circuitBreakThreshold: 0.05,
+    recoveryTime: 30,
+    currentQps: currentQps,
+    status: 'normal'
   };
 });
 
-// ===== Mock API 密钥（3 条） =====
+// ===== Mock API 密钥（3 条，对齐 api-key.html 设计稿） =====
 export const MOCK_API_KEYS: ApiKey[] = [
   {
-    keyId: 'key_001', appKey: 'ZN_APP_20260501_ABC123', status: 'active',
-    createdAt: NOW - 50 * DAY
+    keyId: 'key_001', appKey: 'qn_app_8f3a9b2c', status: 'active',
+    createdAt: NOW - 50 * DAY, lastUsedAt: NOW - 5 * DAY
   },
   {
-    keyId: 'key_002', appKey: 'ZN_APP_20260610_DEF456', status: 'active',
-    createdAt: NOW - 38 * DAY
+    keyId: 'key_002', appKey: 'qn_app_4d7e1f90', status: 'active',
+    createdAt: NOW - 68 * DAY, lastUsedAt: NOW - 3 * DAY
   },
   {
-    keyId: 'key_003', appKey: 'ZN_APP_20260415_GHI789', status: 'revoked',
-    createdAt: NOW - 90 * DAY, revokedAt: NOW - 10 * DAY
+    keyId: 'key_003', appKey: 'qn_app_2c5b8a13', status: 'revoked',
+    createdAt: NOW - 100 * DAY, lastUsedAt: NOW - 50 * DAY, revokedAt: NOW - 40 * DAY
   }
 ];
 
@@ -629,6 +642,154 @@ export function getMockReviewDetail(reviewId: string): ReviewDetailAggregate | n
  */
 export function getMockPendingReviewCount(): number {
   return MOCK_REVIEWS.filter((r: ContentReview): boolean => r.status === 'pending').length;
+}
+
+// ===== Mock 广告数据（spec 3.3.4，对齐 admin-ads.html 设计稿） =====
+
+/**
+ * Mock 广告列表（4 条，覆盖 4 种广告位 × 4 种状态）
+ * 数据对齐 admin-ads.html：
+ *  - 丰收节大促（首页Banner · 投放中）
+ *  - 新茶上市（开屏广告 · 投放中）
+ *  - 草莓季（直播贴片 · 已暂停）
+ *  - 助农故事（社区推荐 · 待审核）
+ */
+export const MOCK_ADS: AdRecord[] = [
+  {
+    adId: 'ad_001',
+    title: '丰收节大促',
+    slot: 'home_banner',
+    status: 'running',
+    enabled: true,
+    coverKey: 'hero_harvest',
+    impressions: 125000,
+    clicks: 3860,
+    ctr: 0.031,
+    cost: 2580,
+    startAt: NOW + 2 * DAY, // 7/20
+    endAt: NOW + 12 * DAY,  // 7/30
+    audiences: ['all'],
+    isScheduled: false,
+    createdAt: NOW - 5 * DAY
+  },
+  {
+    adId: 'ad_002',
+    title: '新茶上市',
+    slot: 'splash',
+    status: 'running',
+    enabled: true,
+    coverKey: 'hero_harvest',
+    impressions: 82000,
+    clicks: 2140,
+    ctr: 0.026,
+    cost: 1640,
+    startAt: NOW,           // 7/18
+    endAt: NOW + 7 * DAY,   // 7/25
+    audiences: ['all', 'new_user'],
+    isScheduled: false,
+    createdAt: NOW - 6 * DAY
+  },
+  {
+    adId: 'ad_003',
+    title: '草莓季',
+    slot: 'live_patch',
+    status: 'paused',
+    enabled: false,
+    coverKey: 'hero_harvest',
+    impressions: 56000,
+    clicks: 1820,
+    ctr: 0.033,
+    cost: 1120,
+    startAt: NOW - 3 * DAY, // 7/15
+    endAt: NOW + 4 * DAY,   // 7/22
+    audiences: ['old_user', 'high_freq'],
+    isScheduled: false,
+    createdAt: NOW - 10 * DAY
+  },
+  {
+    adId: 'ad_004',
+    title: '助农故事',
+    slot: 'community',
+    status: 'pending',
+    enabled: true,
+    coverKey: 'hero_harvest',
+    impressions: 30000, // 预估曝光
+    clicks: 0,
+    ctr: 0,
+    cost: 800, // 预算
+    startAt: 0,
+    endAt: 0,
+    audiences: ['all'],
+    isScheduled: true, // 待排期
+    createdAt: NOW - 1 * DAY
+  }
+];
+
+/**
+ * Mock 广告列表查询（spec 3.3.4：广告位筛选 + 分页）
+ */
+export function getMockAds(query: AdListQuery): PageResult<AdRecord> {
+  let list: AdRecord[] = MOCK_ADS;
+  if (query.slot) {
+    list = list.filter((ad: AdRecord): boolean => ad.slot === query.slot);
+  }
+  return paginate<AdRecord>(list, query.page, query.size);
+}
+
+/**
+ * Mock 广告概览统计（spec 3.3.4：投放中/待审核/已暂停）
+ */
+export function getMockAdOverviewStats(): AdOverviewStats {
+  const stats: AdOverviewStats = {
+    running: MOCK_ADS.filter((a: AdRecord): boolean => a.status === 'running').length,
+    pending: MOCK_ADS.filter((a: AdRecord): boolean => a.status === 'pending').length,
+    paused: MOCK_ADS.filter((a: AdRecord): boolean => a.status === 'paused').length
+  };
+  return stats;
+}
+
+/**
+ * Mock 切换广告启用状态（spec 3.3.4：开关切换）
+ */
+export function toggleMockAdEnabled(adId: string): AdRecord | null {
+  const ad: AdRecord | undefined = MOCK_ADS.find((a: AdRecord): boolean => a.adId === adId);
+  if (!ad) {
+    return null;
+  }
+  ad.enabled = !ad.enabled;
+  // 投放中 ↔ 已暂停 联动（待审核不变）
+  if (ad.status === 'running') {
+    ad.status = 'paused';
+  } else if (ad.status === 'paused') {
+    ad.status = 'running';
+  }
+  return ad;
+}
+
+/**
+ * Mock 创建广告（spec 3.3.4：新建广告表单提交）
+ */
+export function createMockAd(req: AdCreateRequest): AdRecord {
+  const adId: string = `ad_${String(MOCK_ADS.length + 1).padStart(3, '0')}`;
+  const newAd: AdRecord = {
+    adId,
+    title: req.title,
+    slot: req.slot,
+    status: 'pending',
+    enabled: false,
+    coverKey: req.coverKey,
+    impressions: 0,
+    clicks: 0,
+    ctr: 0,
+    cost: req.budget,
+    startAt: req.startAt,
+    endAt: req.endAt,
+    audiences: req.audiences,
+    isScheduled: req.startAt === 0,
+    createdAt: Date.now()
+  };
+  MOCK_ADS.unshift(newAd);
+  return newAd;
 }
 
 // ===== 内部工具函数 =====

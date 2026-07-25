@@ -50,6 +50,7 @@ import { CategoryList } from '../mall/category_list';
 import { ProductList } from '../mall/product_list';
 import { ProductDetail } from '../mall/product_detail';
 import { OrderConfirm } from '../mall/order_confirm';
+import { Payment } from '../mall/payment';
 import { OrderList } from '../mall/order_list';
 import { OrderDetail } from '../mall/order_detail';
 import { ReviewCreate } from '../mall/review_create';
@@ -59,6 +60,7 @@ import { LiveList } from '../live/live_list';
 import { LiveRoom } from '../live/live_room';
 import { TravelMap } from '../travel/travel_map';
 import { PoiDetail } from '../travel/poi_detail';
+import { UserBooking } from '../travel/user_booking';
 
 @Entry
 @ComponentV2
@@ -130,6 +132,8 @@ struct RootPage {
       ProductDetail()
     } else if (name === RouteName.USER_ORDER_CONFIRM) {
       OrderConfirm()
+    } else if (name === RouteName.USER_PAYMENT) {
+      Payment()
     } else if (name === RouteName.USER_ORDER_LIST) {
       OrderList()
     } else if (name === RouteName.USER_ORDER_DETAIL) {
@@ -144,6 +148,8 @@ struct RootPage {
       TravelMap()
     } else if (name === RouteName.USER_POI_DETAIL) {
       PoiDetail()
+    } else if (name === RouteName.USER_BOOKING) {
+      UserBooking()
     } else {
       // 未知路由：兜底空页面
       Column()

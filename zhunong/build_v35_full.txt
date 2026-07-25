@@ -1,0 +1,12 @@
+> hvigor [91mERROR: [31m00303149 Configuration Error
+Error Message: Path not found. At file: c:\Users\21132\Project\zhunong\user
+
+* Try the following:
+  > Please check field: modules in file: c:\Users\21132\Project\zhunong\build-profile.json5.
+[39m
+
+[31m* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --debug option to get more log output.
+[39m
+> hvigor [91mERROR: BUILD FAILED in 27 ms [39m

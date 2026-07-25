@@ -86,16 +86,39 @@ export interface Coupon {
   scope: string;
 }
 
-/** 钱包信息 */
+/** 钱包信息（对齐设计稿 wallet.html qn-hero + qn-stat-card） */
 export interface WalletInfo {
   /** 账户余额（元） */
   balance: number;
-  /** 累计消费 */
-  totalSpent: number;
-  /** 累计节省 */
-  totalSaved: number;
+  /** 本月支出（元） */
+  monthSpent: number;
+  /** 累计优惠（元） */
+  totalDiscount: number;
+  /** 积分 */
+  points: number;
   /** 可用优惠券数 */
   couponCount: number;
+}
+
+/** 钱包交易明细类型（对齐设计稿 qn-ico-* 彩色底） */
+export type WalletTxIconTheme = 'red' | 'green' | 'blue' | 'yellow';
+
+/** 钱包交易明细项（对齐设计稿 wallet.html qn-tx-row） */
+export interface WalletTransaction {
+  /** 交易 ID */
+  txId: string;
+  /** 图标主题色（红=消费/绿=充值/蓝=退款/黄=积分） */
+  iconTheme: WalletTxIconTheme;
+  /** 图标 emoji */
+  icon: string;
+  /** 交易标题 */
+  title: string;
+  /** 交易时间文案 */
+  time: string;
+  /** 金额（负数=支出，正数=收入） */
+  amount: number;
+  /** 是否整数（积分等无小数） */
+  isInt: boolean;
 }
 
 /** 浏览历史项 */
@@ -110,6 +133,9 @@ export interface HistoryItem {
   viewedAt: number;
 }
 
+/** 个人中心功能项图标主题色（对齐设计稿 qn-ico-* 彩色底） */
+export type ProfileIconTheme = 'yellow' | 'green' | 'blue' | 'red' | 'orange' | 'soft';
+
 /** 个人中心功能项 */
 export interface ProfileFunction {
   /** 功能 ID */
@@ -118,10 +144,40 @@ export interface ProfileFunction {
   label: string;
   /** 图标 emoji */
   icon: string;
+  /** 图标主题色（对齐设计稿 qn-ico-* 彩色底） */
+  iconTheme: ProfileIconTheme;
   /** 跳转路由 */
   route: string;
   /** 角标数量（如优惠券数） */
   badge?: number;
+}
+
+/** 个人中心悬浮卡统计项（对齐设计稿 qn-stat-row） */
+export interface ProfileStatItem {
+  /** 数值 */
+  num: number;
+  /** 标签 */
+  lab: string;
+}
+
+/** 个人中心统计信息（对齐设计稿 qn-profile-card） */
+export interface ProfileStats {
+  /** 关注数 */
+  followCount: number;
+  /** 粉丝数 */
+  fansCount: number;
+  /** 订单数 */
+  orderCount: number;
+  /** 积分 */
+  points: number;
+}
+
+/** 个人中心等级信息（对齐设计稿 qn-level-pill） */
+export interface ProfileLevel {
+  /** 等级数字 */
+  level: number;
+  /** 等级名称 */
+  title: string;
 }
 
 /** 设置项 */

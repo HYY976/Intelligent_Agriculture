@@ -5,7 +5,7 @@
         "MODULE_NAME": "04f8996da763b7a969b1028ee3007569eaf3a635486ddab211d512c85b9df8fb",
         "API_TYPE": "stageMode",
         "INCLUDE_IN_BUILD": true,
-        "IS_COMMAND_LINE_ENTRY_MODULE": false,
+        "IS_COMMAND_LINE_ENTRY_MODULE": true,
         "BUILD_OPTION": [
           {
             "path": "debuggable",
@@ -58,104 +58,20 @@
       {
         "MODULE_NAME": "51bf5502a7102c96f3ffb54d6d8762c0077dd473aa673701e233e4f3f989a149",
         "API_TYPE": "stageMode",
-        "INCLUDE_IN_BUILD": true,
+        "INCLUDE_IN_BUILD": false,
         "IS_COMMAND_LINE_ENTRY_MODULE": false,
-        "BUILD_OPTION": [
-          {
-            "path": "debuggable",
-            "traceValue": true,
-            "value": true
-          },
-          {
-            "path": "copyFrom",
-            "traceValue": false,
-            "value": ""
-          },
-          {
-            "path": "strictMode",
-            "traceValue": false,
-            "value": ""
-          },
-          {
-            "path": "strictMode.caseSensitiveCheck",
-            "traceValue": true,
-            "value": true
-          },
-          {
-            "path": "strictMode.useNormalizedOHMUrl",
-            "traceValue": true,
-            "value": true
-          },
-          {
-            "path": "resOptions",
-            "traceValue": false,
-            "value": ""
-          },
-          {
-            "path": "resOptions.copyCodeResource",
-            "traceValue": false,
-            "value": ""
-          },
-          {
-            "path": "resOptions.copyCodeResource.enable",
-            "traceValue": true,
-            "value": false
-          }
-        ],
+        "BUILD_OPTION": [],
         "PACKAGE_JSON": [],
-        "MODULE_TYPE": "entry",
-        "IS_INCREMENTAL_MODULE": true
+        "IS_INCREMENTAL_MODULE": false
       },
       {
         "MODULE_NAME": "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918",
         "API_TYPE": "stageMode",
-        "INCLUDE_IN_BUILD": true,
+        "INCLUDE_IN_BUILD": false,
         "IS_COMMAND_LINE_ENTRY_MODULE": false,
-        "BUILD_OPTION": [
-          {
-            "path": "debuggable",
-            "traceValue": true,
-            "value": true
-          },
-          {
-            "path": "copyFrom",
-            "traceValue": false,
-            "value": ""
-          },
-          {
-            "path": "strictMode",
-            "traceValue": false,
-            "value": ""
-          },
-          {
-            "path": "strictMode.caseSensitiveCheck",
-            "traceValue": true,
-            "value": true
-          },
-          {
-            "path": "strictMode.useNormalizedOHMUrl",
-            "traceValue": true,
-            "value": true
-          },
-          {
-            "path": "resOptions",
-            "traceValue": false,
-            "value": ""
-          },
-          {
-            "path": "resOptions.copyCodeResource",
-            "traceValue": false,
-            "value": ""
-          },
-          {
-            "path": "resOptions.copyCodeResource.enable",
-            "traceValue": true,
-            "value": false
-          }
-        ],
+        "BUILD_OPTION": [],
         "PACKAGE_JSON": [],
-        "MODULE_TYPE": "entry",
-        "IS_INCREMENTAL_MODULE": true
+        "IS_INCREMENTAL_MODULE": false
       }
     ],
     "NATIVE_COMPILER": "Default",
@@ -172,59 +88,23 @@
     "BUILD_ANALYSIS_MODE": "normal",
     "TASK_TIME": {
       "04f8996da763b7a969b1028ee3007569eaf3a635486ddab211d512c85b9df8fb": {
-        "CreateModuleInfo": 650800,
-        "ConfigureCmake": 164100,
-        "PreCheckSyscap": 382200,
-        "GeneratePkgSdkInfo": 1730900,
-        "ProcessIntegratedHsp": 970700,
-        "BuildNativeWithCmake": 158400,
-        "SyscapTransform": 7868800,
-        "ProcessStartupConfig": 1300200,
-        "BuildNativeWithNinja": 798600,
-        "BuildJS": 2088900,
-        "CompileArkTS": 8605846600,
-        "ProcessCompiledResources": 283500,
-        "PackageHap": 524164100,
-        "PackingCheck": 5230200,
-        "SignHap": 783200,
-        "CollectDebugSymbol": 655400,
-        "assembleHap": 58500
-      },
-      "51bf5502a7102c96f3ffb54d6d8762c0077dd473aa673701e233e4f3f989a149": {
-        "CreateModuleInfo": 626400,
-        "ConfigureCmake": 134500,
-        "PreCheckSyscap": 153000,
-        "GeneratePkgSdkInfo": 1085600,
-        "ProcessIntegratedHsp": 309000,
-        "BuildNativeWithCmake": 128900,
-        "SyscapTransform": 758600,
-        "ProcessStartupConfig": 1003500,
-        "BuildNativeWithNinja": 910800,
-        "BuildJS": 1574900,
-        "ProcessCompiledResources": 421300,
-        "PackageHap": 2665516400,
-        "PackingCheck": 6201900,
-        "SignHap": 1502500,
-        "CollectDebugSymbol": 1132700,
-        "assembleHap": 152700
-      },
-      "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918": {
-        "CreateModuleInfo": 260600,
-        "ConfigureCmake": 205700,
-        "PreCheckSyscap": 146900,
-        "GeneratePkgSdkInfo": 1130200,
-        "ProcessIntegratedHsp": 383700,
-        "BuildNativeWithCmake": 116400,
-        "SyscapTransform": 832600,
-        "ProcessStartupConfig": 1052000,
-        "BuildNativeWithNinja": 592100,
-        "BuildJS": 1518100,
-        "ProcessCompiledResources": 280200,
-        "PackageHap": 2641540600,
-        "PackingCheck": 3457100,
-        "SignHap": 735700,
-        "CollectDebugSymbol": 630200,
-        "assembleHap": 62300
+        "CreateModuleInfo": 1566300,
+        "ConfigureCmake": 434100,
+        "PreCheckSyscap": 609300,
+        "GeneratePkgSdkInfo": 2079500,
+        "ProcessIntegratedHsp": 1133000,
+        "BuildNativeWithCmake": 353200,
+        "SyscapTransform": 11879000,
+        "ProcessStartupConfig": 2368900,
+        "BuildNativeWithNinja": 1433900,
+        "BuildJS": 3728800,
+        "CompileArkTS": 11206260600,
+        "ProcessCompiledResources": 590300,
+        "PackageHap": 1667016000,
+        "PackingCheck": 11059200,
+        "SignHap": 2098000,
+        "CollectDebugSymbol": 1150800,
+        "assembleHap": 151000
       }
     },
     "CUSTOM_TASK_TIME": {},
@@ -237,7 +117,7 @@
       "ENABLE_CPP_FUNCTION_LEVEL_INCREMENTAL": false
     },
     "CONFIG_PROPERTIES": {},
-    "BUILD_ID": "202607220004219410",
-    "TOTAL_TIME": 11520400000
+    "BUILD_ID": "202607251610589390",
+    "TOTAL_TIME": 15426420700
   }
 }

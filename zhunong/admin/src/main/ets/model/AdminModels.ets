@@ -31,6 +31,15 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 /** 密钥状态（spec 4.2.3） */
 export type ApiKeyStatus = 'active' | 'revoked';
 
+/** 广告位类型（spec 3.3.4：首页Banner / 开屏 / 直播贴片 / 社区推荐） */
+export type AdSlot = 'home_banner' | 'splash' | 'live_patch' | 'community';
+
+/** 广告状态（spec 3.3.4：投放中 / 待审核 / 已暂停 / 已结束） */
+export type AdStatus = 'running' | 'pending' | 'paused' | 'ended';
+
+/** 目标人群标签（spec 3.3.4：多选） */
+export type AdAudience = 'all' | 'new_user' | 'old_user' | 'high_freq';
+
 /**
  * 用户记录（spec 4.1.1 / 3.3.1）
  * 用于管理后台用户列表与详情展示
@@ -150,7 +159,16 @@ export interface RateLimitConfig {
   qpsLimit: number;
   concurrentLimit: number;
   circuitBreakThreshold: number;
+  /** 熔断恢复时间（秒） */
+  recoveryTime: number;
+  /** 当前峰值 QPS（用于展示"当前峰值 N QPS"） */
+  currentQps: number;
+  /** 当前状态（normal / circuit_breaking） */
+  status: RateLimitStatus;
 }
+
+/** 限流状态（spec 4.2.3） */
+export type RateLimitStatus = 'normal' | 'circuit_breaking';
 
 /** 限流配置更新请求体 */
 export interface RateLimitUpdateRequest {
@@ -158,6 +176,7 @@ export interface RateLimitUpdateRequest {
   qpsLimit: number;
   concurrentLimit: number;
   circuitBreakThreshold: number;
+  recoveryTime: number;
 }
 
 /** API 密钥（spec 4.2.3） */
@@ -167,6 +186,8 @@ export interface ApiKey {
   appSecret?: string;
   status: ApiKeyStatus;
   createdAt: number;
+  /** 最后使用时间（0 表示从未使用） */
+  lastUsedAt: number;
   revokedAt?: number;
 }
 
@@ -315,3 +336,86 @@ export const PRESET_REJECT_REASONS: string[] = [
   '敏感词',
   '其他'
 ];
+
+// ===== 广告管理模型（spec 3.3.4） =====
+
+/**
+ * 广告记录（spec 3.3.4）
+ * 用于管理后台广告配置列表展示
+ */
+export interface AdRecord {
+  adId: string;
+  title: string;
+  slot: AdSlot;
+  status: AdStatus;
+  /** 启用开关（true=投放中开关开 / false=已暂停开关关） */
+  enabled: boolean;
+  /** 封面图 key（ImageUtil 映射） */
+  coverKey: string;
+  /** 曝光数（待审核状态为预估曝光） */
+  impressions: number;
+  /** 点击数（待审核状态为 0，展示 — ） */
+  clicks: number;
+  /** 点击率（0-1，待审核状态为 0） */
+  ctr: number;
+  /** 花费/预算（元） */
+  cost: number;
+  /** 投放开始时间戳 */
+  startAt: number;
+  /** 投放结束时间戳 */
+  endAt: number;
+  /** 目标人群（多选） */
+  audiences: AdAudience[];
+  /** 是否待排期（无具体时间） */
+  isScheduled: boolean;
+  createdAt: number;
+}
+
+/** 广告列表查询参数（spec 3.3.4：广告位筛选 + 分页） */
+export interface AdListQuery {
+  slot?: AdSlot;
+  page: number;
+  size: number;
+}
+
+/** 广告概览统计（spec 3.3.4：投放中/待审核/已暂停 数量） */
+export interface AdOverviewStats {
+  running: number;
+  pending: number;
+  paused: number;
+}
+
+/** 广告创建请求体（spec 3.3.4） */
+export interface AdCreateRequest {
+  slot: AdSlot;
+  title: string;
+  coverKey: string;
+  startAt: number;
+  endAt: number;
+  budget: number;
+  audiences: AdAudience[];
+}
+
+/** 广告位文案 */
+export const AD_SLOT_LABELS: Record<AdSlot, string> = {
+  'home_banner': '首页Banner',
+  'splash': '开屏广告',
+  'live_patch': '直播贴片',
+  'community': '社区推荐'
+};
+
+/** 广告状态文案 */
+export const AD_STATUS_LABELS: Record<AdStatus, string> = {
+  'running': '投放中',
+  'pending': '待审核',
+  'paused': '已暂停',
+  'ended': '已结束'
+};
+
+/** 目标人群文案 */
+export const AD_AUDIENCE_LABELS: Record<AdAudience, string> = {
+  'all': '全部用户',
+  'new_user': '新用户',
+  'old_user': '老用户',
+  'high_freq': '高频用户'
+};

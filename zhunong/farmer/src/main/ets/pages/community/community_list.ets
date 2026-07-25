@@ -1,4 +1,4 @@
-/**
+﻿/**
  * community_list - 社区列表（spec 3.2.4.2）
  *
  * 与用户端社区互通（共用同一套社区数据）
@@ -143,7 +143,7 @@ export struct CommunityList {
           Text(topic.name)
             .fontSize(13)
             .fontColor(this.currentTopicId === topic.topicId ? Color.White : $r('app.color.color_text_secondary'))
-            .backgroundColor(this.currentTopicId === topic.topicId ? $r('app.color.color_primary') : $r('app.color.color_bg_card'))
+            .backgroundColor(this.currentTopicId === topic.topicId ? $r('app.color.color_cta_black') : $r('app.color.color_bg_card'))
             .padding({ left: 12, right: 12, top: 6, bottom: 6 })
             .borderRadius(14)
             .onClick(() => { this.onTopicChange(topic.topicId); })
@@ -165,7 +165,7 @@ export struct CommunityList {
       ForEach(this.sortOptions, (opt: SortOption) => {
         Text(opt.label)
           .fontSize(13)
-          .fontColor(this.sortBy === opt.value ? $r('app.color.color_secondary') : $r('app.color.color_text_secondary'))
+          .fontColor(this.sortBy === opt.value ? $r('app.color.color_cta_black') : $r('app.color.color_text_secondary'))
           .fontWeight(this.sortBy === opt.value ? FontWeight.Bold : FontWeight.Normal)
           .onClick(() => { this.onSortChange(opt.value); })
       }, (opt: SortOption) => opt.value)
@@ -219,7 +219,7 @@ export struct CommunityList {
           .width(32)
           .height(32)
           .borderRadius(16)
-          .backgroundColor($r('app.color.color_primary_light'))
+          .backgroundColor($r('app.color.color_card_yellow'))
           .textAlign(TextAlign.Center)
         Column({ space: 2 }) {
           Row({ space: 4 }) {
@@ -232,7 +232,7 @@ export struct CommunityList {
               Text('V')
                 .fontSize(9)
                 .fontColor(Color.White)
-                .backgroundColor($r('app.color.color_secondary'))
+                .backgroundColor($r('app.color.color_cta_black'))
                 .width(14)
                 .height(14)
                 .borderRadius(7)

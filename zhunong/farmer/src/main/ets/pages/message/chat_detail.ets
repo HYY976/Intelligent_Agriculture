@@ -1,4 +1,4 @@
-/**
+﻿/**
  * chat_detail - 聊天详情（spec 3.2.4.4 / 4.1.10）
  *
  * 买卖家互通聊天界面
@@ -195,7 +195,7 @@ export struct ChatDetail {
         .width(36)
         .height(36)
         .borderRadius(18)
-        .backgroundColor($r('app.color.color_primary_light'))
+        .backgroundColor($r('app.color.color_card_yellow'))
         .textAlign(TextAlign.Center)
       Column({ space: 2 }) {
         Text(this.peerNickname)
@@ -256,7 +256,7 @@ export struct ChatDetail {
             Text('卖家')
               .fontSize(9)
               .fontColor(Color.White)
-              .backgroundColor($r('app.color.color_secondary'))
+              .backgroundColor($r('app.color.color_cta_black'))
               .padding({ left: 4, right: 4, top: 1, bottom: 1 })
               .borderRadius(4)
             Text(this.formatTime(msg.createdAt))
@@ -268,7 +268,7 @@ export struct ChatDetail {
           Text(msg.content)
             .fontSize(14)
             .fontColor(Color.White)
-            .backgroundColor($r('app.color.color_primary'))
+            .backgroundColor($r('app.color.color_cta_black'))
             .padding({ left: 12, right: 12, top: 8, bottom: 8 })
             .borderRadius(12)
         }
@@ -279,7 +279,7 @@ export struct ChatDetail {
           .width(32)
           .height(32)
           .borderRadius(16)
-          .backgroundColor($r('app.color.color_secondary'))
+          .backgroundColor($r('app.color.color_cta_black'))
           .textAlign(TextAlign.Center)
       } else {
         // 对方消息：左对齐
@@ -288,7 +288,7 @@ export struct ChatDetail {
           .width(32)
           .height(32)
           .borderRadius(16)
-          .backgroundColor($r('app.color.color_primary_light'))
+          .backgroundColor($r('app.color.color_card_yellow'))
           .textAlign(TextAlign.Center)
         Column({ space: 4 }) {
           Row({ space: 4 }) {
@@ -303,7 +303,7 @@ export struct ChatDetail {
           Text(msg.content)
             .fontSize(14)
             .fontColor($r('app.color.color_text_primary'))
-            .backgroundColor($r('app.color.color_bg_card'))
+            .backgroundColor($r('app.color.color_card_yellow'))
             .padding({ left: 12, right: 12, top: 8, bottom: 8 })
             .borderRadius(12)
         }
@@ -331,7 +331,7 @@ export struct ChatDetail {
       Button(this.isSending ? '...' : '发送')
         .height(36)
         .borderRadius(18)
-        .backgroundColor(this.inputText.length > 0 ? $r('app.color.color_secondary') : $r('app.color.color_button_disabled'))
+        .backgroundColor(this.inputText.length > 0 ? $r('app.color.color_cta_black') : $r('app.color.color_button_disabled'))
         .fontColor(Color.White)
         .fontSize(13)
         .padding({ left: 20, right: 20 })

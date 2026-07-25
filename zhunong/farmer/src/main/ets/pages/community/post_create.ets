@@ -1,4 +1,4 @@
-/**
+﻿/**
  * post_create - 发帖页（spec 3.2.4.2）
  *
  * 卖家发帖昵称带"卖家"V标
@@ -128,13 +128,13 @@ export struct PostCreate {
         Text('卖家')
           .fontSize(10)
           .fontColor(Color.White)
-          .backgroundColor($r('app.color.color_secondary'))
+          .backgroundColor($r('app.color.color_cta_black'))
           .padding({ left: 6, right: 6, top: 2, bottom: 2 })
           .borderRadius(6)
         Text('V')
           .fontSize(10)
           .fontColor(Color.White)
-          .backgroundColor($r('app.color.color_secondary'))
+          .backgroundColor($r('app.color.color_cta_black'))
           .width(16)
           .height(16)
           .borderRadius(8)
@@ -161,7 +161,7 @@ export struct PostCreate {
           Text(topic.name)
             .fontSize(13)
             .fontColor(this.topicId === topic.topicId ? Color.White : $r('app.color.color_text_primary'))
-            .backgroundColor(this.topicId === topic.topicId ? $r('app.color.color_primary') : $r('app.color.color_bg_page'))
+            .backgroundColor(this.topicId === topic.topicId ? $r('app.color.color_cta_black') : $r('app.color.color_bg_page'))
             .padding({ left: 12, right: 12, top: 6, bottom: 6 })
             .borderRadius(14)
             .margin({ right: 8, bottom: 8 })
@@ -268,7 +268,7 @@ export struct PostCreate {
             .width('100%')
             .height(96)
             .borderRadius(8)
-            .backgroundColor($r('app.color.color_primary_light'))
+            .backgroundColor($r('app.color.color_card_yellow'))
             .alignContent(Alignment.Center)
           }
         }, (imgKey: string, idx: number) => `${imgKey}_${idx}`)
@@ -307,7 +307,7 @@ export struct PostCreate {
       .width('100%')
       .height(48)
       .borderRadius(24)
-      .backgroundColor(this.isSubmitting ? $r('app.color.color_button_disabled') : $r('app.color.color_secondary'))
+      .backgroundColor(this.isSubmitting ? $r('app.color.color_button_disabled') : $r('app.color.color_cta_black'))
       .fontColor(Color.White)
       .fontSize(16)
       .fontWeight(FontWeight.Medium)

@@ -3,7 +3,7 @@
  * 遵循 spec 3.1.3.5：地址/收藏/关注/优惠券/钱包/浏览历史
  */
 
-import { Address, FavoriteItem, FollowItem, Coupon, WalletInfo, HistoryItem } from '../model/ProfileModels';
+import { Address, FavoriteItem, FollowItem, Coupon, WalletInfo, WalletTransaction, HistoryItem, ProfileStats, ProfileLevel } from '../model/ProfileModels';
 
 /** 收货地址 Mock（spec 3.1.3.5） */
 export const MOCK_ADDRESSES: Address[] = [
@@ -49,23 +49,55 @@ export const MOCK_COUPONS: Coupon[] = [
   { couponId: 'cp005', name: '满200减50', type: 'full_cut', threshold: 200, cutAmount: 50, validFrom: 1736000000000, validTo: 1736600000000, status: 'expired', scope: '全场通用' }
 ];
 
-/** 钱包信息 Mock */
+/** 钱包信息 Mock（对齐设计稿 wallet.html qn-hero: 余额1,288.50 + qn-stat-card: 本月支出328/累计优惠156/积分2,880/优惠券6张） */
 export const MOCK_WALLET: WalletInfo = {
-  balance: 328.50,
-  totalSpent: 5689.20,
-  totalSaved: 486.30,
-  couponCount: 3
+  balance: 1288.50,
+  monthSpent: 328,
+  totalDiscount: 156,
+  points: 2880,
+  couponCount: 6
 };
 
-/** 浏览历史 Mock */
+/** 钱包交易明细 Mock（对齐设计稿 wallet.html qn-tx-list: 草莓订单/充值/订单退款/购物积分/珍珠米） */
+export const MOCK_WALLET_TRANSACTIONS: WalletTransaction[] = [
+  { txId: 'tx001', iconTheme: 'red', icon: '🛍️', title: '草莓订单', time: '今天 10:24', amount: -29.9, isInt: false },
+  { txId: 'tx002', iconTheme: 'green', icon: '⬇️', title: '充值', time: '昨天 18:30', amount: 200.00, isInt: false },
+  { txId: 'tx003', iconTheme: 'blue', icon: '↩️', title: '订单退款', time: '07-20 14:15', amount: 15.00, isInt: false },
+  { txId: 'tx004', iconTheme: 'yellow', icon: '🎁', title: '购物积分', time: '07-19 09:42', amount: 288, isInt: true },
+  { txId: 'tx005', iconTheme: 'red', icon: '🛍️', title: '珍珠米', time: '07-18 16:08', amount: -20.0, isInt: false }
+];
+
+/** 个人中心统计 Mock（对齐设计稿 user-profile.html qn-stat-row: 关注128/粉丝56/订单23/积分860） */
+export const MOCK_PROFILE_STATS: ProfileStats = {
+  followCount: 128,
+  fansCount: 56,
+  orderCount: 23,
+  points: 860
+};
+
+/** 个人中心等级 Mock（对齐设计稿 qn-level-pill: Lv.3 助农达人） */
+export const MOCK_PROFILE_LEVEL: ProfileLevel = {
+  level: 3,
+  title: '助农达人'
+};
+
+/** 用户 ID Mock（对齐设计稿 qn-profile-id: ID: QN20231234） */
+export const MOCK_USER_ID: string = 'QN20231234';
+
+/** 购物车商品件数 Mock（对齐设计稿 qn-cart-right: 3件商品） */
+export const MOCK_CART_ITEM_COUNT: number = 3;
+
+/** 浏览历史 Mock（对齐设计稿 history.html: 今天3条 + 昨天3条 + 更早1条，时间相对 Date.now() 动态计算） */
+const HOUR_MS: number = 3600 * 1000;
+const DAY_MS: number = 24 * HOUR_MS;
 export const MOCK_HISTORIES: HistoryItem[] = [
-  { historyId: 'h001', productId: 'p001', title: '有机青菜 500g 当季新鲜 直采直发', image: 'prod_vegetable_1', price: 9.90, farmerName: '青禾农庄', viewedAt: 1737950000000 },
-  { historyId: 'h002', productId: 'p005', title: '冰糖橙 5斤 当季鲜果 甜度高', image: 'prod_fruit_1', price: 29.90, farmerName: '田园牧歌', viewedAt: 1737940000000 },
-  { historyId: 'h003', productId: 'p007', title: '高山绿茶 250g 明前嫩芽 清香回甘', image: 'prod_tea_1', price: 68.00, farmerName: '青禾农庄', viewedAt: 1737930000000 },
-  { historyId: 'h004', productId: 'p010', title: '土猪肉 1kg 农家散养 黑猪肉', image: 'prod_meat_1', price: 78.00, farmerName: '青禾农庄', viewedAt: 1737920000000 },
-  { historyId: 'h005', productId: 'p009', title: '土蜂蜜 500g 百花蜜 农家自酿', image: 'prod_honey_1', price: 89.00, farmerName: '田园牧歌', viewedAt: 1737910000000 },
-  { historyId: 'h006', productId: 'p014', title: '甜糯玉米 8根 真空包装 当季新粮', image: 'prod_corn_1', price: 39.90, farmerName: '山野好物', viewedAt: 1737900000000 },
-  { historyId: 'h007', productId: 'p012', title: '香菇 500g 山珍鲜菇 肉厚味鲜', image: 'prod_mushroom_1', price: 32.00, farmerName: '田园牧歌', viewedAt: 1737890000000 }
+  { historyId: 'h001', productId: 'p001', title: '丹东红颜草莓 新鲜采摘 2斤装', image: 'prod_fruit_1', price: 39.9, farmerName: '王大姐果园', viewedAt: Date.now() - 2 * HOUR_MS },
+  { historyId: 'h002', productId: 'p005', title: '普罗旺斯沙瓤番茄 5斤箱装', image: 'prod_vegetable_1', price: 29.9, farmerName: '老李家菜园', viewedAt: Date.now() - 5 * HOUR_MS },
+  { historyId: 'h003', productId: 'p007', title: '明前龙井新茶 礼盒装250g', image: 'prod_tea_1', price: 128.00, farmerName: '云雾茶庄', viewedAt: Date.now() - 8 * HOUR_MS },
+  { historyId: 'h004', productId: 'p010', title: '东北五常稻花香大米 10斤', image: 'prod_meat_1', price: 89.00, farmerName: '黑土农场', viewedAt: Date.now() - 27 * HOUR_MS },
+  { historyId: 'h005', productId: 'p009', title: '散养土鸡蛋 30枚装', image: 'prod_honey_1', price: 49.9, farmerName: '山间农舍', viewedAt: Date.now() - 31 * HOUR_MS },
+  { historyId: 'h006', productId: 'p014', title: '秦岭土蜂蜜 纯天然500g', image: 'prod_corn_1', price: 69.00, farmerName: '老蜂农赵叔', viewedAt: Date.now() - 37 * HOUR_MS },
+  { historyId: 'h007', productId: 'p012', title: '香菇 500g 山珍鲜菇 肉厚味鲜', image: 'prod_mushroom_1', price: 32.00, farmerName: '田园牧歌', viewedAt: Date.now() - 3 * DAY_MS }
 ];
 
 /** 查询地址（按 ID） */
@@ -127,4 +159,17 @@ export function removeMockFollow(followId: string): void {
   if (idx >= 0) {
     MOCK_FOLLOWS.splice(idx, 1);
   }
+}
+
+/** 删除单条浏览历史 */
+export function removeMockHistory(historyId: string): void {
+  const idx: number = MOCK_HISTORIES.findIndex((h: HistoryItem) => h.historyId === historyId);
+  if (idx >= 0) {
+    MOCK_HISTORIES.splice(idx, 1);
+  }
+}
+
+/** 清空所有浏览历史 */
+export function clearMockHistories(): void {
+  MOCK_HISTORIES.splice(0, MOCK_HISTORIES.length);
 }

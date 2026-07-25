@@ -1,23 +1,45 @@
 /**
- * live_room - 直播间页（仿抖音沉浸式，纯 UI 模拟）
- * 遵循 spec 3.1.4.2 / 2.4.6.3：
- *  - 全屏黑底 + 直播画面区（占位图片轮播）
- *  - 顶部：主播头像 + 昵称 + 关注按钮 + 在线人数 + 关闭按钮
- *  - 右侧悬浮：商品袋 / 礼物 / 分享 / 点赞
- *  - 底部：评论输入框 + 发送按钮 + 评论气泡滚动（自动滚到底）
- *  - 商品袋弹窗（bindSheet）：列表 + 点击跳商品详情/直接下单
- *  - 礼物面板弹窗（bindSheet）：选择礼物 + 消耗金币 + 礼物特效动画
- *  - 现阶段纯 UI 模拟，不集成真实推拉流 SDK
+ * live_room - 直播间页（对齐设计稿 user-live.html）
+ *  - 全屏直播背景图 + 渐变遮罩
+ *  - 顶部：圆形毛玻璃返回 + LIVE 胶囊(闪烁圆点) + 观看人数 + 圆形分享
+ *  - 右侧互动列：点赞(红渐变) + 礼物(黄渐变) + 购物车(白底带角标)
+ *  - 右侧聊天气泡：半透明毛玻璃 + 彩色圆点
+ *  - 底部白色浮层：主播信息(黄色光环头像) + 商品卡 + 输入栏(黄发送按钮)
+ *  - 保留：商品袋弹窗 / 礼物面板弹窗 / 评论发送 / 关注 / 点赞
  */
 
-import { UserRoutes, RouteName, NavigationHelper, Logger, AppConstants, ToastUtil } from 'common';
-import { LiveInfo, LiveComment, LiveGift, LiveBagItem, getLiveStatusLabel, getLiveCategoryLabel } from '../../model/LiveModels';
+import { RouteName, NavigationHelper, Logger, AppConstants, ToastUtil } from 'common';
+import { LiveInfo, LiveComment, LiveGift, LiveBagItem } from '../../model/LiveModels';
 import { getMockLiveById, getMockLiveComments, getMockLiveBag, MOCK_GIFTS, toggleMockFollow, sendMockGift, likeMockLive } from '../../mock/LiveMock';
 import { ImageUtil } from '../../utils/ImageUtil';
 
 /** 跳转商品详情的路由参数（spec 10.12：ArkTS 严格模式要求具体 interface） */
 interface ProductDetailParam {
   productId: string;
+}
+
+/** 聊天气泡展示数据（对齐设计稿 qn-chat-bubble） */
+interface ChatBubbleData {
+  /** 评论 ID */
+  commentId: string;
+  /** 用户昵称 */
+  nickname: string;
+  /** 评论内容 */
+  content: string;
+  /** 头像圆点颜色（#RRGGBB） */
+  dotColor: string;
+}
+
+/** 商品卡数据（对齐设计稿 qn-live-prod） */
+interface LiveProductCard {
+  /** 商品 ID */
+  productId: string;
+  /** 商品名 */
+  name: string;
+  /** 主图 key */
+  mainImage: string;
+  /** 价格 */
+  price: number;
 }
 
 @ComponentV2
@@ -38,20 +60,17 @@ export struct LiveRoom {
   @Local showBagPanel: boolean = false;
   /** 是否显示礼物面板弹窗 */
   @Local showGiftPanel: boolean = false;
-  /** 是否显示分享菜单 */
-  @Local showShareMenu: boolean = false;
   /** 用户金币余额（Mock） */
   @Local coins: number = 888;
   /** 当前点赞数 */
   @Local likeCount: number = 0;
   /** 是否已关注 */
   @Local isFollowing: boolean = false;
-  /** 当前轮播图索引 */
-  @Local currentImageIndex: number = 0;
   /** 礼物特效（最近一次送礼，触发动画） */
   @Local giftEffect: LiveGift | null = null;
-  /** 评论列表 Scroller（自动滚到底） */
-  private commentScroller: Scroller = new Scroller();
+
+  /** 聊天气泡颜色池（对齐设计稿：4 种彩色圆点） */
+  private readonly chatColors: string[] = ['#FF6B6B', '#7ED321', '#4A90E2', '#FF9F1C'];
 
   aboutToAppear(): void {
     const params: Record<string, string> = NavigationHelper.getParam<Record<string, string>>() as Record<string, string>;
@@ -72,16 +91,13 @@ export struct LiveRoom {
     this.live = live;
     this.likeCount = live.likeCount;
     this.isFollowing = live.isFollowing;
-    // 直播中加载评论；预告/已结束也加载回放评论
     this.comments = getMockLiveComments(this.liveId, 20);
     this.bags = getMockLiveBag(this.liveId);
-    Logger.info(AppConstants.SCENE_USER, JSON.stringify({
+    Logger.info(AppConstants.SCENE_USER, {
       action: 'live_room_view',
       liveId: this.liveId,
-      status: live.status,
-      commentCount: this.comments.length,
-      bagCount: this.bags.length
-    }));
+      count: this.comments.length
+    });
   }
 
   /** 返回上一页 */
@@ -94,7 +110,11 @@ export struct LiveRoom {
     const newFollowing: boolean = toggleMockFollow(this.liveId);
     this.isFollowing = newFollowing;
     ToastUtil.success(newFollowing ? '已关注主播' : '已取消关注');
-    Logger.info(AppConstants.SCENE_USER, { action: 'live_follow_toggle', liveId: this.liveId, following: newFollowing });
+    Logger.info(AppConstants.SCENE_USER, {
+      action: 'live_follow_toggle',
+      liveId: this.liveId,
+      following: newFollowing
+    });
   }
 
   /** 点赞 */
@@ -121,11 +141,11 @@ export struct LiveRoom {
     };
     this.comments.push(newComment);
     this.inputText = '';
-    // 自动滚到底部
-    setTimeout(() => {
-      this.commentScroller.scrollEdge(Edge.Bottom);
-    }, 100);
-    Logger.info(AppConstants.SCENE_USER, { action: 'live_comment_send', liveId: this.liveId, length: text.length });
+    Logger.info(AppConstants.SCENE_USER, {
+      action: 'live_comment_send',
+      liveId: this.liveId,
+      length: text.length
+    });
   }
 
   /** 送礼物 */
@@ -137,18 +157,17 @@ export struct LiveRoom {
     this.coins -= gift.price;
     sendMockGift(this.liveId, gift, 1, '我');
     this.giftEffect = gift;
-    // 1.2 秒后清除特效
     setTimeout(() => {
       this.giftEffect = null;
     }, 1200);
     this.showGiftPanel = false;
     ToastUtil.success(`送出 ${gift.icon} ${gift.name} x1`);
-    Logger.info(AppConstants.SCENE_USER, JSON.stringify({
+    Logger.info(AppConstants.SCENE_USER, {
       action: 'live_gift_send',
       liveId: this.liveId,
       giftId: gift.giftId,
       amount: gift.price
-    }));
+    });
   }
 
   /** 商品袋点击 → 跳商品详情 */
@@ -158,7 +177,16 @@ export struct LiveRoom {
     NavigationHelper.push(RouteName.USER_PRODUCT_DETAIL, param);
   }
 
-  /** 跳转主播店铺主页（复用商品详情店铺入口，暂跳商品详情） */
+  /** 立即购买（底部商品卡） */
+  private onBuyNow(): void {
+    if (this.bags.length === 0) {
+      return;
+    }
+    const bag: LiveBagItem = this.bags[0];
+    this.onBagItemClick(bag.productId);
+  }
+
+  /** 跳转主播店铺（复用商品详情入口） */
   private gotoShop(): void {
     if (this.live && this.live.productBag.length > 0) {
       const param: ProductDetailParam = { productId: this.live.productBag[0] };
@@ -169,79 +197,42 @@ export struct LiveRoom {
   build() {
     NavDestination() {
       Stack({ alignContent: Alignment.TopStart }) {
-        // 全屏黑底 + 直播画面区
-        Stack() {
-          // 占位直播画面（图片轮播：封面 + 商品图）
-          if (this.live) {
-            Swiper() {
-              ForEach(this.liveImageList(this.live), (imgKey: string, idx: number) => {
-                Image(ImageUtil.get(imgKey))
-                  .width('100%')
-                  .height('100%')
-                  .objectFit(ImageFit.Cover)
-              }, (imgKey: string) => imgKey)
-            }
-            .indicator(false)
-            .loop(true)
-            .interval(4000)
-            .width('100%')
-            .height('100%')
-            .onChange((index: number) => {
-              this.currentImageIndex = index;
-            })
-          }
-          // 黑色渐变遮罩（顶/底，增强浮层文字可读性）
-          Column() {
-            Column()
-              .width('100%')
-              .height(140)
-              .linearGradient({
-                direction: GradientDirection.Bottom,
-                colors: [['rgba(0,0,0,0.6)', 0], ['rgba(0,0,0,0)', 1]]
-              })
-            Blank()
-            Column()
-              .width('100%')
-              .height(260)
-              .linearGradient({
-                direction: GradientDirection.Top,
-                colors: [['rgba(0,0,0,0.7)', 0], ['rgba(0,0,0,0)', 1]]
-              })
-          }
-          .width('100%')
-          .height('100%')
-          .justifyContent(FlexAlign.SpaceBetween)
-        }
-        .width('100%')
-        .height('100%')
-        .backgroundColor('#000000')
-
-        // 顶部主播信息栏
+        // 1. 全屏直播背景 + 渐变遮罩（对齐设计稿 qn-live-bg + qn-live-gradient）
         if (this.live) {
-          this.TopAnchorBar(this.live)
+          this.LiveBackground()
         }
 
-        // 右侧悬浮操作
+        // 2. 顶部叠加层（对齐设计稿 qn-live-top）
         if (this.live) {
-          this.RightActions(this.live)
+          this.TopOverlay()
         }
 
-        // 底部评论 + 输入栏
+        // 3. 右侧互动按钮列（对齐设计稿 qn-live-actions）
         if (this.live) {
-          this.BottomCommentBar(this.live)
+          this.RightActionColumn()
         }
 
-        // 礼物特效动画浮层
+        // 4. 右侧浮动聊天（对齐设计稿 qn-live-chat）
+        if (this.live) {
+          this.ChatBubbles()
+        }
+
+        // 5. 底部白色浮层（对齐设计稿 qn-live-bottom）
+        if (this.live) {
+          this.BottomPanel()
+        }
+
+        // 6. 礼物特效浮层
         if (this.giftEffect) {
           this.GiftEffectOverlay(this.giftEffect)
         }
 
-        // 预告状态遮罩（预约提示）
+        // 7. 预告状态遮罩
         if (this.live && this.live.status === 'preview') {
           this.PreviewOverlay(this.live)
         }
 
-        // 已结束状态遮罩
+        // 8. 已结束状态遮罩
         if (this.live && this.live.status === 'ended') {
           this.EndedOverlay(this.live)
         }
@@ -265,231 +256,422 @@ export struct LiveRoom {
     .hideTitleBar(true)
   }
 
-  /** 直播画面轮播图列表（封面 + 商品袋主图） */
-  private liveImageList(live: LiveInfo): string[] {
-    const images: string[] = [live.coverImage];
-    this.bags.forEach((b: LiveBagItem) => {
-      if (images.indexOf(b.mainImage) < 0) {
-        images.push(b.mainImage);
+  /** 全屏直播背景 + 渐变遮罩（对齐设计稿 qn-live-bg + qn-live-gradient） */
+  @Builder
+  LiveBackground() {
+    Stack() {
+      // 背景图（占位直播画面）
+      Image(ImageUtil.get(this.live!.coverImage))
+        .width('100%')
+        .height('100%')
+        .objectFit(ImageFit.Cover)
+
+      // 渐变遮罩（顶底深、中间透，对齐设计稿 qn-live-gradient）
+      Column() {
+        // 顶部渐变
+        Column()
+          .width('100%')
+          .height(160)
+          .linearGradient({
+            direction: GradientDirection.Bottom,
+            colors: [['rgba(0,0,0,0.55)', 0], ['rgba(0,0,0,0.18)', 0.5], ['rgba(0,0,0,0)', 1]]
+          })
+        Blank()
+        // 底部渐变
+        Column()
+          .width('100%')
+          .height(200)
+          .linearGradient({
+            direction: GradientDirection.Top,
+            colors: [['rgba(0,0,0,0.45)', 0], ['rgba(0,0,0,0.18)', 0.5], ['rgba(0,0,0,0)', 1]]
+          })
       }
-    });
-    return images;
+      .width('100%')
+      .height('100%')
+      .justifyContent(FlexAlign.SpaceBetween)
+    }
+    .width('100%')
+    .height('100%')
   }
 
-  /** 顶部主播信息栏 */
+  /** 顶部叠加层（对齐设计稿 qn-live-top：圆形返回 + LIVE胶囊 + 观看人数 + 圆形分享） */
   @Builder
-  TopAnchorBar(live: LiveInfo) {
-    Row({ space: 10 }) {
-      // 关闭按钮
-      Text('✕')
-        .fontSize(20)
+  TopOverlay() {
+    Row() {
+      // 左：圆形毛玻璃返回按钮（对齐设计稿 qn-live-circle）
+      Text('←')
+        .fontSize(22)
         .fontColor(Color.White)
+        .width(36)
+        .height(36)
+        .textAlign(TextAlign.Center)
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .backgroundColor('rgba(26,26,26,0.42)')
         .onClick(() => {
           this.goBack();
         })
 
-      // 主播头像
-      Image(ImageUtil.get(live.anchorAvatar))
-        .width(40)
-        .height(40)
-        .borderRadius(20)
-        .border({ width: 2, color: Color.White })
-        .onClick(() => {
-          this.gotoShop();
-        })
+      // 中：LIVE 胶囊 + 观看人数（对齐设计稿 qn-live-top-center）
+      Row({ space: 8 }) {
+        // LIVE 胶囊（对齐设计稿 qn-live-pill：红底 + 白色闪烁圆点）
+        Row({ space: 5 }) {
+          Text('●')
+            .fontSize(8)
+            .fontColor(Color.White)
+          Text('LIVE')
+            .fontSize(11)
+            .fontColor(Color.White)
+            .fontWeight(FontWeight.Bold)
+        }
+        .padding({ left: 9, right: 10, top: 4, bottom: 4 })
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .backgroundColor($r('app.color.color_live'))
+        .shadow({ radius: 8, color: 'rgba(255,77,79,0.45)', offsetX: 0, offsetY: 2 })
 
-      // 昵称 + 在线人数
-      Column({ space: 2 }) {
-        Text(live.anchorName)
-          .fontSize(14)
+        // 观看人数
+        Text(`${this.formatCount(this.live!.onlineCount)}人在看`)
+          .fontSize(13)
           .fontColor(Color.White)
           .fontWeight(FontWeight.Medium)
-        Text(this.formatOnlineText(live))
-          .fontSize(11)
-          .fontColor('rgba(255,255,255,0.8)')
       }
-      .alignItems(HorizontalAlign.Start)
       .layoutWeight(1)
+      .justifyContent(FlexAlign.Center)
 
-      // 关注按钮
-      Text(this.isFollowing ? '已关注' : '+ 关注')
-        .fontSize(12)
-        .fontColor(this.isFollowing ? Color.White : $r('app.color.color_primary'))
-        .backgroundColor(this.isFollowing ? 'rgba(255,255,255,0.2)' : Color.White)
-        .padding({ left: 12, right: 12, top: 6, bottom: 6 })
-        .borderRadius(14)
+      // 右：圆形毛玻璃分享按钮（对齐设计稿 qn-live-circle）
+      Text('↗')
+        .fontSize(18)
+        .fontColor(Color.White)
+        .width(36)
+        .height(36)
+        .textAlign(TextAlign.Center)
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .backgroundColor('rgba(26,26,26,0.42)')
         .onClick(() => {
-          this.onToggleFollow();
+          ToastUtil.info('分享功能开发中');
         })
     }
     .width('100%')
-    .height(56)
-    .padding({ left: 16, right: 16, top: 36 })
+    .padding({ left: 14, right: 14, top: 44, bottom: 12 })
     .alignItems(VerticalAlign.Center)
   }
 
-  /** 右侧悬浮操作（商品袋/礼物/分享/点赞） */
+  /** 右侧互动按钮列（对齐设计稿 qn-live-actions：点赞 + 礼物 + 购物车） */
   @Builder
-  RightActions(live: LiveInfo) {
-    Column({ space: 22 }) {
-      // 主播头像（小，跳店铺）
-      Image(ImageUtil.get(live.anchorAvatar))
-        .width(48)
-        .height(48)
-        .borderRadius(24)
-        .border({ width: 2, color: Color.White })
-        .onClick(() => {
-          this.gotoShop();
-        })
-
-      // 点赞
-      Column({ space: 4 }) {
-        Text('❤️')
-          .fontSize(34)
+  RightActionColumn() {
+    Column({ space: 16 }) {
+      // 点赞（对齐设计稿 qn-live-ico.like：红渐变圆）
+      Column({ space: 3 }) {
+        Text('♥')
+          .fontSize(24)
+          .fontColor(Color.White)
+          .width(46)
+          .height(46)
+          .textAlign(TextAlign.Center)
+          .borderRadius(AppConstants.RADIUS_PILL)
+          .backgroundColor('#FF4D4F')
+          .shadow({ radius: 12, color: 'rgba(0,0,0,0.28)', offsetX: 0, offsetY: 4 })
           .onClick(() => {
             this.onLike();
           })
         Text(this.formatCount(this.likeCount))
           .fontSize(11)
           .fontColor(Color.White)
+          .fontWeight(FontWeight.Bold)
       }
       .alignItems(HorizontalAlign.Center)
 
-      // 商品袋
-      Column({ space: 4 }) {
-        Text('🛍️')
-          .fontSize(34)
-        Text(`${this.bags.length}件`)
+      // 礼物（对齐设计稿 qn-live-ico.gift：黄渐变圆）
+      Column({ space: 3 }) {
+        Text('🎁')
+          .fontSize(22)
+          .width(46)
+          .height(46)
+          .textAlign(TextAlign.Center)
+          .borderRadius(AppConstants.RADIUS_PILL)
+          .backgroundColor($r('app.color.color_primary'))
+          .shadow({ radius: 12, color: 'rgba(0,0,0,0.28)', offsetX: 0, offsetY: 4 })
+          .onClick(() => {
+            this.showGiftPanel = true;
+          })
+        Text('礼物')
           .fontSize(11)
           .fontColor(Color.White)
+          .fontWeight(FontWeight.Bold)
       }
       .alignItems(HorizontalAlign.Center)
+
+      // 购物车（对齐设计稿 qn-live-ico.cart：白底圆 + 红色角标）
+      Stack({ alignContent: Alignment.TopEnd }) {
+        Column({ space: 3 }) {
+          Text('🛒')
+            .fontSize(22)
+            .width(46)
+            .height(46)
+            .textAlign(TextAlign.Center)
+            .borderRadius(AppConstants.RADIUS_PILL)
+            .backgroundColor(Color.White)
+            .shadow({ radius: 12, color: 'rgba(0,0,0,0.28)', offsetX: 0, offsetY: 4 })
+          Text('购物车')
+            .fontSize(11)
+            .fontColor(Color.White)
+            .fontWeight(FontWeight.Bold)
+        }
+        .alignItems(HorizontalAlign.Center)
+
+        // 角标（对齐设计稿 qn-badge）
+        if (this.bags.length > 0) {
+          Text(`${this.bags.length}`)
+            .fontSize(10)
+            .fontColor(Color.White)
+            .fontWeight(FontWeight.Bold)
+            .height(17)
+            .padding({ left: 4, right: 4 })
+            .borderRadius(AppConstants.RADIUS_PILL)
+            .backgroundColor($r('app.color.color_live'))
+            .border({ width: 2, color: Color.White })
+            .textAlign(TextAlign.Center)
+            .markAnchor({ x: 17, y: 0 })
+            .position({ x: 32, y: -4 })
+        }
+      }
+      .width(46)
       .onClick(() => {
         this.showBagPanel = true;
       })
-
-      // 礼物
-      Column({ space: 4 }) {
-        Text('🎁')
-          .fontSize(34)
-        Text('送礼')
-          .fontSize(11)
-          .fontColor(Color.White)
-      }
-      .alignItems(HorizontalAlign.Center)
-      .onClick(() => {
-        this.showGiftPanel = true;
-      })
-
-      // 分享
-      Column({ space: 4 }) {
-        Text('分享')
-          .fontSize(11)
-          .fontColor(Color.White)
-        Text('🔗')
-          .fontSize(30)
-      }
-      .alignItems(HorizontalAlign.Center)
-      .onClick(() => {
-        this.showShareMenu = true;
-        ToastUtil.info('分享功能开发中');
-      })
     }
-    .position({ right: 12, bottom: 180 })
+    .position({ right: 12, bottom: 330 })
     .alignItems(HorizontalAlign.Center)
   }
 
-  /** 底部评论 + 输入栏 */
+  /** 右侧浮动聊天气泡（对齐设计稿 qn-live-chat） */
   @Builder
-  BottomCommentBar(live: LiveInfo) {
+  ChatBubbles() {
     Column({ space: 8 }) {
-      // 评论列表（自动滚到底）
-      List({ scroller: this.commentScroller }) {
-        ForEach(this.comments, (comment: LiveComment) => {
-          ListItem() {
-            this.CommentBubble(comment)
-          }
-        }, (comment: LiveComment) => comment.commentId)
-      }
-      .width('100%')
-      .height(180)
-      .padding({ left: 12, right: 80 })
-      .align(Alignment.Bottom)
-      .scrollBar(BarState.Off)
-
-      // 输入框 + 发送按钮 + 金币显示
-      Row({ space: 8 }) {
-        // 输入框
-        TextInput({ text: this.inputText, placeholder: '说点什么…' })
-          .fontSize(13)
-          .fontColor(Color.White)
-          .placeholderColor('rgba(255,255,255,0.6)')
-          .placeholderFont({ size: 13 })
-          .backgroundColor('rgba(255,255,255,0.15)')
-          .borderRadius(20)
-          .padding({ left: 16, right: 16, top: 8, bottom: 8 })
-          .layoutWeight(1)
-          .onChange((value: string) => {
-            this.inputText = value;
-          })
-
-        // 金币余额
-        Text(`💰${this.coins}`)
-          .fontSize(12)
-          .fontColor($r('app.color.color_accent_gold'))
-          .padding({ left: 8, right: 8, top: 6, bottom: 6 })
-
-        // 发送按钮
-        Text('发送')
-          .fontSize(13)
-          .fontColor(Color.White)
-          .backgroundColor($r('app.color.color_primary'))
-          .padding({ left: 16, right: 16, top: 8, bottom: 8 })
-          .borderRadius(16)
-          .onClick(() => {
-            this.onSendComment();
-          })
-      }
-      .width('100%')
-      .padding({ left: 12, right: 12, bottom: 24 })
-      .alignItems(VerticalAlign.Center)
+      ForEach(this.getChatBubbles(), (bubble: ChatBubbleData, index: number) => {
+        Row({ space: 6 }) {
+          // 彩色圆点（对齐设计稿 qn-chat-dot）
+          Text('')
+            .width(18)
+            .height(18)
+            .borderRadius(AppConstants.RADIUS_PILL)
+            .backgroundColor(bubble.dotColor)
+            .border({ width: 1.5, color: 'rgba(255,255,255,0.5)' })
+          // 评论文字
+          Text(bubble.content)
+            .fontSize(12)
+            .fontColor(Color.White)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
+        .padding({ left: 5, right: 12, top: 5, bottom: 5 })
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .backgroundColor('rgba(26,26,26,0.42)')
+        .alignItems(VerticalAlign.Center)
+      }, (bubble: ChatBubbleData) => `${bubble.commentId}_${bubble.content}`)
     }
-    .width('100%')
-    .alignItems(HorizontalAlign.Start)
+    .position({ right: 12, bottom: 210 })
+    .alignItems(HorizontalAlign.End)
   }
 
-  /** 评论气泡（自己右侧绿色，他人左侧白色） */
+  /** 底部白色浮层（对齐设计稿 qn-live-bottom：主播信息 + 商品卡 + 输入栏） */
   @Builder
-  CommentBubble(comment: LiveComment) {
-    Row({ space: 6 }) {
-      if (!comment.isSelf) {
-        // 他人：头像 + 气泡（左）
-        Image(ImageUtil.get(comment.avatar))
-          .width(24)
-          .height(24)
-          .borderRadius(12)
-        Text(`${comment.nickname}: ${comment.content}`)
-          .fontSize(12)
-          .fontColor(Color.White)
-          .backgroundColor('rgba(0,0,0,0.4)')
-          .padding({ left: 10, right: 10, top: 4, bottom: 4 })
-          .borderRadius(12)
-          .maxLines(2)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-      } else {
-        // 自己：气泡（右，生机绿）
-        Blank()
-        Text(comment.content)
-          .fontSize(12)
-          .fontColor(Color.White)
-          .backgroundColor($r('app.color.color_primary'))
-          .padding({ left: 10, right: 10, top: 4, bottom: 4 })
-          .borderRadius(12)
-          .maxLines(2)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
+  BottomPanel() {
+    Column() {
+      // 主播信息行（对齐设计稿 qn-streamer-row）
+      this.StreamerRow()
+
+      // 商品卡（对齐设计稿 qn-live-prod）
+      if (this.bags.length > 0) {
+        this.LiveProductCardView(this.bags[0])
       }
+
+      // 底部输入栏（对齐设计稿 qn-live-input）
+      this.InputBar()
     }
     .width('100%')
+    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+    .backgroundColor($r('app.color.color_bg_card'))
+    .borderRadius({ topLeft: AppConstants.RADIUS_LG, topRight: AppConstants.RADIUS_LG })
+    .shadow({ radius: 24, color: 'rgba(0,0,0,0.2)', offsetX: 0, offsetY: -6 })
+    .markAnchor({ x: 0, y: '100%' })
+    .position({ x: 0, y: '100%' })
+  }
+
+  /** 主播信息行（对齐设计稿 qn-streamer-row：头像黄色光环 + 名称 + 地址 + 正在讲解 + 关注） */
+  @Builder
+  StreamerRow() {
+    Row({ space: 10 }) {
+      // 头像（对齐设计稿 qn-avatar-ring：双层光环）
+      Stack() {
+        Image(ImageUtil.get(this.live!.anchorAvatar))
+          .width(40)
+          .height(40)
+          .borderRadius(AppConstants.RADIUS_PILL)
+          .objectFit(ImageFit.Cover)
+          .border({ width: 3, color: $r('app.color.color_bg_card') })
+      }
+      .width(46)
+      .height(46)
+      .borderRadius(AppConstants.RADIUS_PILL)
+      .border({ width: 3, color: $r('app.color.color_yellow') })
+      .alignContent(Alignment.Center)
+      .onClick(() => {
+        this.gotoShop();
+      })
+
+      // 名称 + 地址
+      Column({ space: 3 }) {
+        Text(this.live!.anchorName)
+          .fontSize(14)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+        Text(this.live!.intro)
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_3'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+
+      // "正在讲解" 绿色胶囊（对齐设计稿 qn-pill-green）
+      Row({ space: 3 }) {
+        Text('✓')
+          .fontSize(10)
+          .fontColor($r('app.color.color_green_deep'))
+        Text('正在讲解')
+          .fontSize(11)
+          .fontColor($r('app.color.color_green_deep'))
+          .fontWeight(FontWeight.Bold)
+      }
+      .padding({ left: 7, right: 7, top: 3, bottom: 3 })
+      .borderRadius(AppConstants.RADIUS_PILL)
+      .backgroundColor($r('app.color.color_green_soft'))
+
+      // 关注按钮（对齐设计稿 qn-follow-btn：黄底黑字）
+      Text(this.isFollowing ? '已关注' : '+ 关注')
+        .fontSize(12)
+        .fontColor($r('app.color.color_ink'))
+        .fontWeight(FontWeight.Bold)
+        .height(30)
+        .padding({ left: 16, right: 16 })
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .backgroundColor(this.isFollowing ? $r('app.color.color_fill') : $r('app.color.color_primary'))
+        .textAlign(TextAlign.Center)
+        .onClick(() => {
+          this.onToggleFollow();
+        })
+    }
+    .width('100%')
+    .alignItems(VerticalAlign.Center)
+  }
+
+  /** 商品卡（对齐设计稿 qn-live-prod：60×60 图 + 名称 + 价格 + 立即购买） */
+  @Builder
+  LiveProductCardView(bag: LiveBagItem) {
+    Row({ space: 10 }) {
+      // 商品缩略图（对齐设计稿 qn-prod-thumb：60×60 圆角）
+      Image(ImageUtil.get(bag.mainImage))
+        .width(60)
+        .height(60)
+        .borderRadius(AppConstants.RADIUS_SM)
+        .objectFit(ImageFit.Cover)
+
+      // 商品信息（对齐设计稿 qn-prod-info）
+      Column({ space: 3 }) {
+        Text(bag.title)
+          .fontSize(13)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+        // 价格（对齐设计稿 qn-prod-price：¥小 + 数字大）
+        Row({ space: 1 }) {
+          Text('¥')
+            .fontSize(11)
+            .fontColor($r('app.color.color_live'))
+            .fontWeight(FontWeight.Bold)
+          Text(bag.price.toFixed(1))
+            .fontSize(17)
+            .fontColor($r('app.color.color_live'))
+            .fontWeight(FontWeight.Bold)
+        }
+        .alignItems(VerticalAlign.Bottom)
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+
+      // 立即购买按钮（对齐设计稿 qn-btn-buy：黑底白字胶囊）
+      Text('立即购买')
+        .fontSize(13)
+        .fontColor(Color.White)
+        .fontWeight(FontWeight.Bold)
+        .height(38)
+        .padding({ left: 16, right: 16 })
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .backgroundColor($r('app.color.color_ink'))
+        .textAlign(TextAlign.Center)
+        .onClick(() => {
+          this.onBuyNow();
+        })
+    }
+    .width('100%')
+    .padding(8)
+    .margin({ top: 12 })
+    .borderRadius(AppConstants.RADIUS_MD)
+    .backgroundColor($r('app.color.color_fill'))
+    .alignItems(VerticalAlign.Center)
+  }
+
+  /** 底部输入栏（对齐设计稿 qn-live-input：输入框 + 表情 + 黄色发送） */
+  @Builder
+  InputBar() {
+    Row({ space: 8 }) {
+      // 输入框（对齐设计稿 qn-input-field：胶囊形灰底）
+      TextInput({ text: this.inputText, placeholder: '说点什么...' })
+        .fontSize(13)
+        .fontColor($r('app.color.color_ink'))
+        .placeholderColor($r('app.color.color_text_4'))
+        .placeholderFont({ size: 13 })
+        .backgroundColor($r('app.color.color_fill'))
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .padding({ left: 14, right: 14 })
+        .height(36)
+        .layoutWeight(1)
+        .onChange((value: string) => {
+          this.inputText = value;
+        })
+        .onSubmit(() => {
+          this.onSendComment();
+        })
+
+      // 表情图标（对齐设计稿 qn-input-ico：圆形灰底）
+      Text('😊')
+        .fontSize(18)
+        .width(36)
+        .height(36)
+        .textAlign(TextAlign.Center)
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .backgroundColor($r('app.color.color_fill'))
+
+      // 发送按钮（对齐设计稿 qn-send-btn：黄底黑字胶囊）
+      Text('发送')
+        .fontSize(13)
+        .fontColor($r('app.color.color_ink'))
+        .fontWeight(FontWeight.Bold)
+        .height(36)
+        .padding({ left: 16, right: 16 })
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .backgroundColor($r('app.color.color_primary'))
+        .textAlign(TextAlign.Center)
+        .onClick(() => {
+          this.onSendComment();
+        })
+    }
+    .width('100%')
+    .margin({ top: 12 })
     .alignItems(VerticalAlign.Center)
   }
 
@@ -501,12 +683,12 @@ export struct LiveRoom {
       Row() {
         Text(`直播间商品 (${this.bags.length})`)
           .fontSize(16)
-          .fontColor($r('app.color.color_text_primary'))
+          .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Bold)
           .layoutWeight(1)
         Text('✕')
           .fontSize(20)
-          .fontColor($r('app.color.color_text_secondary'))
+          .fontColor($r('app.color.color_text_3'))
           .onClick(() => {
             this.showBagPanel = false;
           })
@@ -539,31 +721,33 @@ export struct LiveRoom {
       Text(`${bag.seq}`)
         .fontSize(12)
         .fontColor(Color.White)
-        .backgroundColor($r('app.color.color_secondary'))
+        .backgroundColor($r('app.color.color_ink'))
         .width(22)
         .height(22)
-        .borderRadius(11)
+        .borderRadius(AppConstants.RADIUS_PILL)
         .textAlign(TextAlign.Center)
       // 商品图
       Image(ImageUtil.get(bag.mainImage))
         .width(56)
         .height(56)
-        .borderRadius(8)
+        .borderRadius(AppConstants.RADIUS_SM)
+        .objectFit(ImageFit.Cover)
       // 标题 + 价格
       Column({ space: 4 }) {
         Text(bag.title)
           .fontSize(13)
-          .fontColor($r('app.color.color_text_primary'))
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Medium)
           .maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
-        Row({ space: 2 }) {
+        Row({ space: 1 }) {
           Text('¥')
             .fontSize(11)
-            .fontColor($r('app.color.color_price'))
+            .fontColor($r('app.color.color_live'))
             .fontWeight(FontWeight.Bold)
-          Text(bag.price.toFixed(2))
+          Text(bag.price.toFixed(1))
             .fontSize(16)
-            .fontColor($r('app.color.color_price'))
+            .fontColor($r('app.color.color_live'))
             .fontWeight(FontWeight.Bold)
         }
         .alignItems(VerticalAlign.Bottom)
@@ -575,16 +759,15 @@ export struct LiveRoom {
       Text('查看')
         .fontSize(12)
         .fontColor(Color.White)
-        .backgroundColor($r('app.color.color_primary'))
+        .backgroundColor($r('app.color.color_ink'))
         .padding({ left: 12, right: 12, top: 6, bottom: 6 })
-        .borderRadius(12)
+        .borderRadius(AppConstants.RADIUS_SM)
     }
     .width('100%')
-    .padding({ top: 8, bottom: 8 })
+    .padding(12)
+    .borderRadius(AppConstants.RADIUS_MD)
+    .backgroundColor($r('app.color.color_fill'))
     .alignItems(VerticalAlign.Center)
-    .borderRadius(12)
-    .backgroundColor($r('app.color.color_bg_page'))
-    .padding({ left: 12, right: 12, top: 8, bottom: 8 })
     .onClick(() => {
       this.onBagItemClick(bag.productId);
     })
@@ -598,7 +781,7 @@ export struct LiveRoom {
       Row() {
         Text('选择礼物')
           .fontSize(16)
-          .fontColor($r('app.color.color_text_primary'))
+          .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Bold)
           .layoutWeight(1)
         Text(`金币余额: ${this.coins}`)
@@ -607,7 +790,7 @@ export struct LiveRoom {
           .fontWeight(FontWeight.Bold)
         Text('✕')
           .fontSize(20)
-          .fontColor($r('app.color.color_text_secondary'))
+          .fontColor($r('app.color.color_text_3'))
           .margin({ left: 12 })
           .onClick(() => {
             this.showGiftPanel = false;
@@ -643,7 +826,7 @@ export struct LiveRoom {
         .fontSize(40)
       Text(gift.name)
         .fontSize(12)
-        .fontColor($r('app.color.color_text_primary'))
+        .fontColor($r('app.color.color_ink'))
       Text(`💰 ${gift.price}`)
         .fontSize(11)
         .fontColor($r('app.color.color_accent_gold'))
@@ -651,8 +834,8 @@ export struct LiveRoom {
     }
     .width('100%')
     .padding({ top: 12, bottom: 12 })
-    .borderRadius(12)
-    .backgroundColor($r('app.color.color_bg_page'))
+    .borderRadius(AppConstants.RADIUS_MD)
+    .backgroundColor($r('app.color.color_fill'))
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
     .onClick(() => {
@@ -694,9 +877,9 @@ export struct LiveRoom {
       Text('预约直播')
         .fontSize(14)
         .fontColor(Color.White)
-        .backgroundColor($r('app.color.color_secondary'))
+        .backgroundColor($r('app.color.color_ink'))
         .padding({ left: 24, right: 24, top: 10, bottom: 10 })
-        .borderRadius(20)
+        .borderRadius(AppConstants.RADIUS_PILL)
         .margin({ top: 12 })
         .onClick(() => {
           ToastUtil.success('预约成功，开播将提醒您');
@@ -723,9 +906,9 @@ export struct LiveRoom {
       Text('返回列表')
         .fontSize(14)
         .fontColor(Color.White)
-        .backgroundColor($r('app.color.color_primary'))
+        .backgroundColor($r('app.color.color_ink'))
         .padding({ left: 24, right: 24, top: 10, bottom: 10 })
-        .borderRadius(20)
+        .borderRadius(AppConstants.RADIUS_PILL)
         .margin({ top: 12 })
         .onClick(() => {
           this.goBack();
@@ -738,15 +921,19 @@ export struct LiveRoom {
     .backgroundColor('rgba(0,0,0,0.5)')
   }
 
-  /** 格式化在线观看文案 */
-  private formatOnlineText(live: LiveInfo): string {
-    if (live.status === 'living') {
-      return `🔥 ${this.formatCount(live.onlineCount)} 人观看`;
-    }
-    if (live.status === 'ended') {
-      return `累计 ${this.formatCount(live.totalViewUv)} 次观看`;
-    }
-    return getLiveStatusLabel(live.status) + ' · ' + getLiveCategoryLabel(live.category);
+  /** 获取聊天气泡展示数据（取最近 4 条，对齐设计稿 qn-live-chat） */
+  private getChatBubbles(): ChatBubbleData[] {
+    const list: ChatBubbleData[] = [];
+    const recent: LiveComment[] = this.comments.slice(-4);
+    recent.forEach((comment: LiveComment, index: number) => {
+      list.push({
+        commentId: comment.commentId,
+        nickname: comment.nickname,
+        content: comment.content,
+        dotColor: this.chatColors[index % this.chatColors.length]
+      });
+    });
+    return list;
   }
 
   /** 格式化数字（>=10000 显示万） */

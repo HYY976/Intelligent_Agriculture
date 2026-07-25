@@ -1,4 +1,4 @@
-/**
+﻿/**
  * product_publish - 商品上架发布页（spec 3.2.2 / 第8章 AI接口预留）
  *
  * 完整复刻淘宝发布详情页，字段：
@@ -324,7 +324,7 @@ export struct ProductPublish {
               .width('100%')
               .height(48)
               .borderRadius(24)
-              .backgroundColor(this.isSubmitting ? $r('app.color.color_button_disabled') : $r('app.color.color_secondary'))
+              .backgroundColor(this.isSubmitting ? $r('app.color.color_button_disabled') : $r('app.color.color_cta_black'))
               .fontColor(Color.White)
               .fontSize(16)
               .fontWeight(FontWeight.Medium)
@@ -390,7 +390,7 @@ export struct ProductPublish {
       .width('100%')
       .height(160)
       .borderRadius(12)
-      .backgroundColor($r('app.color.color_primary_light'))
+      .backgroundColor($r('app.color.color_card_yellow'))
       .alignContent(Alignment.Bottom)
     }
     .width('100%')
@@ -409,7 +409,7 @@ export struct ProductPublish {
           .layoutWeight(1)
           .height(40)
           .borderRadius(20)
-          .backgroundColor(this.isGeneratingCopywrite ? $r('app.color.color_bg_page') : $r('app.color.color_primary'))
+          .backgroundColor(this.isGeneratingCopywrite ? $r('app.color.color_bg_page') : $r('app.color.color_cta_black'))
           .fontColor(this.isGeneratingCopywrite ? $r('app.color.color_text_primary') : Color.White)
           .fontSize(13)
           .onClick(() => {
@@ -419,7 +419,7 @@ export struct ProductPublish {
           .layoutWeight(1)
           .height(40)
           .borderRadius(20)
-          .backgroundColor(this.isGeneratingPoster ? $r('app.color.color_bg_page') : $r('app.color.color_secondary'))
+          .backgroundColor(this.isGeneratingPoster ? $r('app.color.color_bg_page') : $r('app.color.color_cta_black'))
           .fontColor(this.isGeneratingPoster ? $r('app.color.color_text_primary') : Color.White)
           .fontSize(13)
           .onClick(() => {
@@ -536,7 +536,7 @@ export struct ProductPublish {
             .width('100%')
             .height(96)
             .borderRadius(8)
-            .backgroundColor($r('app.color.color_primary_light'))
+            .backgroundColor($r('app.color.color_card_yellow'))
             .alignContent(Alignment.Center)
           }
         }, (imgKey: string, idx: number) => `${imgKey}_${idx}`)
@@ -683,7 +683,7 @@ export struct ProductPublish {
             Text(opt.label)
               .fontSize(13)
               .fontColor(this.freight === opt.value ? Color.White : $r('app.color.color_text_primary'))
-              .backgroundColor(this.freight === opt.value ? $r('app.color.color_primary') : $r('app.color.color_bg_page'))
+              .backgroundColor(this.freight === opt.value ? $r('app.color.color_cta_black') : $r('app.color.color_bg_page'))
               .padding({ left: 16, right: 16, top: 8, bottom: 8 })
               .borderRadius(16)
               .margin({ right: 8 })

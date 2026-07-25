@@ -47,6 +47,10 @@ export interface FarmerProfile {
   followCount: number;
   /** 粉丝数 */
   fansCount: number;
+  /** 本月新增粉丝数（对齐设计稿 fans-list.html 顶部统计条） */
+  monthlyNewFans: number;
+  /** 粉丝互动率（百分比，0-100，对齐设计稿 fans-list.html 顶部统计条） */
+  interactionRate: number;
 }
 
 /** 营收时间范围（spec 3.2.3.1） */
@@ -64,8 +68,8 @@ export interface RevenueSummary {
   conversionRate: number;
 }
 
-/** 营收记录类型（spec 4.1.7） */
-export type RevenueType = 'order' | 'gift';
+/** 营收记录类型（spec 4.1.7，对齐设计稿 revenue-detail/farmer-income：商品销售/直播打赏/体验预约/退款） */
+export type RevenueType = 'order' | 'gift' | 'booking' | 'refund';
 
 /** 营收记录状态（spec 4.1.7） */
 export type RevenueRecordStatus = 'pending' | 'settled' | 'withdrawn';
@@ -176,6 +180,10 @@ export interface FanInfo {
   avatar: string;
   /** 关注时间戳 */
   followedAt: number;
+  /** 是否互相关注（卖家也关注了该粉丝） */
+  isMutual: boolean;
+  /** 是否本月新增（用于本月新增统计） */
+  isNew: boolean;
 }
 
 /** 直播分类枚举（spec 3.2.4.3 开播表单） */
@@ -282,8 +290,35 @@ export interface RevenueChartPoint {
   value: number;
 }
 
+/** 收入构成项（对齐设计稿 farmer-income 收入构成环形图） */
+export interface IncomeComposition {
+  /** 类型 key */
+  type: RevenueType;
+  /** 类型文案 */
+  label: string;
+  /** 金额（元） */
+  amount: number;
+  /** 百分比（0-100） */
+  percent: number;
+  /** 图例色（#RRGGBB） */
+  color: string;
+}
+
+/** 收入趋势点（对齐设计稿 farmer-income 7天折线图） */
+export interface IncomeTrendPoint {
+  /** X 轴标签（周一/周二...） */
+  label: string;
+  /** 金额（元） */
+  value: number;
+  /** 是否今日（高亮） */
+  isToday: boolean;
+}
+
 /** 营收统计维度（spec 3.2.4.5：按日/月/年） */
 export type RevenueStatsDimension = 'day' | 'month' | 'year';
+
+/** 时段切换（对齐设计稿 farmer-income：7天/30天/全年） */
+export type IncomeSegment = '7d' | '30d' | 'year';
 
 /** 直播分类文案映射 */
 export const LIVE_CATEGORY_LABELS: Record<LiveCategory, string> = {
@@ -307,6 +342,14 @@ export const REVENUE_STATUS_LABELS: Record<RevenueRecordStatus, string> = {
   'pending': '待结算',
   'settled': '已结算',
   'withdrawn': '已提现'
+};
+
+/** 营收类型文案映射（对齐设计稿：商品销售/直播打赏/体验预约/退款） */
+export const REVENUE_TYPE_LABELS: Record<RevenueType, string> = {
+  'order': '商品销售',
+  'gift': '直播打赏',
+  'booking': '体验预约',
+  'refund': '退款'
 };
 
 /** 商品状态文案映射 */

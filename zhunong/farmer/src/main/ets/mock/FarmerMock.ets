@@ -17,108 +17,153 @@ import {
   RevenueRange,
   RevenueStatsDimension,
   RevenueChartPoint,
+  IncomeComposition,
+  IncomeTrendPoint,
+  IncomeSegment,
   PaginatedResult
 } from '../model/FarmerModels';
 
 /** 当前卖家 ID（Mock 固定） */
 export const MOCK_FARMER_ID: string = 'f001';
 
-/** 卖家信息（spec 4.1.2 FarmerProfile） */
+/** 卖家信息（spec 4.1.2 FarmerProfile，对齐设计稿 farmer-home/withdraw：青禾农庄·王大叔 + V认证） */
 export const MOCK_FARMER_PROFILE: FarmerProfile = {
   farmerId: 'f001',
-  shopName: '青禾农庄',
-  shopLogo: 'avatar_farmer_1',
+  shopName: '青禾农庄·王大叔',
+  shopLogo: 'avatar_farmer',
   shopIntro: '高山有机农场，无农药无化肥，专注品质生鲜。每周末直播采摘过程，欢迎关注！',
   certificationStatus: 'approved',
   certificationInfo: {
-    realName: '李青禾',
+    realName: '王大叔',
     idCardNo: '530***********1234',
     idCardFrontImg: 'cert_id_front',
     idCardBackImg: 'cert_id_back',
     farmerCertImg: 'cert_farmer'
   },
-  totalRevenue: 1286530.60,
-  availableBalance: 8652.40,
-  frozenBalance: 3200.00,
+  totalRevenue: 38560.00,
+  availableBalance: 8680.50,
+  frozenBalance: 1200.00,
   followCount: 28,
-  fansCount: 186
+  fansCount: 186,
+  monthlyNewFans: 86,
+  interactionRate: 68
 };
 
-/** 营收汇总（按时间范围，spec 3.2.3.1） */
+/** 营收汇总（按时间范围，spec 3.2.3.1，对齐设计稿 farmer-home：今日 ¥8,652.00 / 23笔 / 8件 / 12.5%） */
 export const MOCK_REVENUE_SUMMARIES: Record<RevenueRange, RevenueSummary> = {
-  'today': { amount: 1286.50, orderCount: 23, productCount: 8, conversionRate: 12.5 },
-  'month': { amount: 38560.20, orderCount: 612, productCount: 8, conversionRate: 15.8 },
+  'today': { amount: 8652.00, orderCount: 23, productCount: 8, conversionRate: 12.5 },
+  'month': { amount: 12860.00, orderCount: 612, productCount: 8, conversionRate: 15.8 },
   'year': { amount: 458920.80, orderCount: 7823, productCount: 8, conversionRate: 14.2 },
-  'total': { amount: 1286530.60, orderCount: 21568, productCount: 8, conversionRate: 13.6 }
+  'total': { amount: 38560.00, orderCount: 21568, productCount: 8, conversionRate: 13.6 }
 };
 
-/** 营收记录列表（spec 4.1.7 RevenueRecord，spec 3.2.3.3 营收明细） */
+/** 收入构成（对齐设计稿 farmer-income 收入构成环形图：商品销售65% / 直播打赏22% / 体验预约13%） */
+export const MOCK_INCOME_COMPOSITION: IncomeComposition[] = [
+  { type: 'order', label: '商品销售', amount: 8359, percent: 65, color: '#7ED321' },
+  { type: 'gift', label: '直播打赏', amount: 2829, percent: 22, color: '#FFD93D' },
+  { type: 'booking', label: '体验预约', amount: 1672, percent: 13, color: '#C8C8C8' }
+];
+
+/** 收入趋势（对齐设计稿 farmer-income 7天折线图，今日 ¥1,286 高亮） */
+export const MOCK_INCOME_TREND: IncomeTrendPoint[] = [
+  { label: '周一', value: 428, isToday: false },
+  { label: '周二', value: 486, isToday: false },
+  { label: '周三', value: 392, isToday: false },
+  { label: '周四', value: 568, isToday: false },
+  { label: '周五', value: 502, isToday: false },
+  { label: '周六', value: 645, isToday: false },
+  { label: '今天', value: 1286, isToday: true }
+];
+
+/**
+ * 收入构成 Mock 取数
+ */
+export function getMockIncomeComposition(): IncomeComposition[] {
+  return MOCK_INCOME_COMPOSITION.slice();
+}
+
+/**
+ * 收入趋势 Mock 取数（按时段切换）
+ */
+export function getMockIncomeTrend(segment: IncomeSegment): IncomeTrendPoint[] {
+  if (segment === '7d') {
+    return MOCK_INCOME_TREND.slice();
+  }
+  // 30天/全年简化返回 7 天数据（UI 一致，数值不同）
+  return MOCK_INCOME_TREND.slice();
+}
+
+/** 营收记录列表（spec 4.1.7 RevenueRecord，spec 3.2.3.3 营收明细，对齐设计稿 revenue-detail.html 6 条记录） */
 export const MOCK_REVENUE_RECORDS: RevenueRecord[] = [
   {
-    recordId: 'r001', farmerId: 'f001', orderId: 'o20260718001', subOrderId: 'so001',
-    amount: 28.50, type: 'order', status: 'settled', createdAt: 1737000000000,
-    settledAt: 1737086400000, buyerNickname: '小马哥', productTitle: '有机青菜 500g'
+    recordId: 'r001', farmerId: 'f001', orderId: 'QN240618143022', subOrderId: 'so001',
+    amount: 38.00, type: 'order', status: 'settled', createdAt: 1737185420000,
+    settledAt: 1737185420000, buyerNickname: '李**', productTitle: '奶油草莓订单'
   },
   {
-    recordId: 'r002', farmerId: 'f001', orderId: 'o20260718002', subOrderId: 'so002',
-    amount: 59.00, type: 'order', status: 'settled', createdAt: 1737010000000,
-    settledAt: 1737092800000, buyerNickname: '阿芳', productTitle: '农家大米5kg'
+    recordId: 'r002', farmerId: 'f001', orderId: 'LIVE2406181315', subOrderId: 'so002',
+    amount: 5.00, type: 'gift', status: 'settled', createdAt: 1737182100000,
+    settledAt: 1737182100000, buyerNickname: '王**', productTitle: '直播打赏'
   },
   {
-    recordId: 'r003', farmerId: 'f001', orderId: 'o20260718003', subOrderId: 'so003',
-    amount: 9.90, type: 'order', status: 'pending', createdAt: 1737020000000,
-    buyerNickname: '阿强', productTitle: '有机青菜 500g'
+    recordId: 'r003', farmerId: 'f001', orderId: 'QN240618112033', subOrderId: 'so003',
+    amount: 20.00, type: 'order', status: 'pending', createdAt: 1737172800000,
+    buyerNickname: '张**', productTitle: '珍珠米订单'
   },
   {
-    recordId: 'r004', farmerId: 'f001', orderId: 'o20260718004', subOrderId: 'so004',
-    amount: 18.80, type: 'order', status: 'settled', createdAt: 1737030000000,
-    settledAt: 1737116400000, buyerNickname: '小雨', productTitle: '有机青菜 1kg'
+    recordId: 'r004', farmerId: 'f001', orderId: 'QN240617184555', subOrderId: 'so004',
+    amount: 15.50, type: 'order', status: 'withdrawn', createdAt: 1737135900000,
+    settledAt: 1737135900000, buyerNickname: '赵**', productTitle: '番茄订单'
   },
   {
-    recordId: 'r005', farmerId: 'f001', orderId: 'o20260718005', subOrderId: 'so005',
-    amount: 6.60, type: 'gift', status: 'settled', createdAt: 1737040000000,
-    settledAt: 1737040000000, buyerNickname: '路人甲', productTitle: '直播间礼物'
+    recordId: 'r005', farmerId: 'f001', orderId: 'QN240617163012', subOrderId: 'so005',
+    amount: 45.00, type: 'order', status: 'settled', createdAt: 1737127800000,
+    settledAt: 1737127800000, buyerNickname: '刘**', productTitle: '土鸡蛋订单'
   },
   {
-    recordId: 'r006', farmerId: 'f001', orderId: 'o20260717006', subOrderId: 'so006',
-    amount: 128.00, type: 'order', status: 'withdrawn', createdAt: 1736900000000,
-    settledAt: 1736986400000, buyerNickname: '王老板', productTitle: '高山绿茶 500g礼盒'
+    recordId: 'r006', farmerId: 'f001', orderId: 'RF240617095077', subOrderId: 'so006',
+    amount: 12.00, type: 'refund', status: 'settled', createdAt: 1737112200000,
+    settledAt: 1737112200000, buyerNickname: '周**', productTitle: '订单退款'
   },
   {
-    recordId: 'r007', farmerId: 'f001', orderId: 'o20260717007', subOrderId: 'so007',
-    amount: 78.00, type: 'order', status: 'withdrawn', createdAt: 1736910000000,
-    settledAt: 1736992800000, buyerNickname: '陈姐', productTitle: '土猪肉 1kg'
+    recordId: 'r007', farmerId: 'f001', orderId: 'QN240617143022', subOrderId: 'so007',
+    amount: 29.90, type: 'order', status: 'settled', createdAt: 1737124200000,
+    settledAt: 1737124200000, buyerNickname: '孙**', productTitle: '现摘草莓2斤'
   },
   {
-    recordId: 'r008', farmerId: 'f001', orderId: 'o20260716008', subOrderId: 'so008',
-    amount: 39.90, type: 'order', status: 'withdrawn', createdAt: 1736800000000,
-    settledAt: 1736886400000, buyerNickname: '阿强', productTitle: '土鸡蛋30枚'
+    recordId: 'r008', farmerId: 'f001', orderId: 'LIVE2406171315', subOrderId: 'so008',
+    amount: 8.80, type: 'gift', status: 'settled', createdAt: 1737118500000,
+    settledAt: 1737118500000, buyerNickname: '果果', productTitle: '直播打赏-果果'
   },
   {
-    recordId: 'r009', farmerId: 'f001', orderId: 'o20260716009', subOrderId: 'so009',
-    amount: 19.90, type: 'order', status: 'withdrawn', createdAt: 1736810000000,
-    settledAt: 1736892800000, buyerNickname: '小马哥', productTitle: '甜糯玉米 8根'
+    recordId: 'r009', farmerId: 'f001', orderId: 'BK2406171030', subOrderId: 'so009',
+    amount: 116.00, type: 'booking', status: 'settled', createdAt: 1737109800000,
+    settledAt: 1737109800000, buyerNickname: '吴**', productTitle: '采摘体验预约'
   },
   {
-    recordId: 'r010', farmerId: 'f001', orderId: 'o20260715010', subOrderId: 'so010',
-    amount: 89.00, type: 'order', status: 'withdrawn', createdAt: 1736700000000,
-    settledAt: 1736786400000, buyerNickname: '阿芳', productTitle: '土蜂蜜 500g'
+    recordId: 'r010', farmerId: 'f001', orderId: 'QN240616184555', subOrderId: 'so010',
+    amount: 18.80, type: 'order', status: 'settled', createdAt: 1737049500000,
+    settledAt: 1737049500000, buyerNickname: '阿强', productTitle: '有机番茄3斤'
   }
 ];
 
-/** 提现记录列表（spec 4.1.7 Withdrawal） */
+/** 提现记录列表（spec 4.1.7 Withdrawal，对齐设计稿 withdraw.html 4 条记录） */
 export const MOCK_WITHDRAWALS: Withdrawal[] = [
   {
-    withdrawalId: 'w001', farmerId: 'f001', amount: 2000.00,
-    account: '6228****1234', status: 'completed', createdAt: 1736800000000
+    withdrawalId: 'w001', farmerId: 'f001', amount: 500.00,
+    account: '支付宝 ****1234', status: 'completed', createdAt: 1721463120000
   },
   {
-    withdrawalId: 'w002', farmerId: 'f001', amount: 3500.00,
-    account: '6228****1234', status: 'completed', createdAt: 1736900000000
+    withdrawalId: 'w002', farmerId: 'f001', amount: 1200.00,
+    account: '银行卡 ****5678', status: 'completed', createdAt: 1721276100000
   },
   {
-    withdrawalId: 'w003', farmerId: 'f001', amount: 1500.00,
-    account: '6228****1234', status: 'completed', createdAt: 1736950000000
+    withdrawalId: 'w003', farmerId: 'f001', amount: 800.00,
+    account: '支付宝 ****1234', status: 'completed', createdAt: 1721566080000
+  },
+  {
+    withdrawalId: 'w004', farmerId: 'f001', amount: 350.00,
+    account: '银行卡 ****5678', status: 'completed', createdAt: 1721025600000
   }
 ];
 
@@ -148,6 +193,40 @@ export const MOCK_YEARLY_REVENUES: DailyRevenue[] = [
   { date: '2024', farmerId: 'f001', orderCount: 5860, revenue: 286530.50, refundAmount: 1860.00 },
   { date: '2025', farmerId: 'f001', orderCount: 7256, revenue: 541080.30, refundAmount: 2540.00 },
   { date: '2026', farmerId: 'f001', orderCount: 21568, revenue: 458920.80, refundAmount: 980.40 }
+];
+
+/** 首页横滑商品卡片（对齐设计稿 farmer-home.html 6 张商品卡：草莓/番茄/毛尖/大米/鸡蛋/蜂蜜） */
+export const MOCK_HOME_PRODUCTS: FarmerProductItem[] = [
+  {
+    productId: 'p_strawberry', title: '现摘草莓', mainImage: 'prod_strawberry',
+    price: 29.90, stock: 568, monthlySales: 326, monthlyGmv: 9747,
+    status: 'approved', createdAt: 1737000000000
+  },
+  {
+    productId: 'p_tomato', title: '有机番茄', mainImage: 'prod_tomato',
+    price: 18.80, stock: 480, monthlySales: 218, monthlyGmv: 4098,
+    status: 'approved', createdAt: 1736900000000
+  },
+  {
+    productId: 'p_tea', title: '高山毛尖', mainImage: 'prod_tea',
+    price: 68.00, stock: 280, monthlySales: 94, monthlyGmv: 6392,
+    status: 'approved', createdAt: 1736800000000
+  },
+  {
+    productId: 'p_rice', title: '五常大米', mainImage: 'prod_rice',
+    price: 39.90, stock: 680, monthlySales: 512, monthlyGmv: 20429,
+    status: 'approved', createdAt: 1736700000000
+  },
+  {
+    productId: 'p_eggs', title: '散养土鸡蛋', mainImage: 'prod_eggs',
+    price: 45.00, stock: 180, monthlySales: 187, monthlyGmv: 8415,
+    status: 'approved', createdAt: 1736600000000
+  },
+  {
+    productId: 'p_honey', title: '百花土蜂蜜', mainImage: 'prod_honey',
+    price: 88.00, stock: 50, monthlySales: 76, monthlyGmv: 6688,
+    status: 'approved', createdAt: 1736500000000
+  }
 ];
 
 /** 卖家商品管理列表（spec 3.2.4.5） */
@@ -224,16 +303,16 @@ export const MOCK_LIVE_MANAGE_LIST: LiveManageItem[] = [
   }
 ];
 
-/** 粉丝列表（spec 3.2.4.5） */
+/** 粉丝列表（spec 3.2.4.5，对齐设计稿 fans-list.html） */
 export const MOCK_FANS_LIST: FanInfo[] = [
-  { userId: 'u001', nickname: '小马哥', avatar: 'avatar_user_1', followedAt: 1736800000000 },
-  { userId: 'u002', nickname: '阿芳', avatar: 'avatar_user_2', followedAt: 1736900000000 },
-  { userId: 'u003', nickname: '阿强', avatar: 'avatar_user_3', followedAt: 1737000000000 },
-  { userId: 'u004', nickname: '小雨', avatar: 'avatar_user_4', followedAt: 1737100000000 },
-  { userId: 'u005', nickname: '王老板', avatar: 'avatar_user_5', followedAt: 1737200000000 },
-  { userId: 'u006', nickname: '陈姐', avatar: 'avatar_user_6', followedAt: 1737300000000 },
-  { userId: 'u007', nickname: '路人甲', avatar: 'avatar_user_7', followedAt: 1737400000000 },
-  { userId: 'u008', nickname: '田园爱好者', avatar: 'avatar_user_8', followedAt: 1737500000000 }
+  { userId: 'u001', nickname: '小叶子', avatar: 'avatar_customer', followedAt: Date.now() - 3 * 86400000, isMutual: true, isNew: true },
+  { userId: 'u002', nickname: '果园达人', avatar: 'avatar_user_2', followedAt: Date.now() - 7 * 86400000, isMutual: true, isNew: true },
+  { userId: 'u003', nickname: '美食家阿强', avatar: 'avatar_user_3', followedAt: Date.now() - 14 * 86400000, isMutual: true, isNew: true },
+  { userId: 'u004', nickname: '小雨', avatar: 'avatar_user_4', followedAt: Date.now() - 21 * 86400000, isMutual: false, isNew: false },
+  { userId: 'u005', nickname: '王老板', avatar: 'avatar_user_5', followedAt: Date.now() - 32 * 86400000, isMutual: true, isNew: false },
+  { userId: 'u006', nickname: '陈姐', avatar: 'avatar_user_6', followedAt: Date.now() - 45 * 86400000, isMutual: false, isNew: false },
+  { userId: 'u007', nickname: '田园爱好者', avatar: 'avatar_user_7', followedAt: Date.now() - 60 * 86400000, isMutual: true, isNew: false },
+  { userId: 'u008', nickname: '小镇青年', avatar: 'avatar_user_8', followedAt: Date.now() - 90 * 86400000, isMutual: false, isNew: false }
 ];
 
 /**
@@ -368,4 +447,11 @@ export function getMockFarmerProfileById(farmerId: string): FarmerProfile | null
     return MOCK_FARMER_PROFILE;
   }
   return null;
+}
+
+/**
+ * 首页横滑商品卡片（spec 3.2.3.1）
+ */
+export function getMockHomeProducts(): FarmerProductItem[] {
+  return MOCK_HOME_PRODUCTS.slice();
 }

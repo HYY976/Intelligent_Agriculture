@@ -1,0 +1,42 @@
+﻿> hvigor [32mUP-TO-DATE :farmer:default@PreBuild...  [39m
+> hvigor [32mFinished :farmer:default@CreateModuleInfo... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :farmer:default@GenerateMetadata...  [39m
+> hvigor [32mFinished :farmer:default@ConfigureCmake... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :farmer:default@MergeProfile...  [39m
+> hvigor [32mUP-TO-DATE :farmer:default@CreateBuildProfile...  [39m
+> hvigor [32mFinished :farmer:default@PreCheckSyscap... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :farmer:default@GeneratePkgContextInfo...  [39m
+> hvigor [32mFinished :farmer:default@GeneratePkgSdkInfo... after 3 ms [39m
+> hvigor [32mFinished :farmer:default@ProcessIntegratedHsp... after 1 ms [39m
+> hvigor [32mFinished :farmer:default@BuildNativeWithCmake... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :farmer:default@MakePackInfo...  [39m
+> hvigor [32mFinished :farmer:default@SyscapTransform... after 9 ms [39m
+> hvigor [32mUP-TO-DATE :farmer:default@ProcessProfile...  [39m
+> hvigor [32mUP-TO-DATE :farmer:default@ProcessRouterMap...  [39m
+> hvigor [32mUP-TO-DATE :farmer:default@ProcessShareConfig...  [39m
+> hvigor [32mFinished :farmer:default@ProcessStartupConfig... after 4 ms [39m
+> hvigor [32mFinished :farmer:default@BuildNativeWithNinja... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :farmer:default@ProcessResource...  [39m
+> hvigor [32mUP-TO-DATE :farmer:default@GenerateLoaderJson...  [39m
+> hvigor [32mUP-TO-DATE :farmer:default@ProcessLibs...  [39m
+> hvigor [32mUP-TO-DATE :farmer:default@CompileResource...  [39m
+> hvigor [32mUP-TO-DATE :farmer:default@DoNativeStrip...  [39m
+> hvigor [32mFinished :farmer:default@BuildJS... after 6 ms [39m
+> hvigor [32mUP-TO-DATE :farmer:default@CacheNativeLibs...  [39m
+> hvigor [32mFinished :farmer:default@CompileArkTS... after 11 s 634 ms [39m
+> hvigor [32mFinished :farmer:default@GeneratePkgModuleJson... after 8 ms [39m
+> hvigor [32mFinished :farmer:default@ProcessCompiledResources... after 1 ms [39m
+> hvigor [32mFinished :farmer:default@PackageHap... after 1 s 896 ms [39m
+> hvigor [32mFinished :farmer:default@PackingCheck... after 9 ms [39m
+hvigorw.bat : > hvigor [33mWARN: Will skip sign 'hos_hap'. No signingConfigs profile is configured in current project.
+At line:15 char:6023
++ ... tudio\sdk"; hvigorw.bat assembleHap --mode module -p product=default  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (> hvigor [33mW...urrent project.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+             If needed, configure the signingConfigs in C:\Users\21132\Project\zhunong\build-profile.json5.[39m
+> hvigor [32mFinished :farmer:default@SignHap... after 8 ms [39m
+> hvigor [32mFinished :farmer:default@CollectDebugSymbol... after 2 ms [39m
+> hvigor [32mFinished :farmer:assembleHap... after 1 ms [39m
+> hvigor [32mBUILD SUCCESSFUL in 21 s 58 ms [39m

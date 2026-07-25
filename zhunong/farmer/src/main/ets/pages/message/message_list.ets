@@ -159,7 +159,7 @@ export struct MessageList {
       }
       .width('100%')
       .padding({ left: 16, right: 16, top: 6, bottom: 6 })
-      .backgroundColor('rgba(255,213,79,0.15)')
+      .backgroundColor('rgba(255,235,59,0.15)')
     } else if (this.wsState === 'connected') {
       Row({ space: 8 }) {
         Text('🟢')
@@ -234,7 +234,7 @@ export struct MessageList {
       .width(48)
       .height(48)
       .borderRadius(24)
-      .backgroundColor(session.type === 'system' ? $r('app.color.color_accent_gold') : $r('app.color.color_primary_light'))
+      .backgroundColor(session.type === 'system' ? $r('app.color.color_accent_gold') : $r('app.color.color_card_yellow'))
       .alignContent(Alignment.Center)
 
       Column({ space: 4 }) {

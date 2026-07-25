@@ -1,22 +1,21 @@
 /**
- * review_detail - 内容审核详情（spec 3.3.3 / 10.8.3.3）
+ * review_detail - 内容审核详情（UI 复刻对齐 admin-review.html 设计语言）
+ * 遵循 spec 3.3.3 / 10.8.3.3：
+ *  - 顶部：内容基本信息卡（头像 + 提交者 + 类型 pill + 时间 + 封面图 + 标题 + 描述 + 审核要点框）
+ *  - 中部：历史审核记录时间轴
+ *  - 底部固定操作栏（仅 pending 显示）：驳回（弹模态）+ 通过（绿底）
+ *  - 已审核：底部展示状态 + 审核员 + 时间 + 驳回原因
  *
- * - 顶部：内容基本信息卡（类型 + 标题 + 提交者信息 + 提交时间）
- * - 中部：内容详情展示区（按 contentType 渲染：
- *   商品图+标题+描述 / 直播封面+标题+介绍 / 帖子内容+图片 / 举报原因+目标内容）
- * - 历史审核记录列表（如有多次提交，展示完整流转记录）
- * - 底部固定操作栏（仅 pending 状态显示）：
- *   - 通过按钮（绿）→ 调 `ReviewRepository.approveReview(reviewId)`
- *   - 驳回按钮（红）→ 弹 AlertDialog 选驳回原因
- *     - 预设原因 Radio：涉嫌违规 / 图片不清晰 / 描述不符 / 敏感词 / 其他
- *     - 自定义描述 TextArea（最多 200 字，选"其他"时必填）
- *     - 确认按钮调 `ReviewRepository.rejectReview(reviewId, reason, description)`
- * - 已审核内容：底部显示"已审核"状态 + 审核员 + 审核时间 + 驳回原因（如已驳回）
+ * UI 设计要点（对齐设计语言）：
+ *  - 顶栏：圆形返回键 + 居中标题
+ *  - 内容卡：白底圆角 + 32 头像 + 作者 + 类型 pill + 时间 + 140 封面图 + 标题 + 描述 + 黄底审核要点框
+ *  - 历史时间轴：序号圆点 + 状态/审核员/原因/时间
+ *  - 驳回弹窗使用方案 C 模式（@Local showRejectDialog + Stack + @Builder）
  *
  * 越权防御（spec 10.8.8）：aboutToAppear 校验 super_admin / content_reviewer
  */
 
-import { Logger, AppConstants, ToastUtil, TokenStore, AdminRoutes, NavigationHelper, RouteName, RouterParam, ListStateView } from 'common';
+import { Logger, AppConstants, ToastUtil, TokenStore, NavigationHelper, RouteName, ListStateView } from 'common';
 import { AdminInfo } from 'common';
 import {
   ReviewDetailAggregate,
@@ -37,6 +36,12 @@ interface RejectReasonOption {
   label: string;
 }
 
+/** 审核要点项 */
+interface ReviewPoint {
+  text: string;
+  isOk: boolean;
+}
+
 @ComponentV2
 export struct ReviewDetail {
   /** 路由参数：审核 ID */
@@ -49,7 +54,7 @@ export struct ReviewDetail {
   @Local loadFailed: boolean = false;
   /** 是否正在审核（通过/驳回） */
   @Local isProcessing: boolean = false;
-  /** 是否展示驳回对话框 */
+  /** 是否展示驳回弹窗（方案 C：@Local + Stack + @Builder） */
   @Local showRejectDialog: boolean = false;
   /** 选中的驳回原因 */
   @Local selectedReason: string = '';
@@ -126,14 +131,14 @@ export struct ReviewDetail {
     }
   }
 
-  /** 点击驳回（弹对话框） */
+  /** 点击驳回（弹模态） */
   private onClickReject(): void {
     this.selectedReason = '';
     this.rejectDescription = '';
     this.showRejectDialog = true;
   }
 
-  /** 关闭驳回对话框 */
+  /** 关闭驳回弹窗 */
   private closeRejectDialog(): void {
     this.showRejectDialog = false;
   }
@@ -189,53 +194,6 @@ export struct ReviewDetail {
     }
   }
 
-  /** 状态 Tag 颜色 */
-  private statusBg(status: AdminReviewStatus): string {
-    if (status === 'pending') {
-      return 'rgba(255,193,7,0.15)';
-    } else if (status === 'approved') {
-      return 'rgba(76,175,80,0.15)';
-    }
-    return 'rgba(244,67,54,0.15)';
-  }
-
-  private statusColor(status: AdminReviewStatus): string {
-    if (status === 'pending') {
-      return '#FFC107';
-    } else if (status === 'approved') {
-      return '#4CAF50';
-    }
-    return '#F44336';
-  }
-
-  /** 类型 Tag 颜色 */
-  private typeBg(type: ReviewContentType): string {
-    if (type === 'product') {
-      return 'rgba(76,175,80,0.12)';
-    } else if (type === 'live') {
-      return 'rgba(255,152,0,0.12)';
-    } else if (type === 'post') {
-      return 'rgba(33,150,243,0.12)';
-    }
-    return 'rgba(244,67,54,0.12)';
-  }
-
-  private typeColor(type: ReviewContentType): string {
-    if (type === 'product') {
-      return '#4CAF50';
-    } else if (type === 'live') {
-      return '#FF9800';
-    } else if (type === 'post') {
-      return '#2196F3';
-    }
-    return '#F44336';
-  }
-
-  /** 历史状态文案（含流转说明） */
-  private historyStatusText(item: ReviewHistoryItem): string {
-    return REVIEW_STATUS_LABELS[item.status];
-  }
-
   /** 格式化时间 */
   private formatTime(ts: number): string {
     const d: Date = new Date(ts);
@@ -245,6 +203,39 @@ export struct ReviewDetail {
     const hh: string = d.getHours().toString().padStart(2, '0');
     const mi: string = d.getMinutes().toString().padStart(2, '0');
     return `${y}-${m}-${day} ${hh}:${mi}`;
+  }
+
+  /** 获取审核要点（Mock） */
+  private getReviewPoints(): ReviewPoint[] {
+    if (!this.detail) {
+      return [];
+    }
+    const type: ReviewContentType = this.detail.review.contentType;
+    if (type === 'product') {
+      return [
+        { text: '价格合理', isOk: true },
+        { text: '图片原创', isOk: true },
+        { text: '无违规词', isOk: true },
+        { text: '需人工确认产地证明', isOk: false }
+      ];
+    }
+    if (type === 'post') {
+      return [
+        { text: '内容健康', isOk: true },
+        { text: '无广告', isOk: true },
+        { text: '可通过', isOk: true }
+      ];
+    }
+    if (type === 'live') {
+      return [
+        { text: '封面合规', isOk: true },
+        { text: '标题无误', isOk: true },
+        { text: '需关注直播内容', isOk: false }
+      ];
+    }
+    return [
+      { text: '待人工核实', isOk: false }
+    ];
   }
 
   build() {
@@ -263,9 +254,9 @@ export struct ReviewDetail {
         }
         .width('100%')
         .height('100%')
-        .backgroundColor($r('app.color.color_bg_page'))
+        .backgroundColor($r('app.color.color_cream'))
 
-        // 驳回对话框
+        // 驳回弹窗（方案 C：@Local showRejectDialog + Stack + @Builder）
         if (this.showRejectDialog) {
           this.RejectDialog()
         }
@@ -276,27 +267,36 @@ export struct ReviewDetail {
     .hideTitleBar(true)
   }
 
-  /** 顶部导航 */
+  /** 顶部导航：圆形返回键 + 居中标题 */
   @Builder
   TopBar() {
-    Row({ space: 12 }) {
-      Text('‹')
-        .fontSize(28)
-        .fontColor($r('app.color.color_text_primary'))
-        .onClick(() => NavigationHelper.pop())
+    Row() {
+      Stack() {
+        Text('‹')
+          .fontSize(22)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+      }
+      .width(32)
+      .height(32)
+      .borderRadius(AppConstants.RADIUS_PILL)
+      .backgroundColor($r('app.color.color_bg_card'))
+      .shadow(AppConstants.SHADOW_CARD)
+      .onClick(() => NavigationHelper.pop())
+
       Text('审核详情')
-        .fontSize(18)
-        .fontColor($r('app.color.color_text_primary'))
-        .fontWeight(FontWeight.Medium)
+        .fontSize(17)
+        .fontColor($r('app.color.color_ink'))
+        .fontWeight(FontWeight.Bold)
         .layoutWeight(1)
-      Text(this.reviewId)
-        .fontSize(11)
-        .fontColor($r('app.color.color_text_hint'))
+        .textAlign(TextAlign.Center)
+
+      // 占位保持标题居中
+      Column().width(32).height(32)
     }
     .width('100%')
-    .height(56)
-    .padding({ left: 16, right: 16 })
-    .backgroundColor($r('app.color.color_bg_card'))
+    .height(48)
+    .padding({ left: 16, right: 16, top: 4, bottom: 10 })
     .alignItems(VerticalAlign.Center)
   }
 
@@ -304,150 +304,243 @@ export struct ReviewDetail {
   @Builder
   ContentScroll() {
     Scroll() {
-      Column({ space: 12 }) {
-        this.BasicInfoCard()
-        this.ContentDetailCard()
+      Column({ space: 14 }) {
+        this.ContentCard()
         this.HistoryCard()
       }
       .width('100%')
-      .padding({ left: 12, right: 12, top: 12, bottom: 12 })
-    }
-    .layoutWeight(1)
-    .scrollBar(BarState.Off)
-  }
-
-  /** 基本信息 */
-  @Builder
-  BasicInfoCard() {
-    Column({ space: 8 }) {
-      // 类型 + 状态
-      Row({ space: 8 }) {
-        Text(REVIEW_CONTENT_TYPE_LABELS[this.detail!.review.contentType])
-          .fontSize(10)
-          .fontColor(this.typeColor(this.detail!.review.contentType))
-          .backgroundColor(this.typeBg(this.detail!.review.contentType))
-          .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-          .borderRadius(4)
-        Text(REVIEW_STATUS_LABELS[this.detail!.review.status])
-          .fontSize(10)
-          .fontColor(this.statusColor(this.detail!.review.status))
-          .backgroundColor(this.statusBg(this.detail!.review.status))
-          .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-          .borderRadius(4)
-        Text(this.detail!.review.contentId)
-          .fontSize(11)
-          .fontColor($r('app.color.color_text_hint'))
-          .layoutWeight(1)
-          .textAlign(TextAlign.RIGHT)
-      }
-      .width('100%')
-
-      Text(this.detail!.review.contentTitle)
-        .fontSize(16)
-        .fontColor($r('app.color.color_text_primary'))
-        .fontWeight(FontWeight.Medium)
-        .width('100%')
-
-      Divider().color($r('app.color.color_divider')).margin({ top: 4, bottom: 4 })
-
-      // 提交者信息
-      Row({ space: 12 }) {
-        Text(`提交者：${this.detail!.review.submitterNickname}`)
-          .fontSize(12)
-          .fontColor($r('app.color.color_text_secondary'))
-          .layoutWeight(1)
-        Text(this.formatTime(this.detail!.review.submittedAt))
-          .fontSize(11)
-          .fontColor($r('app.color.color_text_hint'))
-      }
-      .width('100%')
-
-      // 已审核时展示审核员与时间
-      if (this.detail!.review.status !== 'pending' && this.detail!.review.reviewerNickname) {
-        Row({ space: 12 }) {
-          Text(`审核员：${this.detail!.review.reviewerNickname}`)
-            .fontSize(12)
-            .fontColor($r('app.color.color_text_secondary'))
-            .layoutWeight(1)
-          if (this.detail!.review.reviewedAt) {
-            Text(this.formatTime(this.detail!.review.reviewedAt))
-              .fontSize(11)
-              .fontColor($r('app.color.color_text_hint'))
-          }
-        }
-        .width('100%')
-      }
+      .padding({ left: 16, right: 16, top: 8, bottom: 80 })
+      .alignItems(HorizontalAlign.Start)
     }
     .width('100%')
-    .padding(12)
-    .borderRadius(12)
-    .backgroundColor($r('app.color.color_bg_card'))
+    .layoutWeight(1)
+    .scrollBar(BarState.Off)
+    .align(Alignment.Top)
   }
 
-  /** 内容详情展示区（按 contentType 分支渲染） */
+  /** 内容基本信息卡（含头像/作者/类型/时间/封面图/标题/描述/审核要点） */
   @Builder
-  ContentDetailCard() {
-    Column({ space: 8 }) {
-      Text('内容详情')
-        .fontSize(14)
-        .fontColor($r('app.color.color_text_secondary'))
-        .alignSelf(ItemAlign.Start)
+  ContentCard() {
+    Column({ space: 12 }) {
+      // 1. 头部：头像 + 作者 + 类型 pill + 时间
+      Row({ space: 8 }) {
+        Image($r('app.media.avatar_farmer'))
+          .width(32)
+          .height(32)
+          .borderRadius(16)
+          .backgroundColor($r('app.color.color_fill'))
+          .objectFit(ImageFit.Cover)
+        Text(this.detail!.review.submitterNickname)
+          .fontSize(14)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .constraintSize({ maxWidth: 100 })
+        this.ContentTypePill(this.detail!.review.contentType)
+        this.StatusPill(this.detail!.review.status)
+        Blank()
+        Text(this.formatTime(this.detail!.review.submittedAt))
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_3'))
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
 
-      // 内容预览
+      // 2. 封面图（140h）
+      Stack() {
+        Text('🖼️')
+          .fontSize(40)
+          .fontColor($r('app.color.color_text_4'))
+        Stack() {
+          Text(this.getCoverBadge(this.detail!.review.contentType))
+            .fontSize(10)
+            .fontColor(Color.White)
+            .fontWeight(FontWeight.Bold)
+        }
+        .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .backgroundColor(this.getCoverBadgeColor(this.detail!.review.contentType))
+        .position({ x: 8, y: 8 })
+      }
+      .width('100%')
+      .height(140)
+      .borderRadius(AppConstants.RADIUS_MD)
+      .backgroundColor($r('app.color.color_fill'))
+      .alignContent(Alignment.Center)
+
+      // 3. 标题
+      Text(this.detail!.review.contentTitle)
+        .fontSize(15)
+        .fontColor($r('app.color.color_ink'))
+        .fontWeight(FontWeight.Bold)
+        .width('100%')
+
+      // 4. 描述
       if (this.detail!.review.contentPreview && this.detail!.review.contentPreview.length > 0) {
         Text(this.detail!.review.contentPreview)
           .fontSize(13)
-          .fontColor($r('app.color.color_text_primary'))
+          .fontColor($r('app.color.color_text_2'))
           .width('100%')
           .lineHeight(20)
       }
 
-      // 内容图片（如有）
-      if (this.detail!.review.contentImages && this.detail!.review.contentImages.length > 0) {
-        Row({ space: 8 }) {
-          ForEach(this.detail!.review.contentImages, (imgKey: string, idx: number) => {
-            Column({ space: 4 }) {
-              Text('🖼')
-                .fontSize(24)
-              Text('图片')
-                .fontSize(9)
-                .fontColor($r('app.color.color_text_hint'))
-            }
-            .width(72)
-            .height(72)
-            .borderRadius(8)
-            .backgroundColor($r('app.color.color_bg_page'))
-            .alignItems(HorizontalAlign.Center)
-            .justifyContent(FlexAlign.Center)
-          }, (imgKey: string, idx: number) => `${imgKey}_${idx}`)
-        }
-        .width('100%')
-      }
+      // 5. 审核要点框
+      this.ReviewPointsBox()
 
-      // 内容类型说明
-      Text(`（内容类型：${REVIEW_CONTENT_TYPE_LABELS[this.detail!.review.contentType]}）`)
-        .fontSize(11)
-        .fontColor($r('app.color.color_text_hint'))
-        .width('100%')
+      // 6. 提交者详细信息
+      Divider().color($r('app.color.color_line')).strokeWidth(1)
+
+      Column({ space: 4 }) {
+        Row({ space: 8 }) {
+          Text('内容 ID')
+            .fontSize(12)
+            .fontColor($r('app.color.color_text_3'))
+          Text(this.detail!.review.contentId)
+            .fontSize(12)
+            .fontColor($r('app.color.color_ink_2'))
+            .fontWeight(FontWeight.Medium)
+        }
+        Row({ space: 8 }) {
+          Text('提交者 ID')
+            .fontSize(12)
+            .fontColor($r('app.color.color_text_3'))
+          Text(this.detail!.review.submitterId)
+            .fontSize(12)
+            .fontColor($r('app.color.color_ink_2'))
+            .fontWeight(FontWeight.Medium)
+        }
+        // 已审核时展示审核员
+        if (this.detail!.review.status !== 'pending' && this.detail!.review.reviewerNickname) {
+          Row({ space: 8 }) {
+            Text('审核员')
+              .fontSize(12)
+              .fontColor($r('app.color.color_text_3'))
+            Text(this.detail!.review.reviewerNickname)
+              .fontSize(12)
+              .fontColor($r('app.color.color_ink_2'))
+              .fontWeight(FontWeight.Medium)
+            Blank()
+            if (this.detail!.review.reviewedAt) {
+              Text(this.formatTime(this.detail!.review.reviewedAt))
+                .fontSize(11)
+                .fontColor($r('app.color.color_text_3'))
+            }
+          }
+          .width('100%')
+        }
+        // 已驳回时展示驳回原因
+        if (this.detail!.review.status === 'rejected' && this.detail!.review.rejectReason) {
+          Row({ space: 8 }) {
+            Text('驳回原因')
+              .fontSize(12)
+              .fontColor($r('app.color.color_live'))
+            Text(this.detail!.review.rejectReason)
+              .fontSize(12)
+              .fontColor($r('app.color.color_live'))
+              .fontWeight(FontWeight.Medium)
+          }
+          if (this.detail!.review.rejectDescription) {
+            Text(`说明：${this.detail!.review.rejectDescription}`)
+              .fontSize(11)
+              .fontColor($r('app.color.color_text_3'))
+              .width('100%')
+          }
+        }
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
     }
     .width('100%')
-    .padding(12)
-    .borderRadius(12)
+    .padding(14)
+    .borderRadius(AppConstants.RADIUS_LG)
     .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
+    .alignItems(HorizontalAlign.Start)
   }
 
-  /** 历史审核记录 */
+  /** 内容类型 pill */
+  @Builder
+  ContentTypePill(type: ReviewContentType) {
+    Text(REVIEW_CONTENT_TYPE_LABELS[type])
+      .fontSize(11)
+      .fontColor(type === 'post' ? $r('app.color.color_green_deep') : $r('app.color.color_info'))
+      .backgroundColor(type === 'post' ? $r('app.color.color_green_soft') : $r('app.color.color_info_soft'))
+      .padding({ left: 10, right: 10, top: 3, bottom: 3 })
+      .borderRadius(AppConstants.RADIUS_PILL)
+      .fontWeight(FontWeight.Medium)
+  }
+
+  /** 状态 pill */
+  @Builder
+  StatusPill(status: AdminReviewStatus) {
+    Text(REVIEW_STATUS_LABELS[status])
+      .fontSize(11)
+      .fontColor(status === 'pending'
+        ? $r('app.color.color_yellow_text')
+        : status === 'approved'
+          ? $r('app.color.color_green_deep')
+          : $r('app.color.color_live'))
+      .backgroundColor(status === 'pending'
+        ? $r('app.color.color_yellow_soft')
+        : status === 'approved'
+          ? $r('app.color.color_green_soft')
+          : $r('app.color.color_live_soft'))
+      .padding({ left: 10, right: 10, top: 3, bottom: 3 })
+      .borderRadius(AppConstants.RADIUS_PILL)
+      .fontWeight(FontWeight.Medium)
+  }
+
+  /** 审核要点框（黄底 + 边框） */
+  @Builder
+  ReviewPointsBox() {
+    Column({ space: 6 }) {
+      Row({ space: 4 }) {
+        Text('📋')
+          .fontSize(12)
+        Text('审核要点')
+          .fontSize(12)
+          .fontColor($r('app.color.color_yellow_text'))
+          .fontWeight(FontWeight.Bold)
+      }
+      .width('100%')
+
+      ForEach(this.getReviewPoints(), (point: ReviewPoint, index: number) => {
+        Row({ space: 6 }) {
+          Text(point.isOk ? '✓' : '⚠')
+            .fontSize(12)
+            .fontColor(point.isOk ? $r('app.color.color_green_deep') : $r('app.color.color_warn'))
+            .fontWeight(FontWeight.Bold)
+          Text(point.text)
+            .fontSize(12)
+            .fontColor($r('app.color.color_ink_2'))
+            .layoutWeight(1)
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Top)
+      }, (point: ReviewPoint, index: number) => `${point.text}_${index}`)
+    }
+    .width('100%')
+    .padding({ left: 12, right: 12, top: 10, bottom: 10 })
+    .borderRadius(AppConstants.RADIUS_SM)
+    .backgroundColor($r('app.color.color_yellow_tint'))
+    .border({ width: 1, color: '#F5EBA8' })
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  /** 历史审核记录卡 */
   @Builder
   HistoryCard() {
-    Column({ space: 8 }) {
+    Column({ space: 10 }) {
       Row() {
         Text('审核历史')
-          .fontSize(14)
-          .fontColor($r('app.color.color_text_secondary'))
+          .fontSize(15)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
           .layoutWeight(1)
         Text(`${this.detail!.history.length} 条`)
-          .fontSize(10)
-          .fontColor($r('app.color.color_text_hint'))
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_3'))
       }
       .width('100%')
 
@@ -456,134 +549,155 @@ export struct ReviewDetail {
       }, (item: ReviewHistoryItem, idx: number) => `${item.reviewId}_${idx}`)
     }
     .width('100%')
-    .padding(12)
-    .borderRadius(12)
+    .padding(14)
+    .borderRadius(AppConstants.RADIUS_LG)
     .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
+    .alignItems(HorizontalAlign.Start)
   }
 
-  /** 历史记录项 */
+  /** 历史记录项（时间轴样式） */
   @Builder
   HistoryItem(item: ReviewHistoryItem, idx: number) {
-    Column({ space: 4 }) {
-      Row({ space: 8 }) {
-        // 序号圆点
-        Stack() {
-          Text(`${idx + 1}`)
-            .fontSize(11)
-            .fontColor(Color.White)
-            .fontWeight(FontWeight.Bold)
-        }
-        .width(20)
-        .height(20)
-        .borderRadius(10)
-        .backgroundColor($r('app.color.color_primary'))
-        .alignContent(Alignment.Center)
+    Row({ space: 12 }) {
+      // 序号圆点
+      Stack() {
+        Text(`${idx + 1}`)
+          .fontSize(11)
+          .fontColor(Color.White)
+          .fontWeight(FontWeight.Bold)
+      }
+      .width(24)
+      .height(24)
+      .borderRadius(12)
+      .backgroundColor(item.status === 'approved'
+        ? $r('app.color.color_green')
+        : item.status === 'rejected'
+          ? $r('app.color.color_live')
+          : $r('app.color.color_yellow'))
 
-        Column({ space: 2 }) {
-          Row({ space: 6 }) {
-            Text(this.historyStatusText(item))
-              .fontSize(12)
-              .fontColor(this.statusColor(item.status))
-              .fontWeight(FontWeight.Medium)
-            if (item.reviewerNickname) {
-              Text(`· ${item.reviewerNickname}`)
-                .fontSize(11)
-                .fontColor($r('app.color.color_text_hint'))
-            }
+      Column({ space: 3 }) {
+        Row({ space: 6 }) {
+          Text(REVIEW_STATUS_LABELS[item.status])
+            .fontSize(13)
+            .fontColor(item.status === 'approved'
+              ? $r('app.color.color_green_deep')
+              : item.status === 'rejected'
+                ? $r('app.color.color_live')
+                : $r('app.color.color_yellow_text'))
+            .fontWeight(FontWeight.Bold)
+          if (item.reviewerNickname) {
+            Text(`· ${item.reviewerNickname}`)
+              .fontSize(11)
+              .fontColor($r('app.color.color_text_3'))
           }
+        }
+        .width('100%')
+
+        Text(item.note)
+          .fontSize(12)
+          .fontColor($r('app.color.color_text_2'))
           .width('100%')
 
-          Text(item.note)
+        if (item.rejectReason) {
+          Text(`驳回：${item.rejectReason}`)
             .fontSize(11)
-            .fontColor($r('app.color.color_text_secondary'))
-            .width('100%')
-
-          if (item.rejectReason) {
-            Text(`驳回原因：${item.rejectReason}`)
-              .fontSize(11)
-              .fontColor($r('app.color.color_error'))
-              .width('100%')
-          }
-
-          if (item.rejectDescription) {
-            Text(`说明：${item.rejectDescription}`)
-              .fontSize(11)
-              .fontColor($r('app.color.color_text_hint'))
-              .width('100%')
-          }
-
-          Text(this.formatTime(item.reviewedAt))
-            .fontSize(10)
-            .fontColor($r('app.color.color_text_hint'))
+            .fontColor($r('app.color.color_live'))
             .width('100%')
         }
-        .alignItems(HorizontalAlign.Start)
-        .layoutWeight(1)
+
+        if (item.rejectDescription) {
+          Text(`说明：${item.rejectDescription}`)
+            .fontSize(11)
+            .fontColor($r('app.color.color_text_3'))
+            .width('100%')
+        }
+
+        Text(this.formatTime(item.reviewedAt))
+          .fontSize(10)
+          .fontColor($r('app.color.color_text_4'))
+          .width('100%')
       }
-      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
     }
     .width('100%')
     .padding({ top: 8, bottom: 8 })
-    .border({ width: { bottom: 0.5 }, color: $r('app.color.color_divider') })
+    .border({ width: { bottom: 1 }, color: $r('app.color.color_line') })
+    .alignItems(VerticalAlign.Top)
   }
 
   /** 底部操作栏 */
   @Builder
   BottomActionBar() {
     if (this.detail && this.detail!.review.status === 'pending') {
-      // 待审核：展示通过 + 驳回按钮
+      // 待审核：展示驳回 + 通过按钮
       Row({ space: 12 }) {
-        Button('驳回')
+        Text(this.isProcessing ? '处理中...' : '驳回')
           .layoutWeight(1)
-          .height(44)
-          .borderRadius(22)
+          .height(46)
+          .borderRadius(AppConstants.RADIUS_MD)
           .backgroundColor($r('app.color.color_bg_card'))
-          .fontColor($r('app.color.color_error'))
+          .border({ width: 1, color: $r('app.color.color_line_2') })
+          .fontColor($r('app.color.color_text_2'))
           .fontSize(14)
-          .fontWeight(FontWeight.Medium)
-          .enabled(!this.isProcessing)
-          .onClick(() => this.onClickReject())
-        Button('通过')
+          .fontWeight(FontWeight.Bold)
+          .textAlign(TextAlign.Center)
+          .onClick(() => {
+            if (!this.isProcessing) {
+              this.onClickReject();
+            }
+          })
+        Text(this.isProcessing ? '处理中...' : '通过')
           .layoutWeight(1)
-          .height(44)
-          .borderRadius(22)
-          .backgroundColor($r('app.color.color_primary'))
+          .height(46)
+          .borderRadius(AppConstants.RADIUS_MD)
+          .backgroundColor($r('app.color.color_green'))
           .fontColor(Color.White)
           .fontSize(14)
-          .fontWeight(FontWeight.Medium)
-          .enabled(!this.isProcessing)
-          .onClick(() => this.onClickApprove())
+          .fontWeight(FontWeight.Bold)
+          .textAlign(TextAlign.Center)
+          .onClick(() => {
+            if (!this.isProcessing) {
+              this.onClickApprove();
+            }
+          })
       }
       .width('100%')
       .padding({ left: 16, right: 16, top: 12, bottom: 12 })
       .backgroundColor($r('app.color.color_bg_card'))
-      .border({ width: { top: 0.5 }, color: $r('app.color.color_divider') })
+      .shadow({ radius: 12, color: 'rgba(26,26,26,0.05)', offsetX: 0, offsetY: -2 })
     } else if (this.detail && this.detail!.review.status !== 'pending') {
-      // 已审核：展示已审核状态
+      // 已审核：展示状态信息
       Row({ space: 12 }) {
         Text(`✓ ${REVIEW_STATUS_LABELS[this.detail!.review.status]}`)
           .fontSize(14)
-          .fontColor(this.statusColor(this.detail!.review.status))
-          .fontWeight(FontWeight.Medium)
+          .fontColor(this.detail!.review.status === 'approved'
+            ? $r('app.color.color_green_deep')
+            : $r('app.color.color_live'))
+          .fontWeight(FontWeight.Bold)
           .layoutWeight(1)
         if (this.detail!.review.rejectReason) {
-          Text(`驳回原因：${this.detail!.review.rejectReason}`)
+          Text(`驳回：${this.detail!.review.rejectReason}`)
             .fontSize(11)
-            .fontColor($r('app.color.color_error'))
+            .fontColor($r('app.color.color_live'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .constraintSize({ maxWidth: 200 })
         }
       }
       .width('100%')
-      .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+      .padding({ left: 16, right: 16, top: 14, bottom: 14 })
       .backgroundColor($r('app.color.color_bg_card'))
-      .border({ width: { top: 0.5 }, color: $r('app.color.color_divider') })
+      .shadow({ radius: 12, color: 'rgba(26,26,26,0.05)', offsetX: 0, offsetY: -2 })
       .alignItems(VerticalAlign.Center)
     }
   }
 
-  /** 驳回对话框（预设原因 Radio + 描述 TextArea） */
+  /** 驳回弹窗（方案 C：Stack + 遮罩 + @Builder） */
   @Builder
   RejectDialog() {
-    Stack({ alignContent: Alignment.Center }) {
+    Stack() {
       // 遮罩
       Column()
         .width('100%')
@@ -591,107 +705,117 @@ export struct ReviewDetail {
         .backgroundColor('rgba(0,0,0,0.5)')
         .onClick(() => { this.closeRejectDialog(); })
 
-      // 对话框内容
-      Column({ space: 12 }) {
+      // 弹窗内容
+      Column({ space: 14 }) {
         Text('驳回审核')
-          .fontSize(16)
-          .fontColor($r('app.color.color_error'))
+          .fontSize(18)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+
+        Text('请选择驳回原因')
+          .fontSize(13)
+          .fontColor($r('app.color.color_text_2'))
           .fontWeight(FontWeight.Medium)
 
-        Text('请选择驳回原因：')
-          .fontSize(12)
-          .fontColor($r('app.color.color_text_secondary'))
-          .alignSelf(ItemAlign.Start)
-
-        // 预设原因 Radio
-        Column({ space: 8 }) {
+        // 预设原因（胶囊样式）
+        Flex({ wrap: FlexWrap.Wrap }) {
           ForEach(this.rejectReasonOptions, (opt: RejectReasonOption) => {
-            Row({ space: 8 }) {
-              // Radio 外圈（先绘制，后绘制的填充点会盖在上面）
-              Stack() {
-                Column()
-                  .width(20)
-                  .height(20)
-                  .borderRadius(10)
-                  .border({ width: 1.5, color: this.selectedReason === opt.value ? $r('app.color.color_primary') : $r('app.color.color_text_hint') })
-                  .backgroundColor(Color.Transparent)
-                // 选中态填充点（后绘制，盖在外圈上）
-                if (this.selectedReason === opt.value) {
-                  Column()
-                    .width(10)
-                    .height(10)
-                    .borderRadius(5)
-                    .backgroundColor($r('app.color.color_primary'))
-                }
-              }
-              .width(20)
-              .height(20)
-              .alignContent(Alignment.Center)
-
-              Text(opt.label)
-                .fontSize(13)
-                .fontColor($r('app.color.color_text_primary'))
-                .layoutWeight(1)
-            }
-            .width('100%')
-            .onClick(() => { this.onSelectReason(opt.value); })
+            Text(opt.label)
+              .fontSize(12)
+              .fontColor(this.selectedReason === opt.value ? Color.White : $r('app.color.color_text_2'))
+              .fontWeight(this.selectedReason === opt.value ? FontWeight.Bold : FontWeight.Medium)
+              .backgroundColor(this.selectedReason === opt.value ? $r('app.color.color_live') : $r('app.color.color_fill'))
+              .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+              .margin({ right: 6, bottom: 6 })
+              .borderRadius(AppConstants.RADIUS_PILL)
+              .onClick(() => { this.onSelectReason(opt.value); })
           }, (opt: RejectReasonOption) => opt.value)
         }
         .width('100%')
-        .padding(8)
-        .borderRadius(8)
-        .backgroundColor($r('app.color.color_bg_page'))
 
         // 自定义描述
-        Column({ space: 4 }) {
-          Row() {
-            Text('自定义描述')
-              .fontSize(12)
-              .fontColor($r('app.color.color_text_secondary'))
-              .layoutWeight(1)
-            Text(`选"其他"时必填 · ${this.rejectDescription.length}/200`)
-              .fontSize(10)
-              .fontColor(this.rejectDescription.length > 200 ? $r('app.color.color_error') : $r('app.color.color_text_hint'))
-          }
+        Text('自定义描述（选"其他"时必填）')
+          .fontSize(13)
+          .fontColor($r('app.color.color_text_2'))
+          .fontWeight(FontWeight.Medium)
+        TextArea({ text: this.rejectDescription, placeholder: '请输入驳回描述（最多 200 字）' })
           .width('100%')
-          TextArea({ text: this.rejectDescription, placeholder: '请输入驳回描述（选"其他"时必填，最多 200 字）' })
-            .height(80)
-            .borderRadius(8)
-            .backgroundColor($r('app.color.color_bg_page'))
-            .padding(8)
-            .fontSize(13)
-            .maxLength(200)
-            .onChange((value: string) => { this.onDescriptionChange(value); })
+          .height(80)
+          .fontSize(13)
+          .backgroundColor($r('app.color.color_fill'))
+          .borderRadius(AppConstants.RADIUS_MD)
+          .maxLength(200)
+          .onChange((value: string) => { this.onDescriptionChange(value); })
+
+        // 字数统计
+        Row() {
+          Blank()
+          Text(`${this.rejectDescription.length}/200`)
+            .fontSize(10)
+            .fontColor(this.rejectDescription.length >= 200 ? $r('app.color.color_live') : $r('app.color.color_text_4'))
         }
         .width('100%')
 
         // 按钮区
-        Row({ space: 8 }) {
-          Button('取消')
+        Row({ space: 12 }) {
+          Text('取消')
             .layoutWeight(1)
-            .height(40)
-            .borderRadius(20)
-            .backgroundColor($r('app.color.color_bg_page'))
-            .fontColor($r('app.color.color_text_primary'))
+            .height(44)
+            .borderRadius(AppConstants.RADIUS_MD)
+            .backgroundColor($r('app.color.color_fill'))
+            .fontColor($r('app.color.color_text_2'))
             .fontSize(14)
+            .fontWeight(FontWeight.Bold)
+            .textAlign(TextAlign.Center)
             .onClick(() => { this.closeRejectDialog(); })
-          Button('确认驳回')
+          Text(this.isProcessing ? '处理中...' : '确认驳回')
             .layoutWeight(1)
-            .height(40)
-            .borderRadius(20)
-            .backgroundColor($r('app.color.color_error'))
+            .height(44)
+            .borderRadius(AppConstants.RADIUS_MD)
+            .backgroundColor($r('app.color.color_live'))
             .fontColor(Color.White)
             .fontSize(14)
+            .fontWeight(FontWeight.Bold)
+            .textAlign(TextAlign.Center)
             .onClick(() => { this.doReject(); })
         }
         .width('100%')
       }
-      .width('88%')
+      .width('85%')
       .padding(20)
-      .borderRadius(12)
       .backgroundColor($r('app.color.color_bg_card'))
+      .borderRadius(AppConstants.RADIUS_XL)
     }
     .width('100%')
     .height('100%')
+    .alignContent(Alignment.Center)
+  }
+
+  /** 获取封面角标文案 */
+  private getCoverBadge(type: ReviewContentType): string {
+    if (type === 'live') {
+      return '● LIVE';
+    }
+    if (type === 'product') {
+      return '商品';
+    }
+    if (type === 'post') {
+      return '笔记';
+    }
+    return '举报';
+  }
+
+  /** 获取封面角标颜色 */
+  private getCoverBadgeColor(type: ReviewContentType): ResourceColor {
+    if (type === 'live') {
+      return $r('app.color.color_live');
+    }
+    if (type === 'product') {
+      return $r('app.color.color_green');
+    }
+    if (type === 'post') {
+      return $r('app.color.color_info');
+    }
+    return $r('app.color.color_warn');
   }
 }

@@ -60,29 +60,62 @@ export struct LiveList {
   build() {
     NavDestination() {
       Stack({ alignContent: Alignment.TopStart }) {
-        // 全屏直播流 Swiper（竖向）
-        Swiper() {
-          LazyForEach(this.liveDataSource, (item: LiveListItem, index: number) => {
-            LiveRoomCard({
-              item: item,
-              onEnter: (liveId: string) => {
-                this.enterLiveRoom(liveId);
-              },
-              onReserve: (liveId: string) => {
-                this.reserveLive(liveId);
-              }
-            })
-          }, (item: LiveListItem) => item.liveId + `_${item.status}_${item.likeCount}`)
+        // 全屏直播流 Swiper（竖向）spec 15.6.4：空状态处理
+        if (this.liveDataSource.totalCount() === 0) {
+          // 空状态 spec 15.6.4：引导文案 + 主 CTA 按钮
+          Column({ space: 12 }) {
+            Text('📺')
+              .fontSize(64)
+            Text('暂无直播')
+              .fontSize(18)
+              .fontColor(Color.White)
+              .fontWeight(FontWeight.Bold)
+            Text('暂无正在直播的内容，稍后再来看看吧')
+              .fontSize(13)
+              .fontColor('rgba(255,255,255,0.7)')
+              .maxLines(2)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+            Button('刷新看看')
+              .height(40)
+              .borderRadius(20)
+              .backgroundColor($r('app.color.color_cta_black'))
+              .fontColor(Color.White)
+              .fontSize(14)
+              .padding({ left: 24, right: 24 })
+              .margin({ top: 12 })
+              .onClick(async () => {
+                await this.liveDataSource.refresh();
+              })
+          }
+          .width('100%')
+          .height('100%')
+          .justifyContent(FlexAlign.Center)
+          .alignItems(HorizontalAlign.Center)
+          .padding({ left: 32, right: 32 })
+        } else {
+          Swiper() {
+            LazyForEach(this.liveDataSource, (item: LiveListItem, index: number) => {
+              LiveRoomCard({
+                item: item,
+                onEnter: (liveId: string) => {
+                  this.enterLiveRoom(liveId);
+                },
+                onReserve: (liveId: string) => {
+                  this.reserveLive(liveId);
+                }
+              })
+            }, (item: LiveListItem) => item.liveId + `_${item.status}_${item.likeCount}`)
+          }
+          .vertical(true)
+          .indicator(false)
+          .loop(false)
+          .cachedCount(AppConstants.LIST_CACHED_COUNT)
+          .width('100%')
+          .height('100%')
+          .onChange((index: number) => {
+            this.onSwiperChange(index);
+          })
         }
-        .vertical(true)
-        .indicator(false)
-        .loop(false)
-        .cachedCount(AppConstants.LIST_CACHED_COUNT)
-        .width('100%')
-        .height('100%')
-        .onChange((index: number) => {
-          this.onSwiperChange(index);
-        })
 
         // 顶部导航栏（半透明浮层）
         this.TopBar()
@@ -212,11 +245,11 @@ struct LiveRoomCard {
         .layoutWeight(1)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
-      // 关注按钮（已关注显示"已关注"，未关注显示"+ 关注"）
+      // 关注按钮 spec 15.6.4：未关注态黄底黑字
       Text(item.isFollowing ? '已关注' : '+ 关注')
         .fontSize(12)
-        .fontColor(item.isFollowing ? Color.White : $r('app.color.color_primary'))
-        .backgroundColor(item.isFollowing ? 'rgba(255,255,255,0.2)' : Color.White)
+        .fontColor(item.isFollowing ? Color.White : $r('app.color.color_text_primary'))
+        .backgroundColor(item.isFollowing ? 'rgba(255,255,255,0.2)' : $r('app.color.color_card_yellow'))
         .padding({ left: 10, right: 10, top: 4, bottom: 4 })
         .borderRadius(12)
     }
@@ -281,7 +314,7 @@ struct LiveRoomCard {
     Text(this.primaryActionLabel(item.status))
       .fontSize(14)
       .fontColor(Color.White)
-      .backgroundColor($r('app.color.color_secondary'))
+      .backgroundColor($r('app.color.color_cta_black'))
       .padding({ left: 20, right: 20, top: 8, bottom: 8 })
       .borderRadius(20)
       .onClick(() => {
@@ -317,16 +350,19 @@ struct LiveRoomCard {
       }
       .alignItems(HorizontalAlign.Center)
 
-      // 商品袋入口（有商品时显示）
+      // 商品袋入口 spec 15.6.4：黄色背景 + 黑字
       if (item.productBag.length > 0) {
         Column({ space: 4 }) {
           Text('🛍️')
             .fontSize(32)
           Text(`${item.productBag.length}件`)
             .fontSize(11)
-            .fontColor(Color.White)
+            .fontColor($r('app.color.color_text_primary'))
         }
         .alignItems(HorizontalAlign.Center)
+        .padding({ left: 8, right: 8, top: 6, bottom: 6 })
+        .borderRadius(24)
+        .backgroundColor($r('app.color.color_card_yellow'))
         .onClick(() => {
           this.onEnter(item.liveId);
         })

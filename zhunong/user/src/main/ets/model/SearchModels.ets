@@ -19,10 +19,10 @@ export interface HotWord {
   isNew: boolean;
 }
 
-/** 榜单类型 */
-export type RankType = 'product' | 'live';
+/** 榜单类型（对齐设计稿 search.html：4 Tab 商品榜/直播榜/农户榜/攻略榜） */
+export type RankType = 'product' | 'live' | 'farmer' | 'guide';
 
-/** 榜单项（月热销商品榜/直播榜） */
+/** 榜单项（商品榜/直播榜通用） */
 export interface RankItem {
   /** 排名（1-10） */
   rank: number;
@@ -42,6 +42,38 @@ export interface RankItem {
   monthlyCount: number;
   /** 是否当前用户关注 */
   followed?: boolean;
+}
+
+/** 农户榜单项（对齐设计稿 qn-rank-list[data-rank="farmer"]） */
+export interface FarmerRankItem {
+  /** 排名（1-10） */
+  rank: number;
+  /** 农户 ID */
+  farmerId: string;
+  /** 农户昵称（含品类描述，如 "王大姐 · 丹东草莓种植户"） */
+  farmerName: string;
+  /** 头像资源 key */
+  avatar: string;
+  /** 粉丝数 */
+  fansCount: number;
+  /** 好评率（0-100） */
+  goodRate: number;
+  /** 是否已关注 */
+  followed: boolean;
+}
+
+/** 攻略榜单项（对齐设计稿 qn-rank-list[data-rank="guide"]） */
+export interface GuideRankItem {
+  /** 排名（1-10） */
+  rank: number;
+  /** 帖子/攻略 ID */
+  guideId: string;
+  /** 攻略标题 */
+  title: string;
+  /** 阅读数 */
+  readCount: number;
+  /** 收藏数 */
+  favoriteCount: number;
 }
 
 /** 开屏广告 */

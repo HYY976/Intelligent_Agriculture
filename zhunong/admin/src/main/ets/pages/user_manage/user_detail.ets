@@ -1,24 +1,32 @@
 /**
- * user_detail - 用户详情（spec 3.3.1 / 10.8.3.1）
+ * user_detail - 用户详情（UI 复刻对齐 admin-users.html 设计语言）
+ * 遵循 spec 3.3.1 / 10.8.3.1：
+ *  - 基本信息 + 多维度历史 + 封禁/解封/重置密码操作
+ *  - Tab 切换：买家订单 / 卖家订单 / 发布商品 / 发布帖子 / 发布直播 / 登录设备
+ *  - 底部固定操作栏：封禁按钮（弹模态选原因+时长+描述）/ 解封按钮 / 重置密码按钮
  *
- * 基本信息 + 多维度历史 + 封禁/解封/重置密码操作
- * - Tab 切换：买家订单 / 卖家订单 / 发布商品 / 发布帖子 / 发布直播 / 登录设备
- * - 底部固定操作栏：封禁按钮（弹 AlertDialog 选原因+时长+描述）/ 解封按钮 / 重置密码按钮
+ * UI 设计要点（对齐设计语言）：
+ *  - 顶栏：圆形返回键 + 居中标题 "用户详情"
+ *  - 用户信息卡：白色卡 + 60 头像 + 名称 + 类型 pill + 状态 pill + 详细字段
+ *  - 5 列统计栏（带竖线分隔）
+ *  - Tab 横滑胶囊（激活态墨黑底）
+ *  - 底部固定操作栏（重置密码=线框 / 封禁=红 / 解封=墨黑）
+ *  - 封禁弹窗使用方案 C 模式（@Local showBanDialog + Stack 遮罩 + @Builder）
  *
  * 越权防御（spec 10.8.8）：aboutToAppear 校验 super_admin / user_admin
  */
 
-import { Logger, AppConstants, ToastUtil, TokenStore, AdminRoutes, NavigationHelper, RouteName, ListStateView } from 'common';
+import { Logger, AppConstants, ToastUtil, TokenStore, NavigationHelper, RouteName, ListStateView } from 'common';
 import { AdminInfo } from 'common';
 import {
   UserDetailAggregate,
   UserRecord,
+  UserRecordType,
   UserBanRequest,
   BanDuration,
   AdminRole,
   LoginDeviceRecord,
   USER_TYPE_LABELS,
-  USER_STATUS_LABELS,
   BAN_DURATION_LABELS,
   PRESET_BAN_REASONS
 } from '../../model/AdminModels';
@@ -36,6 +44,12 @@ interface DurationOption {
   label: string;
 }
 
+/** 统计项 */
+interface StatItemData {
+  num: number;
+  lab: string;
+}
+
 @ComponentV2
 export struct UserDetail {
   /** 用户详情聚合数据 */
@@ -48,7 +62,7 @@ export struct UserDetail {
   @Local loadFailed: boolean = false;
   /** 是否正在操作 */
   @Local isOperating: boolean = false;
-  /** 是否显示封禁弹窗 */
+  /** 是否显示封禁弹窗（方案 C：@Local + Stack + @Builder） */
   @Local showBanDialog: boolean = false;
   /** 封禁原因 */
   @Local banReason: string = PRESET_BAN_REASONS[0];
@@ -237,27 +251,61 @@ export struct UserDetail {
     return `${y}-${m}-${day} ${h}:${min}`;
   }
 
+  /** 获取用户头像资源 */
+  private getAvatarResource(user: UserRecord): Resource {
+    return user.userType === 'farmer' ? $r('app.media.avatar_farmer') : $r('app.media.avatar_customer');
+  }
+
+  /** 构建统计项列表 */
+  private buildStats(agg: UserDetailAggregate): StatItemData[] {
+    return [
+      { num: agg.buyerOrderCount, lab: '买家订单' },
+      { num: agg.farmerOrderCount, lab: '卖家订单' },
+      { num: agg.publishedProducts, lab: '商品' },
+      { num: agg.publishedPosts, lab: '帖子' },
+      { num: agg.publishedLives, lab: '直播' }
+    ];
+  }
+
   build() {
     NavDestination() {
-      Column() {
-        this.TopBar()
-        if (this.loadFailed) {
-          ListStateView({ state: 'error', onRefresh: () => this.loadDetail() })
-        } else if (this.isLoading && !this.aggregate) {
-          ListStateView({ state: 'loading' })
-        } else if (this.aggregate) {
-          // 基本信息
-          this.UserInfoCard(this.aggregate.user)
-          // 统计栏
-          this.StatsBar(this.aggregate)
-          // Tab 切换
-          this.TabBar()
-          // 内容区
-          this.ContentArea()
-          // 底部操作栏
-          this.BottomActionBar(this.aggregate.user)
+      Stack() {
+        Column() {
+          this.TopBar()
+          if (this.loadFailed) {
+            ListStateView({ state: 'error', onRefresh: () => this.loadDetail() })
+          } else if (this.isLoading && !this.aggregate) {
+            ListStateView({ state: 'loading' })
+          } else if (this.aggregate) {
+            // 滚动内容区
+            Scroll() {
+              Column({ space: 12 }) {
+                // 基本信息
+                this.UserInfoCard(this.aggregate.user)
+                // 统计栏
+                this.StatsBar(this.aggregate)
+                // Tab 切换
+                this.TabBar()
+                // 内容区
+                this.ContentArea()
+              }
+              .width('100%')
+              .alignItems(HorizontalAlign.Start)
+              .padding({ bottom: 80 })
+            }
+            .width('100%')
+            .layoutWeight(1)
+            .scrollBar(BarState.Off)
+            .align(Alignment.Top)
+            // 底部操作栏
+            this.BottomActionBar(this.aggregate.user)
+          }
         }
-        // 封禁弹窗
+        .width('100%')
+        .height('100%')
+        .backgroundColor($r('app.color.color_cream'))
+
+        // 封禁弹窗（方案 C：@Local showBanDialog + Stack + @Builder）
         if (this.showBanDialog) {
           this.BanDialog()
         }
@@ -268,172 +316,248 @@ export struct UserDetail {
       }
       .width('100%')
       .height('100%')
-      .backgroundColor($r('app.color.color_bg_page'))
     }
     .hideTitleBar(true)
   }
 
-  /** 顶部导航 */
+  /** 顶部导航：圆形返回键 + 居中标题 */
   @Builder
   TopBar() {
-    Row({ space: 12 }) {
-      Text('‹')
-        .fontSize(28)
-        .fontColor($r('app.color.color_text_primary'))
-        .onClick(() => NavigationHelper.pop())
+    Row() {
+      Stack() {
+        Text('‹')
+          .fontSize(22)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+      }
+      .width(32)
+      .height(32)
+      .borderRadius(AppConstants.RADIUS_PILL)
+      .backgroundColor($r('app.color.color_bg_card'))
+      .shadow(AppConstants.SHADOW_CARD)
+      .onClick(() => NavigationHelper.pop())
+
       Text('用户详情')
-        .fontSize(18)
-        .fontColor($r('app.color.color_text_primary'))
-        .fontWeight(FontWeight.Medium)
+        .fontSize(17)
+        .fontColor($r('app.color.color_ink'))
+        .fontWeight(FontWeight.Bold)
         .layoutWeight(1)
+        .textAlign(TextAlign.Center)
+
+      // 占位保持标题居中
+      Column().width(32).height(32)
     }
     .width('100%')
-    .height(56)
-    .padding({ left: 16, right: 16 })
-    .backgroundColor($r('app.color.color_bg_card'))
+    .height(48)
+    .padding({ left: 16, right: 16, top: 4, bottom: 10 })
     .alignItems(VerticalAlign.Center)
   }
 
   /** 用户基本信息卡 */
   @Builder
   UserInfoCard(user: UserRecord) {
-    Column({ space: 8 }) {
-      Row({ space: 12 }) {
-        Stack() {
-          Text(user.nickname.charAt(0))
-            .fontSize(32)
-            .fontColor(Color.White)
-            .fontWeight(FontWeight.Bold)
-        }
-        .width(64)
-        .height(64)
-        .borderRadius(32)
-        .backgroundColor(user.userType === 'farmer' ? $r('app.color.color_secondary') : $r('app.color.color_primary'))
+    Column({ space: 10 }) {
+      // 头像 + 名称 + 类型 + 状态
+      Row({ space: 14 }) {
+        Image(this.getAvatarResource(user))
+          .width(60)
+          .height(60)
+          .borderRadius(30)
+          .backgroundColor($r('app.color.color_fill'))
+          .objectFit(ImageFit.Cover)
+          .border({ width: 2, color: $r('app.color.color_bg_card') })
+          .shadow({ radius: 8, color: 'rgba(26,26,26,0.08)', offsetX: 0, offsetY: 2 })
 
-        Column({ space: 4 }) {
-          Row({ space: 6 }) {
+        Column({ space: 6 }) {
+          Row({ space: 8 }) {
             Text(user.nickname)
               .fontSize(18)
               .fontWeight(FontWeight.Bold)
-              .fontColor($r('app.color.color_text_primary'))
-            Text(USER_TYPE_LABELS[user.userType])
-              .fontSize(11)
-              .fontColor(user.userType === 'farmer' ? $r('app.color.color_secondary') : $r('app.color.color_primary'))
-              .backgroundColor(user.userType === 'farmer' ? 'rgba(255,152,0,0.12)' : 'rgba(76,175,80,0.12)')
-              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-              .borderRadius(4)
-            Text(USER_STATUS_LABELS[user.status])
-              .fontSize(11)
-              .fontColor(user.status === 'banned' ? $r('app.color.color_error') : $r('app.color.color_primary'))
-              .backgroundColor(user.status === 'banned' ? 'rgba(244,67,54,0.12)' : 'rgba(76,175,80,0.12)')
-              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-              .borderRadius(4)
+              .fontColor($r('app.color.color_ink'))
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .constraintSize({ maxWidth: 120 })
+            this.UserTypePill(user.userType)
+            this.UserStatusPill(user)
           }
+          .alignItems(VerticalAlign.Center)
+
           Text(`手机号：${user.phone}`)
             .fontSize(13)
-            .fontColor($r('app.color.color_text_secondary'))
-          Text(`账号 ID：${user.userId}`)
+            .fontColor($r('app.color.color_text_2'))
+          Text(`ID：${user.userId}`)
             .fontSize(12)
-            .fontColor($r('app.color.color_text_hint'))
+            .fontColor($r('app.color.color_text_4'))
         }
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
       }
       .width('100%')
 
+      Divider().color($r('app.color.color_line')).strokeWidth(1)
+
       // 详细字段
-      Column({ space: 4 }) {
+      Column({ space: 6 }) {
         Row({ space: 8 }) {
-          Text('注册时间：').fontSize(12).fontColor($r('app.color.color_text_hint'))
-          Text(this.formatTime(user.createdAt)).fontSize(12).fontColor($r('app.color.color_text_secondary'))
+          Text('注册时间')
+            .fontSize(12)
+            .fontColor($r('app.color.color_text_3'))
+          Text(this.formatTime(user.createdAt))
+            .fontSize(12)
+            .fontColor($r('app.color.color_ink_2'))
+            .fontWeight(FontWeight.Medium)
         }
         Row({ space: 8 }) {
-          Text('最后登录：').fontSize(12).fontColor($r('app.color.color_text_hint'))
-          Text(this.formatTime(user.lastLoginAt)).fontSize(12).fontColor($r('app.color.color_text_secondary'))
+          Text('最后登录')
+            .fontSize(12)
+            .fontColor($r('app.color.color_text_3'))
+          Text(this.formatTime(user.lastLoginAt))
+            .fontSize(12)
+            .fontColor($r('app.color.color_ink_2'))
+            .fontWeight(FontWeight.Medium)
         }
         if (user.lastLoginIp) {
           Row({ space: 8 }) {
-            Text('最后登录 IP：').fontSize(12).fontColor($r('app.color.color_text_hint'))
-            Text(user.lastLoginIp).fontSize(12).fontColor($r('app.color.color_text_secondary'))
+            Text('登录 IP')
+              .fontSize(12)
+              .fontColor($r('app.color.color_text_3'))
+            Text(user.lastLoginIp)
+              .fontSize(12)
+              .fontColor($r('app.color.color_ink_2'))
+              .fontWeight(FontWeight.Medium)
           }
         }
         if (user.status === 'banned') {
           Row({ space: 8 }) {
-            Text('封禁原因：').fontSize(12).fontColor($r('app.color.color_error'))
-            Text(user.banReason || '-').fontSize(12).fontColor($r('app.color.color_error'))
+            Text('封禁原因')
+              .fontSize(12)
+              .fontColor($r('app.color.color_live'))
+            Text(user.banReason || '-')
+              .fontSize(12)
+              .fontColor($r('app.color.color_live'))
+              .fontWeight(FontWeight.Medium)
           }
           Row({ space: 8 }) {
-            Text('到期时间：').fontSize(12).fontColor($r('app.color.color_error'))
-            Text(this.formatTime(user.banUntil)).fontSize(12).fontColor($r('app.color.color_error'))
+            Text('到期时间')
+              .fontSize(12)
+              .fontColor($r('app.color.color_live'))
+            Text(this.formatTime(user.banUntil))
+              .fontSize(12)
+              .fontColor($r('app.color.color_live'))
+              .fontWeight(FontWeight.Medium)
           }
         }
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)
-      .margin({ top: 8 })
     }
     .width('100%')
     .padding(16)
     .backgroundColor($r('app.color.color_bg_card'))
-    .borderRadius(12)
-    .margin({ left: 12, right: 12, top: 12 })
+    .borderRadius(AppConstants.RADIUS_LG)
+    .shadow(AppConstants.SHADOW_CARD)
+    .margin({ left: 16, right: 16, top: 8 })
+    .alignItems(HorizontalAlign.Start)
   }
 
-  /** 统计栏 */
+  /** 用户类型 pill */
+  @Builder
+  UserTypePill(type: UserRecordType) {
+    Text(USER_TYPE_LABELS[type])
+      .fontSize(11)
+      .fontColor(type === 'farmer' ? $r('app.color.color_green_deep') : $r('app.color.color_info'))
+      .backgroundColor(type === 'farmer' ? $r('app.color.color_green_soft') : $r('app.color.color_info_soft'))
+      .padding({ left: 10, right: 10, top: 3, bottom: 3 })
+      .borderRadius(AppConstants.RADIUS_PILL)
+      .fontWeight(FontWeight.Medium)
+  }
+
+  /** 用户状态 pill */
+  @Builder
+  UserStatusPill(user: UserRecord) {
+    if (user.status === 'banned') {
+      Text('已封禁')
+        .fontSize(11)
+        .fontColor($r('app.color.color_live'))
+        .backgroundColor($r('app.color.color_live_soft'))
+        .padding({ left: 10, right: 10, top: 3, bottom: 3 })
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .fontWeight(FontWeight.Medium)
+    } else {
+      Text('正常')
+        .fontSize(11)
+        .fontColor($r('app.color.color_green_deep'))
+        .backgroundColor($r('app.color.color_green_soft'))
+        .padding({ left: 10, right: 10, top: 3, bottom: 3 })
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .fontWeight(FontWeight.Medium)
+    }
+  }
+
+  /** 统计栏（5 列带竖线分隔） */
   @Builder
   StatsBar(agg: UserDetailAggregate) {
-    Row({ space: 8 }) {
-      this.StatItem('买家订单', agg.buyerOrderCount.toString())
-      this.StatItem('卖家订单', agg.farmerOrderCount.toString())
-      this.StatItem('商品', agg.publishedProducts.toString())
-      this.StatItem('帖子', agg.publishedPosts.toString())
-      this.StatItem('直播', agg.publishedLives.toString())
+    Row() {
+      ForEach(this.buildStats(agg), (stat: StatItemData, index: number) => {
+        Row() {
+          Column({ space: 4 }) {
+            Text(`${stat.num}`)
+              .fontSize(18)
+              .fontColor($r('app.color.color_ink'))
+              .fontWeight(FontWeight.Bold)
+            Text(stat.lab)
+              .fontSize(11)
+              .fontColor($r('app.color.color_text_3'))
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Center)
+          if (index < this.buildStats(agg).length - 1) {
+            Column()
+              .width(1)
+              .height(28)
+              .backgroundColor($r('app.color.color_line'))
+          }
+        }
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+      }, (stat: StatItemData, index: number) => `${stat.lab}_${index}`)
     }
     .width('100%')
-    .padding({ left: 12, right: 12, top: 12 })
-  }
-
-  @Builder
-  StatItem(label: string, value: string) {
-    Column({ space: 4 }) {
-      Text(value)
-        .fontSize(18)
-        .fontColor($r('app.color.color_text_primary'))
-        .fontWeight(FontWeight.Bold)
-      Text(label)
-        .fontSize(10)
-        .fontColor($r('app.color.color_text_secondary'))
-    }
-    .layoutWeight(1)
-    .padding({ top: 12, bottom: 12 })
-    .borderRadius(12)
+    .padding({ top: 14, bottom: 14 })
+    .borderRadius(AppConstants.RADIUS_LG)
     .backgroundColor($r('app.color.color_bg_card'))
-    .alignItems(HorizontalAlign.Center)
+    .shadow(AppConstants.SHADOW_CARD)
+    .margin({ left: 16, right: 16 })
+    .alignItems(VerticalAlign.Center)
   }
 
-  /** Tab 栏 */
+  /** Tab 栏（横滑胶囊） */
   @Builder
   TabBar() {
     Scroll() {
-      Row({ space: 4 }) {
+      Row({ space: 8 }) {
         ForEach(this.tabOptions, (opt: TabOption) => {
           Text(opt.label)
-            .fontSize(12)
-            .fontColor(this.currentTab === opt.value ? Color.White : $r('app.color.color_text_secondary'))
-            .backgroundColor(this.currentTab === opt.value ? $r('app.color.color_primary') : $r('app.color.color_bg_card'))
-            .padding({ left: 12, right: 12, top: 6, bottom: 6 })
-            .borderRadius(14)
+            .fontSize(13)
+            .fontColor(this.currentTab === opt.value ? Color.White : $r('app.color.color_text_2'))
+            .fontWeight(this.currentTab === opt.value ? FontWeight.Bold : FontWeight.Medium)
+            .backgroundColor(this.currentTab === opt.value ? $r('app.color.color_cta_black') : $r('app.color.color_bg_card'))
+            .height(32)
+            .padding({ left: 14, right: 14 })
+            .borderRadius(AppConstants.RADIUS_PILL)
+            .shadow(this.currentTab === opt.value ? { radius: 0, color: Color.Transparent, offsetX: 0, offsetY: 0 } : AppConstants.SHADOW_CARD)
+            .textAlign(TextAlign.Center)
             .onClick(() => {
               this.currentTab = opt.value;
             })
         }, (opt: TabOption) => opt.value)
       }
-      .padding({ left: 12, right: 12 })
+      .padding({ left: 16, right: 16 })
     }
     .scrollable(ScrollDirection.Horizontal)
     .scrollBar(BarState.Off)
     .width('100%')
-    .padding({ top: 12, bottom: 8 })
+    .margin({ top: 4 })
   }
 
   /** 内容区 */
@@ -451,37 +575,43 @@ export struct UserDetail {
   /** 登录设备列表 */
   @Builder
   DevicesList(devices: LoginDeviceRecord[]) {
-    List({ space: 8 }) {
+    Column({ space: 8 }) {
       ForEach(devices, (device: LoginDeviceRecord, index: number) => {
-        ListItem() {
-          Row({ space: 12 }) {
-            Text('📱').fontSize(24)
-            Column({ space: 4 }) {
-              Text(device.deviceName)
-                .fontSize(14)
-                .fontColor($r('app.color.color_text_primary'))
-                .fontWeight(FontWeight.Medium)
-              Text(`${device.ipAddress} · ${device.location || ''}`)
-                .fontSize(12)
-                .fontColor($r('app.color.color_text_secondary'))
-              Text(this.formatTime(device.loginAt))
-                .fontSize(11)
-                .fontColor($r('app.color.color_text_hint'))
-            }
-            .alignItems(HorizontalAlign.Start)
-            .layoutWeight(1)
+        Row({ space: 12 }) {
+          Stack() {
+            Text('📱')
+              .fontSize(22)
           }
-          .width('100%')
-          .padding(12)
-          .backgroundColor($r('app.color.color_bg_card'))
-          .borderRadius(12)
-          .alignItems(VerticalAlign.Center)
+          .width(40)
+          .height(40)
+          .borderRadius(20)
+          .backgroundColor($r('app.color.color_fill'))
+          Column({ space: 4 }) {
+            Text(device.deviceName)
+              .fontSize(14)
+              .fontColor($r('app.color.color_ink'))
+              .fontWeight(FontWeight.Bold)
+            Text(`${device.ipAddress} · ${device.location || ''}`)
+              .fontSize(12)
+              .fontColor($r('app.color.color_text_3'))
+            Text(this.formatTime(device.loginAt))
+              .fontSize(11)
+              .fontColor($r('app.color.color_text_4'))
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
         }
+        .width('100%')
+        .padding(12)
+        .backgroundColor($r('app.color.color_bg_card'))
+        .borderRadius(AppConstants.RADIUS_MD)
+        .shadow(AppConstants.SHADOW_CARD)
+        .alignItems(VerticalAlign.Center)
       }, (device: LoginDeviceRecord, index: number) => `${device.deviceName}_${index}`)
     }
     .width('100%')
-    .layoutWeight(1)
-    .padding({ left: 12, right: 12, top: 8, bottom: 12 })
+    .padding({ left: 16, right: 16, top: 8, bottom: 12 })
+    .alignItems(HorizontalAlign.Start)
   }
 
   /** 占位内容（其他 Tab 后续接入） */
@@ -492,71 +622,81 @@ export struct UserDetail {
         .fontSize(64)
       Text('该 Tab 数据待后端接入')
         .fontSize(14)
-        .fontColor($r('app.color.color_text_secondary'))
+        .fontColor($r('app.color.color_text_2'))
       Text('现阶段仅展示登录设备 Tab')
         .fontSize(12)
-        .fontColor($r('app.color.color_text_hint'))
+        .fontColor($r('app.color.color_text_4'))
     }
     .width('100%')
-    .layoutWeight(1)
+    .padding({ top: 40, bottom: 40 })
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
   }
 
-  /** 底部操作栏 */
+  /** 底部固定操作栏 */
   @Builder
   BottomActionBar(user: UserRecord) {
-    Row({ space: 8 }) {
-      // 重置密码按钮（始终可用）
-      Button('重置密码')
+    Row({ space: 10 }) {
+      // 重置密码按钮（线框样式）
+      Text('重置密码')
         .layoutWeight(1)
-        .height(44)
-        .borderRadius(22)
-        .backgroundColor($r('app.color.color_bg_page'))
-        .fontColor($r('app.color.color_text_primary'))
+        .height(46)
+        .borderRadius(AppConstants.RADIUS_MD)
+        .backgroundColor($r('app.color.color_bg_card'))
+        .border({ width: 1, color: $r('app.color.color_line_2') })
+        .fontColor($r('app.color.color_ink'))
         .fontSize(14)
-        .enabled(!this.isOperating)
+        .fontWeight(FontWeight.Bold)
+        .textAlign(TextAlign.Center)
         .onClick(() => {
-          this.showResetDialog = true;
+          if (!this.isOperating) {
+            this.showResetDialog = true;
+          }
         })
 
       // 封禁/解封按钮（根据状态切换）
       if (user.status === 'banned') {
-        Button('解封账号')
+        Text('解封账号')
           .layoutWeight(1)
-          .height(44)
-          .borderRadius(22)
-          .backgroundColor($r('app.color.color_primary'))
+          .height(46)
+          .borderRadius(AppConstants.RADIUS_MD)
+          .backgroundColor($r('app.color.color_cta_black'))
           .fontColor(Color.White)
           .fontSize(14)
-          .enabled(!this.isOperating)
+          .fontWeight(FontWeight.Bold)
+          .textAlign(TextAlign.Center)
           .onClick(() => {
-            this.doUnban();
+            if (!this.isOperating) {
+              this.doUnban();
+            }
           })
       } else {
-        Button('封禁账号')
+        Text('封禁账号')
           .layoutWeight(1)
-          .height(44)
-          .borderRadius(22)
-          .backgroundColor($r('app.color.color_error'))
+          .height(46)
+          .borderRadius(AppConstants.RADIUS_MD)
+          .backgroundColor($r('app.color.color_live'))
           .fontColor(Color.White)
           .fontSize(14)
-          .enabled(!this.isOperating)
+          .fontWeight(FontWeight.Bold)
+          .textAlign(TextAlign.Center)
           .onClick(() => {
-            this.showBanDialog = true;
+            if (!this.isOperating) {
+              this.showBanDialog = true;
+            }
           })
       }
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 12, bottom: 12 })
     .backgroundColor($r('app.color.color_bg_card'))
-    .border({ width: { top: 1 }, color: $r('app.color.color_divider') })
+    .shadow({ radius: 12, color: 'rgba(26,26,26,0.05)', offsetX: 0, offsetY: -2 })
   }
 
-  /** 封禁弹窗 */
+  /** 封禁弹窗（方案 C：Stack + 遮罩 + @Builder） */
   @Builder
   BanDialog() {
-    Stack({ alignContent: Alignment.Center }) {
+    Stack() {
       // 遮罩
       Column()
         .width('100%')
@@ -567,23 +707,27 @@ export struct UserDetail {
         })
 
       // 弹窗内容
-      Column({ space: 12 }) {
+      Column({ space: 14 }) {
         Text('封禁用户')
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.color_text_primary'))
+          .fontColor($r('app.color.color_ink'))
 
         // 预设原因
-        Text('封禁原因').fontSize(13).fontColor($r('app.color.color_text_secondary'))
+        Text('封禁原因')
+          .fontSize(13)
+          .fontColor($r('app.color.color_text_2'))
+          .fontWeight(FontWeight.Medium)
         Flex({ wrap: FlexWrap.Wrap }) {
           ForEach(PRESET_BAN_REASONS, (reason: string) => {
             Text(reason)
               .fontSize(12)
-              .fontColor(this.banReason === reason ? Color.White : $r('app.color.color_text_secondary'))
-              .backgroundColor(this.banReason === reason ? $r('app.color.color_error') : $r('app.color.color_bg_page'))
+              .fontColor(this.banReason === reason ? Color.White : $r('app.color.color_text_2'))
+              .fontWeight(this.banReason === reason ? FontWeight.Bold : FontWeight.Medium)
+              .backgroundColor(this.banReason === reason ? $r('app.color.color_live') : $r('app.color.color_fill'))
               .padding({ left: 10, right: 10, top: 6, bottom: 6 })
               .margin({ right: 6, bottom: 6 })
-              .borderRadius(12)
+              .borderRadius(AppConstants.RADIUS_PILL)
               .onClick(() => {
                 this.banReason = reason;
               })
@@ -592,16 +736,20 @@ export struct UserDetail {
         .width('100%')
 
         // 封禁时长
-        Text('封禁时长').fontSize(13).fontColor($r('app.color.color_text_secondary'))
+        Text('封禁时长')
+          .fontSize(13)
+          .fontColor($r('app.color.color_text_2'))
+          .fontWeight(FontWeight.Medium)
         Flex({ wrap: FlexWrap.Wrap }) {
           ForEach(this.durationOptions, (opt: DurationOption) => {
             Text(opt.label)
               .fontSize(12)
-              .fontColor(this.banDuration === opt.value ? Color.White : $r('app.color.color_text_secondary'))
-              .backgroundColor(this.banDuration === opt.value ? $r('app.color.color_error') : $r('app.color.color_bg_page'))
+              .fontColor(this.banDuration === opt.value ? Color.White : $r('app.color.color_text_2'))
+              .fontWeight(this.banDuration === opt.value ? FontWeight.Bold : FontWeight.Medium)
+              .backgroundColor(this.banDuration === opt.value ? $r('app.color.color_live') : $r('app.color.color_fill'))
               .padding({ left: 10, right: 10, top: 6, bottom: 6 })
               .margin({ right: 6, bottom: 6 })
-              .borderRadius(12)
+              .borderRadius(AppConstants.RADIUS_PILL)
               .onClick(() => {
                 this.banDuration = opt.value;
               })
@@ -610,13 +758,16 @@ export struct UserDetail {
         .width('100%')
 
         // 自定义描述
-        Text('自定义描述（选"其他"时必填）').fontSize(13).fontColor($r('app.color.color_text_secondary'))
+        Text('自定义描述（选"其他"时必填）')
+          .fontSize(13)
+          .fontColor($r('app.color.color_text_2'))
+          .fontWeight(FontWeight.Medium)
         TextArea({ text: this.banDescription, placeholder: '最多 200 字' })
           .width('100%')
           .height(80)
           .fontSize(13)
-          .backgroundColor($r('app.color.color_bg_page'))
-          .borderRadius(8)
+          .backgroundColor($r('app.color.color_fill'))
+          .borderRadius(AppConstants.RADIUS_MD)
           .maxLength(200)
           .onChange((value: string) => {
             this.banDescription = value;
@@ -624,45 +775,52 @@ export struct UserDetail {
 
         // 操作按钮
         Row({ space: 12 }) {
-          Button('取消')
+          Text('取消')
             .layoutWeight(1)
-            .height(40)
-            .borderRadius(20)
-            .backgroundColor($r('app.color.color_bg_page'))
-            .fontColor($r('app.color.color_text_secondary'))
+            .height(44)
+            .borderRadius(AppConstants.RADIUS_MD)
+            .backgroundColor($r('app.color.color_fill'))
+            .fontColor($r('app.color.color_text_2'))
             .fontSize(14)
-            .enabled(!this.isOperating)
+            .fontWeight(FontWeight.Bold)
+            .textAlign(TextAlign.Center)
             .onClick(() => {
-              this.showBanDialog = false;
-              this.banDescription = '';
+              if (!this.isOperating) {
+                this.showBanDialog = false;
+                this.banDescription = '';
+              }
             })
-          Button('确认封禁')
+          Text(this.isOperating ? '处理中...' : '确认封禁')
             .layoutWeight(1)
-            .height(40)
-            .borderRadius(20)
-            .backgroundColor($r('app.color.color_error'))
+            .height(44)
+            .borderRadius(AppConstants.RADIUS_MD)
+            .backgroundColor($r('app.color.color_live'))
             .fontColor(Color.White)
             .fontSize(14)
-            .enabled(!this.isOperating)
+            .fontWeight(FontWeight.Bold)
+            .textAlign(TextAlign.Center)
             .onClick(() => {
-              this.doBan();
+              if (!this.isOperating) {
+                this.doBan();
+              }
             })
         }
         .width('100%')
       }
-      .width('80%')
+      .width('85%')
       .padding(20)
       .backgroundColor($r('app.color.color_bg_card'))
-      .borderRadius(16)
+      .borderRadius(AppConstants.RADIUS_XL)
     }
     .width('100%')
     .height('100%')
+    .alignContent(Alignment.Center)
   }
 
-  /** 重置密码确认弹窗 */
+  /** 重置密码确认弹窗（方案 C） */
   @Builder
   ResetPasswordDialog() {
-    Stack({ alignContent: Alignment.Center }) {
+    Stack() {
       Column()
         .width('100%')
         .height('100%')
@@ -671,48 +829,56 @@ export struct UserDetail {
           this.showResetDialog = false;
         })
 
-      Column({ space: 12 }) {
+      Column({ space: 14 }) {
         Text('确认重置密码')
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.color_text_primary'))
+          .fontColor($r('app.color.color_ink'))
         Text('将该用户密码重置为默认密码 zhunong@123，用户下次登录时将强制修改。')
           .fontSize(13)
-          .fontColor($r('app.color.color_text_secondary'))
+          .fontColor($r('app.color.color_text_2'))
+          .lineHeight(20)
 
         Row({ space: 12 }) {
-          Button('取消')
+          Text('取消')
             .layoutWeight(1)
-            .height(40)
-            .borderRadius(20)
-            .backgroundColor($r('app.color.color_bg_page'))
-            .fontColor($r('app.color.color_text_secondary'))
+            .height(44)
+            .borderRadius(AppConstants.RADIUS_MD)
+            .backgroundColor($r('app.color.color_fill'))
+            .fontColor($r('app.color.color_text_2'))
             .fontSize(14)
-            .enabled(!this.isOperating)
+            .fontWeight(FontWeight.Bold)
+            .textAlign(TextAlign.Center)
             .onClick(() => {
-              this.showResetDialog = false;
+              if (!this.isOperating) {
+                this.showResetDialog = false;
+              }
             })
-          Button('确认重置')
+          Text(this.isOperating ? '处理中...' : '确认重置')
             .layoutWeight(1)
-            .height(40)
-            .borderRadius(20)
-            .backgroundColor($r('app.color.color_primary'))
+            .height(44)
+            .borderRadius(AppConstants.RADIUS_MD)
+            .backgroundColor($r('app.color.color_cta_black'))
             .fontColor(Color.White)
             .fontSize(14)
-            .enabled(!this.isOperating)
+            .fontWeight(FontWeight.Bold)
+            .textAlign(TextAlign.Center)
             .onClick(() => {
-              this.doResetPassword();
+              if (!this.isOperating) {
+                this.doResetPassword();
+              }
             })
         }
         .width('100%')
       }
-      .width('80%')
+      .width('85%')
       .padding(20)
       .backgroundColor($r('app.color.color_bg_card'))
-      .borderRadius(16)
+      .borderRadius(AppConstants.RADIUS_XL)
     }
     .width('100%')
     .height('100%')
+    .alignContent(Alignment.Center)
   }
 }
 

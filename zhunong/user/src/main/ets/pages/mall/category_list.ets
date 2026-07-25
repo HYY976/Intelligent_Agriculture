@@ -1,4 +1,4 @@
-/**
+﻿/**
  * category_list - 商品分类页
  * 遵循 spec 3.1.4.1：三级分类树（左侧一级分类Tab + 右侧二三级分类网格）
  * 点击末级分类跳转商品列表页
@@ -90,7 +90,7 @@ export struct CategoryList {
                       .fontSize(22)
                     Text(cat.name)
                       .fontSize(12)
-                      .fontColor(this.currentTopIndex === index ? $r('app.color.color_primary') : $r('app.color.color_text_secondary'))
+                      .fontColor(this.currentTopIndex === index ? $r('app.color.color_cta_black') : $r('app.color.color_text_secondary'))
                       .fontWeight(this.currentTopIndex === index ? FontWeight.Bold : FontWeight.Normal)
                   }
                   .width('100%')
@@ -191,7 +191,7 @@ export struct CategoryList {
       Button('刷新')
         .height(36)
         .borderRadius(18)
-        .backgroundColor($r('app.color.color_primary'))
+        .backgroundColor($r('app.color.color_cta_black'))
         .fontColor(Color.White)
         .fontSize(14)
         .onClick(() => this.refresh())

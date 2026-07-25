@@ -37,6 +37,7 @@ interface RateLimitUpdateBody {
   qpsLimit: number;
   concurrentLimit: number;
   circuitBreakThreshold: number;
+  recoveryTime: number;
 }
 
 class ApiRepositoryImpl {
@@ -95,7 +96,8 @@ class ApiRepositoryImpl {
       apiId: req.apiId,
       qpsLimit: req.qpsLimit,
       concurrentLimit: req.concurrentLimit,
-      circuitBreakThreshold: req.circuitBreakThreshold
+      circuitBreakThreshold: req.circuitBreakThreshold,
+      recoveryTime: req.recoveryTime
     };
     const result: boolean = await BaseRepository.postWithFallback<boolean>(
       `admin/apis/${req.apiId}/rate-limit`,

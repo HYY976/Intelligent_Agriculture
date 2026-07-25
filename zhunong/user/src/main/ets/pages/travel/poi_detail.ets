@@ -1,13 +1,28 @@
 /**
  * poi_detail - POI 点位详情页（spec 3.1.4.3）
- * 大图轮播 + 名称 + 评分 + 地址 + 电话 + 营业时间 + 介绍 + 导航按钮
+ * 对齐设计稿 pages/poi-detail.html：
+ *  - 顶部图片轮播 240 高 + 状态栏白字叠图
+ *  - 左上返回键 + 右上收藏键（圆形 82% 白底 + 模糊，对齐设计稿 qn-poi-circle-btn）
+ *  - 右下图片索引指示器（黑底白字胶囊，如 1/4）
+ *  - 中部 Scroll 内容区（向上覆盖图片 8px + 圆角 24 顶部）：
+ *    1) 名称区：黄色 pill 分类 + 绿色 pill 助农推荐 + 20px 加粗标题
+ *    2) 评分行：★ 4.8 · 128条评价 · 人均¥88 · 距您2.3km
+ *    3) 信息卡（3 行）：地址(黄)/电话(绿)/营业时间(蓝)，每行 30×30 彩色图标
+ *    4) 简介卡：标题 + 多段简介文字
+ *  - 底部固定操作栏：电话(白底描边) + 导航前往(墨黑底白字)
+ *
  * 导航按钮调起百度地图客户端或步骑行导航（后续迭代，现阶段 Toast 提示）
  */
 
 import { RouteName, NavigationHelper, Logger, AppConstants, ToastUtil } from 'common';
-import { PoiInfo, getPoiCategoryLabel, getPoiCategoryIcon } from '../../model/TravelModels';
+import { PoiInfo, getPoiCategoryLabel } from '../../model/TravelModels';
 import { getMockPoiById } from '../../mock/TravelMock';
 import { ImageUtil } from '../../utils/ImageUtil';
+
+/** 跳转体验预约页的路由参数 */
+interface BookingParam {
+  poiId: string;
+}
 
 @ComponentV2
 export struct PoiDetail {
@@ -15,8 +30,10 @@ export struct PoiDetail {
   @Local poiId: string = '';
   /** POI 详情 */
   @Local poi: PoiInfo | null = null;
-  /** 当前轮播图索引 */
+  /** 当前轮播图索引（对齐设计稿 qn-poi-index "1/4"） */
   @Local currentImageIndex: number = 0;
+  /** 是否已收藏 */
+  @Local isFavorited: boolean = false;
 
   aboutToAppear(): void {
     const params: Record<string, string> = NavigationHelper.getParam<Record<string, string>>() as Record<string, string>;
@@ -34,7 +51,10 @@ export struct PoiDetail {
       NavigationHelper.pop();
       return;
     }
-    Logger.info(AppConstants.SCENE_USER, { action: 'poi_detail_view', poiId: this.poiId });
+    Logger.info(AppConstants.SCENE_USER, {
+      action: 'poi_detail_view',
+      poiId: this.poiId
+    });
   }
 
   /** 返回 */
@@ -46,7 +66,10 @@ export struct PoiDetail {
   private onCall(): void {
     if (this.poi) {
       ToastUtil.info(`拨打 ${this.poi.phone}（开发中）`);
-      Logger.info(AppConstants.SCENE_USER, { action: 'poi_call', poiId: this.poiId });
+      Logger.info(AppConstants.SCENE_USER, {
+        action: 'poi_call',
+        poiId: this.poiId
+      });
     }
   }
 
@@ -54,13 +77,32 @@ export struct PoiDetail {
   private onNavigate(): void {
     if (this.poi) {
       ToastUtil.info(`导航至 ${this.poi.name}（开发中）`);
-      Logger.info(AppConstants.SCENE_USER, { action: 'poi_navigate', poiId: this.poiId });
+      Logger.info(AppConstants.SCENE_USER, {
+        action: 'poi_navigate',
+        poiId: this.poiId
+      });
     }
   }
 
   /** 收藏 */
   private onFavorite(): void {
-    ToastUtil.success('已收藏该点位');
+    this.isFavorited = !this.isFavorited;
+    ToastUtil.success(this.isFavorited ? '已收藏该点位' : '已取消收藏');
+    Logger.info(AppConstants.SCENE_USER, {
+      action: 'poi_favorite',
+      poiId: this.poiId,
+      favorited: this.isFavorited
+    });
+  }
+
+  /** 跳转体验预约页（对齐设计稿 POI 详情底部"立即预约"扩展入口） */
+  private gotoBooking(): void {
+    if (this.poi && this.poi.bookable) {
+      const param: BookingParam = { poiId: this.poiId };
+      NavigationHelper.push(RouteName.USER_BOOKING, param);
+    } else {
+      ToastUtil.info('该点位暂未开放预约');
+    }
   }
 
   build() {
@@ -71,17 +113,27 @@ export struct PoiDetail {
           this.ImageCarousel(this.poi)
           // 内容区
           Scroll() {
-            Column() {
-              this.PoiInfoSection(this.poi)
-              this.IntroSection(this.poi)
-              this.ActionSection(this.poi)
+            Column({ space: 12 }) {
+              this.NameSection(this.poi)
+              this.RatingRow(this.poi)
+              this.InfoCard(this.poi)
+              this.IntroCard(this.poi)
+              if (this.poi.bookable) {
+                this.BookingEntryCard(this.poi)
+              }
             }
             .width('100%')
+            .padding(16)
+            .backgroundColor($r('app.color.color_bg_page'))
+            .borderRadius({ topLeft: AppConstants.RADIUS_XL, topRight: AppConstants.RADIUS_XL })
+            .margin({ top: -8 })
             .alignItems(HorizontalAlign.Start)
           }
           .layoutWeight(1)
           .width('100%')
           .scrollBar(BarState.Off)
+          // 底部固定操作栏
+          this.BottomActionBar(this.poi)
         }
       }
       .width('100%')
@@ -91,240 +143,358 @@ export struct PoiDetail {
     .hideTitleBar(true)
   }
 
-  /** 顶部图片轮播 */
+  /** 顶部图片轮播（对齐设计稿 .qn-poi-carousel 240 高） */
   @Builder
   ImageCarousel(poi: PoiInfo) {
     Stack({ alignContent: Alignment.TopStart }) {
       Swiper() {
-        ForEach(poi.images, (imgKey: string, idx: number) => {
+        ForEach(poi.images, (imgKey: string) => {
           Image(ImageUtil.get(imgKey))
             .width('100%')
-            .height(280)
+            .height(240)
             .objectFit(ImageFit.Cover)
+            .backgroundColor($r('app.color.color_fill'))
         }, (imgKey: string) => imgKey)
       }
       .indicator(false)
       .loop(true)
       .width('100%')
-      .height(280)
+      .height(240)
       .onChange((index: number) => {
         this.currentImageIndex = index;
       })
 
-      // 渐变遮罩（顶部，增强返回按钮可读性）
+      // 顶部渐隐遮罩（增强返回按钮可读性，对齐设计稿状态栏叠图）
       Column()
         .width('100%')
         .height(100)
         .linearGradient({
           direction: GradientDirection.Bottom,
-          colors: [['rgba(0,0,0,0.4)', 0], ['rgba(0,0,0,0)', 1]]
-        })
-        .position({ left: 0, top: 0 })
-
-      // 返回按钮
-      Text('←')
-        .fontSize(24)
-        .fontColor(Color.White)
-        .width(40)
-        .height(40)
-        .borderRadius(20)
-        .backgroundColor('rgba(0,0,0,0.3)')
-        .textAlign(TextAlign.Center)
-        .position({ left: 12, top: 48 })
-        .onClick(() => {
-          this.goBack();
+          colors: [['rgba(0,0,0,0.30)', 0], ['rgba(0,0,0,0)', 1]]
         })
 
-      // 收藏按钮
-      Text('☆')
-        .fontSize(22)
-        .fontColor(Color.White)
-        .width(40)
-        .height(40)
-        .borderRadius(20)
-        .backgroundColor('rgba(0,0,0,0.3)')
-        .textAlign(TextAlign.Center)
-        .position({ right: 12, top: 48 })
-        .onClick(() => {
-          this.onFavorite();
-        })
+      // 左上返回按钮（对齐设计稿 .qn-poi-circle-btn.qn-poi-back）
+      Row() {
+        Text('‹')
+          .fontSize(22)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+      }
+      .width(36)
+      .height(36)
+      .borderRadius(18)
+      .backgroundColor('rgba(255,255,255,0.82)')
+      .shadow({ radius: 8, color: 'rgba(26,26,26,0.18)', offsetX: 0, offsetY: 2 })
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .position({ left: 16, top: 52 })
+      .onClick(() => { this.goBack(); })
 
-      // 图片索引指示器
+      // 右上收藏按钮（对齐设计稿 .qn-poi-circle-btn.qn-poi-fav）
+      Row() {
+        Text(this.isFavorited ? '♥' : '♡')
+          .fontSize(20)
+          .fontColor(this.isFavorited ? $r('app.color.color_live') : $r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+      }
+      .width(36)
+      .height(36)
+      .borderRadius(18)
+      .backgroundColor('rgba(255,255,255,0.82)')
+      .shadow({ radius: 8, color: 'rgba(26,26,26,0.18)', offsetX: 0, offsetY: 2 })
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .position({ right: 16, top: 52 })
+      .onClick(() => { this.onFavorite(); })
+
+      // 右下图片索引指示器（对齐设计稿 .qn-poi-index "1/4"）
       Text(`${this.currentImageIndex + 1}/${poi.images.length}`)
         .fontSize(11)
         .fontColor(Color.White)
-        .backgroundColor('rgba(0,0,0,0.4)')
-        .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-        .borderRadius(10)
+        .fontWeight(FontWeight.Bold)
+        .backgroundColor('rgba(26,26,26,0.55)')
+        .padding({ left: 10, right: 10, top: 3, bottom: 3 })
+        .borderRadius(AppConstants.RADIUS_PILL)
         .position({ right: 12, bottom: 12 })
     }
     .width('100%')
-    .height(280)
+    .height(240)
   }
 
-  /** POI 基础信息区 */
+  /** 名称区（对齐设计稿 .qn-poi-name-row + qn-poi-title） */
   @Builder
-  PoiInfoSection(poi: PoiInfo) {
-    Column({ space: 8 }) {
-      // 类型标签 + 精选标签
+  NameSection(poi: PoiInfo) {
+    Column({ space: 6 }) {
+      // 标签行（黄色分类 + 绿色助农推荐）
       Row({ space: 6 }) {
-        Text(`${getPoiCategoryIcon(poi.category)} ${getPoiCategoryLabel(poi.category)}`)
+        Text(getPoiCategoryLabel(poi.category))
           .fontSize(11)
-          .fontColor($r('app.color.color_primary'))
-          .backgroundColor('rgba(76,175,80,0.1)')
-          .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-          .borderRadius(10)
+          .fontColor($r('app.color.color_yellow_text'))
+          .fontWeight(FontWeight.Bold)
+          .padding({ left: 10, right: 10, top: 3, bottom: 3 })
+          .borderRadius(AppConstants.RADIUS_PILL)
+          .backgroundColor($r('app.color.color_yellow_soft'))
+
         if (poi.isFeatured) {
-          Text('精选推荐')
+          Text('助农推荐')
             .fontSize(11)
-            .fontColor($r('app.color.color_secondary'))
-            .backgroundColor('rgba(255,152,0,0.1)')
-            .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-            .borderRadius(10)
+            .fontColor($r('app.color.color_green_deep'))
+            .fontWeight(FontWeight.Bold)
+            .padding({ left: 10, right: 10, top: 3, bottom: 3 })
+            .borderRadius(AppConstants.RADIUS_PILL)
+            .backgroundColor($r('app.color.color_green_soft'))
         }
       }
       .alignItems(VerticalAlign.Center)
 
-      // 名称
+      // 名称标题（20px 加粗）
       Text(poi.name)
         .fontSize(20)
-        .fontColor($r('app.color.color_text_primary'))
+        .fontColor($r('app.color.color_ink'))
         .fontWeight(FontWeight.Bold)
-
-      // 评分 + 评分人数 + 人均
-      Row({ space: 12 }) {
-        Row({ space: 2 }) {
-          Text('⭐')
-            .fontSize(14)
-          Text(poi.rating.toFixed(1))
-            .fontSize(15)
-            .fontColor($r('app.color.color_accent_gold'))
-            .fontWeight(FontWeight.Bold)
-        }
-        .alignItems(VerticalAlign.Center)
-        Text(`${poi.ratingCount} 条评价`)
-          .fontSize(12)
-          .fontColor($r('app.color.color_text_secondary'))
-        Text(`人均 ¥${poi.avgPrice}`)
-          .fontSize(12)
-          .fontColor($r('app.color.color_price'))
-          .fontWeight(FontWeight.Medium)
-      }
-      .alignItems(VerticalAlign.Center)
-
-      // 分割线
-      Divider()
-        .color($r('app.color.color_divider'))
-        .width('100%')
-
-      // 地址
-      this.InfoRow('📍', '地址', `${poi.city} · ${poi.district}\n${poi.address}`)
-      // 电话
-      this.InfoRow('📞', '电话', poi.phone)
-      // 营业时间
-      this.InfoRow('🕐', '营业时间', poi.businessHours)
-      // 距离
-      this.InfoRow('🗺️', '距离当前位置', this.formatDistance(poi.distance))
+        .lineHeight(26)
     }
     .width('100%')
-    .padding(16)
-    .backgroundColor($r('app.color.color_bg_card'))
-    .borderRadius({ topLeft: 16, topRight: 16 })
-    .margin({ top: -16 })
     .alignItems(HorizontalAlign.Start)
   }
 
-  /** 信息行 */
+  /** 评分行（对齐设计稿 .qn-poi-meta：★ 4.8 · 128条评价 · 人均¥88 · 距您2.3km） */
   @Builder
-  InfoRow(icon: string, label: string, value: string) {
-    Row({ space: 12 }) {
-      Text(icon)
-        .fontSize(18)
-        .width(24)
-      Column({ space: 2 }) {
-        Text(label)
-          .fontSize(11)
-          .fontColor($r('app.color.color_text_hint'))
-        Text(value)
-          .fontSize(13)
-          .fontColor($r('app.color.color_text_primary'))
-      }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1)
-    }
-    .width('100%')
-    .padding({ top: 8, bottom: 8 })
-    .alignItems(VerticalAlign.Top)
-  }
-
-  /** 简介区 */
-  @Builder
-  IntroSection(poi: PoiInfo) {
-    Column({ space: 8 }) {
-      Text('点位介绍')
-        .fontSize(15)
-        .fontColor($r('app.color.color_text_primary'))
-        .fontWeight(FontWeight.Bold)
-      Text(poi.intro)
+  RatingRow(poi: PoiInfo) {
+    Row({ space: 6 }) {
+      // 黄色星
+      Text('★')
+        .fontSize(14)
+        .fontColor($r('app.color.color_yellow_deep'))
+      // 评分（加粗黑色）
+      Text(poi.rating.toFixed(1))
         .fontSize(13)
-        .fontColor($r('app.color.color_text_secondary'))
-        .lineHeight(22)
+        .fontColor($r('app.color.color_ink'))
+        .fontWeight(FontWeight.Bold)
+      // 评价数
+      Text(`${poi.ratingCount}条评价`)
+        .fontSize(13)
+        .fontColor($r('app.color.color_text_3'))
+      // 分隔点
+      Text('·')
+        .fontSize(13)
+        .fontColor($r('app.color.color_text_4'))
+      // 人均价格（红色加粗）
+      Text(`人均 ¥${poi.avgPrice}`)
+        .fontSize(13)
+        .fontColor($r('app.color.color_live'))
+        .fontWeight(FontWeight.Bold)
+      // 分隔点
+      Text('·')
+        .fontSize(13)
+        .fontColor($r('app.color.color_text_4'))
+      // 距离
+      Text(`距您${this.formatDistance(poi.distance)}`)
+        .fontSize(13)
+        .fontColor($r('app.color.color_text_3'))
     }
     .width('100%')
-    .padding(16)
-    .margin({ top: 8 })
-    .backgroundColor($r('app.color.color_bg_card'))
-    .alignItems(HorizontalAlign.Start)
-  }
-
-  /** 底部操作区 */
-  @Builder
-  ActionSection(poi: PoiInfo) {
-    Row({ space: 12 }) {
-      // 拨打电话
-      Column({ space: 2 }) {
-        Text('📞')
-          .fontSize(22)
-        Text('电话')
-          .fontSize(11)
-          .fontColor($r('app.color.color_text_secondary'))
-      }
-      .justifyContent(FlexAlign.Center)
-      .alignItems(HorizontalAlign.Center)
-      .width(72)
-      .height(56)
-      .borderRadius(12)
-      .backgroundColor($r('app.color.color_bg_card'))
-      .onClick(() => {
-        this.onCall();
-      })
-
-      // 导航按钮（主操作）
-      Row({ space: 6 }) {
-        Text('🧭')
-          .fontSize(18)
-        Text('导航前往')
-          .fontSize(15)
-          .fontColor(Color.White)
-          .fontWeight(FontWeight.Medium)
-      }
-      .justifyContent(FlexAlign.Center)
-      .alignItems(VerticalAlign.Center)
-      .layoutWeight(1)
-      .height(56)
-      .borderRadius(12)
-      .backgroundColor($r('app.color.color_primary'))
-      .onClick(() => {
-        this.onNavigate();
-      })
-    }
-    .width('100%')
-    .padding(16)
-    .margin({ top: 8, bottom: 32 })
     .alignItems(VerticalAlign.Center)
   }
 
-  /** 格式化距离 */
+  /** 信息卡（对齐设计稿 .qn-poi-info-card：3 行彩色图标信息） */
+  @Builder
+  InfoCard(poi: PoiInfo) {
+    Column({ space: 0 }) {
+      // 地址行（黄色图标底）
+      this.InfoRow('📍', 'qn-ico-yellow', `${poi.city} · ${poi.district} · ${poi.address}`)
+      // 分割线
+      Divider().color($r('app.color.color_line')).width('100%')
+      // 电话行（绿色图标底）
+      this.InfoRow('📞', 'qn-ico-green', poi.phone)
+      // 分割线
+      Divider().color($r('app.color.color_line')).width('100%')
+      // 营业时间行（蓝色图标底）
+      this.InfoRow('🕐', 'qn-ico-blue', poi.businessHours)
+    }
+    .width('100%')
+    .padding({ left: 16, right: 16 })
+    .borderRadius(AppConstants.RADIUS_LG)
+    .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
+  }
+
+  /** 信息行（对齐设计稿 .qn-poi-info-row：30×30 彩色图标 + 文字） */
+  @Builder
+  InfoRow(icon: string, iconTheme: string, text: string) {
+    Row({ space: 12 }) {
+      // 彩色图标底（30×30 圆角 10）
+      Row() {
+        Text(icon)
+          .fontSize(15)
+          .fontColor(this.getIconThemeColor(iconTheme))
+      }
+      .width(30)
+      .height(30)
+      .borderRadius(AppConstants.RADIUS_SM)
+      .backgroundColor(this.getIconThemeBg(iconTheme))
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+
+      // 文字
+      Text(text)
+        .fontSize(14)
+        .fontColor($r('app.color.color_ink_2'))
+        .fontWeight(FontWeight.Medium)
+        .layoutWeight(1)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+    }
+    .width('100%')
+    .height(48)
+    .alignItems(VerticalAlign.Center)
+  }
+
+  /** 简介卡（对齐设计稿 .qn-card 简介区：标题 + 多段文字） */
+  @Builder
+  IntroCard(poi: PoiInfo) {
+    Column({ space: 10 }) {
+      Text('农庄简介')
+        .fontSize(16)
+        .fontColor($r('app.color.color_ink'))
+        .fontWeight(FontWeight.Bold)
+
+      // 简介按 \n 分段，每段独立 Text（对齐设计稿 .qn-poi-intro-text 段间距 8）
+      ForEach(this.splitIntro(poi.intro), (paragraph: string, idx: number) => {
+        Text(paragraph)
+          .fontSize(14)
+          .fontColor($r('app.color.color_ink_2'))
+          .lineHeight(24)
+      }, (paragraph: string, idx: number) => `${idx}_${paragraph.substring(0, 8)}`)
+    }
+    .width('100%')
+    .padding(16)
+    .borderRadius(AppConstants.RADIUS_LG)
+    .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  /** 预约入口卡（对齐设计稿扩展：仅 bookable POI 显示，提供跳转预约页入口） */
+  @Builder
+  BookingEntryCard(poi: PoiInfo) {
+    Row({ space: 12 }) {
+      Column({ space: 4 }) {
+        Text('体验预约')
+          .fontSize(15)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+        Text(`¥${poi.avgPrice}/人起 · 在线预订`)
+          .fontSize(12)
+          .fontColor($r('app.color.color_text_3'))
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+
+      // 立即预约按钮（黄色胶囊）
+      Row() {
+        Text('立即预约')
+          .fontSize(14)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+      }
+      .height(40)
+      .padding({ left: 18, right: 18 })
+      .borderRadius(AppConstants.RADIUS_MD)
+      .backgroundColor($r('app.color.color_yellow'))
+      .shadow(AppConstants.SHADOW_YELLOW)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .onClick(() => { this.gotoBooking(); })
+    }
+    .width('100%')
+    .padding(16)
+    .borderRadius(AppConstants.RADIUS_LG)
+    .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
+    .alignItems(VerticalAlign.Center)
+  }
+
+  /** 底部固定操作栏（对齐设计稿 .qn-poi-actionbar：电话 + 导航前往） */
+  @Builder
+  BottomActionBar(poi: PoiInfo) {
+    Row({ space: 12 }) {
+      // 电话按钮（白底描边）
+      Row({ space: 6 }) {
+        Text('📞')
+          .fontSize(16)
+        Text('电话')
+          .fontSize(14)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+      }
+      .height(48)
+      .padding({ left: 18, right: 18 })
+      .borderRadius(AppConstants.RADIUS_MD)
+      .backgroundColor($r('app.color.color_bg_card'))
+      .border({ width: 1, color: $r('app.color.color_line_2') })
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .onClick(() => { this.onCall(); })
+
+      // 导航按钮（墨黑底白字，主操作）
+      Row({ space: 8 }) {
+        Text('🧭')
+          .fontSize(18)
+        Text('导航前往')
+          .fontSize(16)
+          .fontColor(Color.White)
+          .fontWeight(FontWeight.Bold)
+      }
+      .layoutWeight(1)
+      .height(48)
+      .borderRadius(AppConstants.RADIUS_MD)
+      .backgroundColor($r('app.color.color_ink'))
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .onClick(() => { this.onNavigate(); })
+    }
+    .width('100%')
+    .padding({ left: 16, right: 16, top: 12, bottom: 32 })
+    .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_NAV)
+    .alignItems(VerticalAlign.Center)
+  }
+
+  /** 图标主题色 → 文字色（对齐设计稿 .qn-ico-yellow/green/blue） */
+  private getIconThemeColor(theme: string): ResourceColor {
+    switch (theme) {
+      case 'qn-ico-yellow':
+        return $r('app.color.color_yellow_text');
+      case 'qn-ico-green':
+        return $r('app.color.color_green_deep');
+      case 'qn-ico-blue':
+        return $r('app.color.color_info');
+      default:
+        return $r('app.color.color_ink');
+    }
+  }
+
+  /** 图标主题色 → 背景色（对齐设计稿 .qn-ico-yellow/green/blue） */
+  private getIconThemeBg(theme: string): ResourceColor {
+    switch (theme) {
+      case 'qn-ico-yellow':
+        return $r('app.color.color_yellow_soft');
+      case 'qn-ico-green':
+        return $r('app.color.color_green_soft');
+      case 'qn-ico-blue':
+        return $r('app.color.color_info_soft');
+      default:
+        return $r('app.color.color_fill');
+    }
+  }
+
+  /** 简介按 \n 分段（对齐设计稿多段 .qn-poi-intro-text） */
+  private splitIntro(intro: string): string[] {
+    return intro.split('\n');
+  }
+
+  /** 格式化距离（米 → km） */
   private formatDistance(distance: number): string {
     if (distance >= 1000) {
       return `${(distance / 1000).toFixed(1)}km`;

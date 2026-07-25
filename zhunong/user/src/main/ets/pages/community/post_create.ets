@@ -1,13 +1,15 @@
 /**
- * post_create - 发帖页（spec 3.1.3.2）
- *  - 表单：标题 + 正文（最多5000字）+ 9张图片 + 话题选择
- *  - 不支持视频
- *  - 必填项校验：标题（1-60字）+ 正文（1-5000字）+ 话题（必选）
- *  - 图片从预设图库选择（Mock，不集成真实相册/相机）
- *  - 提交后回到社区列表
+ * post_create - 发帖页（对齐设计稿 pages/post-create.html）
+ *  - 顶部栏：圆形返回按钮 + 居中标题"发布帖子" + 右侧黄色"发布"文字按钮
+ *  - 话题选择卡：白卡 + 胶囊标签流（灰底默认，黄底选中）
+ *  - 标题输入卡：18px 粗体输入 + 分割线 + 字数统计
+ *  - 正文输入卡：textarea(160高) + 分割线 + 字数统计
+ *  - 图片区卡：白卡 + 标签 + "最多9张"提示 + 3列固定80×80网格 + 虚线添加框
+ *  - 底部发布按钮：黑底白字 + 箭头图标（46高 + 圆角14）
+ * spec 3.1.3.2
  */
 
-import { Logger, AppConstants, ToastUtil, RouteName, NavigationHelper } from 'common';
+import { Logger, AppConstants, ToastUtil, NavigationHelper } from 'common';
 import { Topic } from '../../model/CommunityModels';
 import { MOCK_TOPICS, createMockPost } from '../../mock/CommunityMock';
 import { ImageUtil } from '../../utils/ImageUtil';
@@ -30,8 +32,6 @@ export struct PostCreate {
   @Local selectedImages: string[] = [];
   /** 当前话题 ID */
   @Local currentTopicId: string = '';
-  /** 是否显示话题选择弹窗 */
-  @Local showTopicSheet: boolean = false;
   /** 是否显示图片选择弹窗 */
   @Local showImageSheet: boolean = false;
   /** 是否正在提交 */
@@ -39,8 +39,8 @@ export struct PostCreate {
   /** 话题列表（不含"全部"） */
   private topics: Topic[] = MOCK_TOPICS.filter((t: Topic) => t.topicId !== 'all');
 
-  /** 标题最大长度 */
-  private readonly TITLE_MAX: number = 60;
+  /** 标题最大长度（对齐设计稿 maxlength=50） */
+  private readonly TITLE_MAX: number = 50;
   /** 正文最大长度 */
   private readonly CONTENT_MAX: number = 5000;
   /** 图片最大数量 */
@@ -57,10 +57,9 @@ export struct PostCreate {
     return topic ? topic.name : '';
   }
 
-  /** 选择话题 */
+  /** 选择话题（对齐设计稿：点击胶囊标签切换） */
   private onTopicSelect(topicId: string): void {
     this.currentTopicId = topicId;
-    this.showTopicSheet = false;
   }
 
   /** 切换图片选中状态 */
@@ -80,6 +79,15 @@ export struct PostCreate {
   /** 移除已选图片 */
   private onRemoveImage(index: number): void {
     this.selectedImages.splice(index, 1);
+  }
+
+  /** 打开图片选择弹窗 */
+  private onOpenImagePicker(): void {
+    if (this.selectedImages.length >= this.IMAGE_MAX) {
+      ToastUtil.warning(`最多只能选择${this.IMAGE_MAX}张图片`);
+      return;
+    }
+    this.showImageSheet = true;
   }
 
   /** 表单校验 */
@@ -129,7 +137,10 @@ export struct PostCreate {
       NavigationHelper.pop();
     } catch (err) {
       ToastUtil.error('发布失败，请重试');
-      Logger.error(AppConstants.SCENE_USER, { action: 'post_create_fail', error: (err as Error).message });
+      Logger.error(AppConstants.SCENE_USER, JSON.stringify({
+        action: 'post_create_fail',
+        error: (err as Error).message
+      }));
     } finally {
       this.isSubmitting = false;
     }
@@ -138,39 +149,33 @@ export struct PostCreate {
   build() {
     NavDestination() {
       Column() {
-        // 顶部导航栏
+        // 顶部导航栏（对齐设计稿 qn-topbar）
         this.TopBar()
-        // 表单内容
+        // 表单内容（对齐设计稿 qn-pc-body）
         Scroll() {
-          Column({ space: 16 }) {
-            // 标题输入
-            this.TitleSection()
-            // 正文输入
-            this.ContentSection()
-            // 图片选择
-            this.ImageSection()
-            // 话题选择
-            this.TopicSection()
+          Column({ space: 12 }) {
+            // 1. 话题选择卡
+            this.TopicCard()
+            // 2. 标题输入卡
+            this.TitleCard()
+            // 3. 正文输入卡
+            this.ContentCard()
+            // 4. 图片区卡
+            this.ImageCard()
+            // 5. 发布按钮
+            this.PublishButton()
           }
           .width('100%')
-          .padding(16)
+          .padding({ left: 16, right: 16, top: 12, bottom: 16 })
           .alignItems(HorizontalAlign.Start)
         }
         .layoutWeight(1)
         .width('100%')
         .scrollBar(BarState.Off)
-        // 底部发布按钮
-        this.BottomActionBar()
       }
       .width('100%')
       .height('100%')
       .backgroundColor($r('app.color.color_bg_page'))
-      // 话题选择弹窗
-      .bindSheet($$this.showTopicSheet, this.TopicSheet(), {
-        height: '40%',
-        dragBar: true,
-        backgroundColor: $r('app.color.color_bg_card')
-      })
       // 图片选择弹窗
       .bindSheet($$this.showImageSheet, this.ImageSheet(), {
         height: '60%',
@@ -181,298 +186,302 @@ export struct PostCreate {
     .hideTitleBar(true)
   }
 
-  /** 顶部导航栏 */
+  /** 顶部导航栏（对齐设计稿 qn-topbar：圆形返回 + 居中标题 + 黄色发布） */
   @Builder
   TopBar() {
-    Row({ space: 12 }) {
-      Text('取消')
-        .fontSize(15)
-        .fontColor($r('app.color.color_text_secondary'))
+    Row() {
+      // 左：圆形返回按钮（对齐设计稿 qn-icon-btn：白底圆 + 软阴影）
+      Text('←')
+        .fontSize(18)
+        .fontColor($r('app.color.color_ink'))
+        .width(32)
+        .height(32)
+        .textAlign(TextAlign.Center)
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .backgroundColor($r('app.color.color_bg_card'))
+        .shadow(AppConstants.SHADOW_CARD)
         .onClick(() => {
           this.goBack();
         })
-      Text('发帖')
-        .fontSize(16)
-        .fontColor($r('app.color.color_text_primary'))
+
+      // 中：居中标题"发布帖子"（对齐设计稿 qn-title-center：17px 700）
+      Text('发布帖子')
+        .fontSize(17)
+        .fontColor($r('app.color.color_ink'))
         .fontWeight(FontWeight.Bold)
         .layoutWeight(1)
         .textAlign(TextAlign.Center)
+
+      // 右：发布文字按钮（对齐设计稿 qn-pc-top-publish：14px 700 黄色）
       Text('发布')
-        .fontSize(15)
-        .fontColor(this.isSubmitting ? $r('app.color.color_button_disabled') : $r('app.color.color_primary'))
-        .fontWeight(FontWeight.Medium)
+        .fontSize(14)
+        .fontColor(this.isSubmitting ? $r('app.color.color_text_4') : $r('app.color.color_yellow_deep'))
+        .fontWeight(FontWeight.Bold)
+        .width(48)
+        .textAlign(TextAlign.Center)
         .onClick(() => {
           this.onSubmit();
         })
     }
     .width('100%')
-    .height(56)
-    .padding({ left: 16, right: 16 })
-    .backgroundColor($r('app.color.color_bg_card'))
+    .padding({ left: 16, right: 16, top: 4, bottom: 10 })
     .alignItems(VerticalAlign.Center)
   }
 
-  /** 标题输入区 */
+  /** 话题选择卡（对齐设计稿 qn-card + qn-pc-tags） */
   @Builder
-  TitleSection() {
-    Column({ space: 6 }) {
-      Row({ space: 4 }) {
-        Text('*')
-          .fontSize(14)
-          .fontColor($r('app.color.color_error'))
-        Text('标题')
-          .fontSize(14)
-          .fontColor($r('app.color.color_text_primary'))
-          .fontWeight(FontWeight.Medium)
-        Blank()
-        Text(`${this.title.length}/${this.TITLE_MAX}`)
-          .fontSize(11)
-          .fontColor(this.title.length > this.TITLE_MAX ? $r('app.color.color_error') : $r('app.color.color_text_hint'))
+  TopicCard() {
+    Column({ space: 0 }) {
+      // 小标题（对齐设计稿 qn-pc-label：13px 600）
+      Text('选择话题')
+        .fontSize(13)
+        .fontColor($r('app.color.color_ink_2'))
+        .fontWeight(FontWeight.Medium)
+        .width('100%')
+
+      // 话题胶囊标签流（对齐设计稿 qn-pc-tags：flex-wrap + 8px gap）
+      Flex({ wrap: FlexWrap.Wrap }) {
+        ForEach(this.topics, (topic: Topic) => {
+          Text(`#${topic.name}`)
+            .fontSize(13)
+            .fontColor(this.currentTopicId === topic.topicId ? $r('app.color.color_ink') : $r('app.color.color_text_2'))
+            .fontWeight(this.currentTopicId === topic.topicId ? FontWeight.Bold : FontWeight.Medium)
+            .padding({ left: 14, right: 14, top: 7, bottom: 7 })
+            .borderRadius(AppConstants.RADIUS_PILL)
+            .backgroundColor(this.currentTopicId === topic.topicId ? $r('app.color.color_primary') : $r('app.color.color_fill'))
+            .margin({ right: 8, top: 8 })
+            .onClick(() => {
+              this.onTopicSelect(topic.topicId);
+            })
+        }, (topic: Topic) => topic.topicId)
       }
       .width('100%')
-      .alignItems(VerticalAlign.Center)
+      .margin({ top: 4 })
+    }
+    .width('100%')
+    .padding(16)
+    .backgroundColor($r('app.color.color_bg_card'))
+    .borderRadius(AppConstants.RADIUS_LG)
+    .shadow(AppConstants.SHADOW_CARD)
+    .alignItems(HorizontalAlign.Start)
+  }
 
-      TextInput({ text: this.title, placeholder: '请输入帖子标题（1-60字）' })
-        .fontSize(14)
-        .fontColor($r('app.color.color_text_primary'))
-        .placeholderColor($r('app.color.color_text_hint'))
-        .backgroundColor($r('app.color.color_bg_card'))
-        .borderRadius(12)
-        .padding({ left: 12, right: 12, top: 12, bottom: 12 })
+  /** 标题输入卡（对齐设计稿 qn-card + qn-pc-title-input） */
+  @Builder
+  TitleCard() {
+    Column({ space: 0 }) {
+      // 标题输入（对齐设计稿 qn-pc-title-input：18px 700）
+      TextInput({ text: this.title, placeholder: '写个吸引人的标题...' })
+        .fontSize(18)
+        .fontColor($r('app.color.color_ink'))
+        .fontWeight(FontWeight.Bold)
+        .placeholderColor($r('app.color.color_text_4'))
+        .placeholderFont({ size: 18, weight: FontWeight.Medium })
+        .backgroundColor(Color.Transparent)
+        .borderRadius(0)
+        .padding(0)
         .maxLength(this.TITLE_MAX)
         .onChange((value: string) => {
           this.title = value;
         })
+
+      // 分割线（对齐设计稿 qn-pc-card-divider）
+      Row()
+        .width('100%')
+        .height(1)
+        .backgroundColor($r('app.color.color_divider'))
+        .margin({ top: 10 })
+
+      // 字数统计（对齐设计稿 qn-pc-count-row：11px text-3 右对齐）
+      Row() {
+        Text(`${this.title.length}/${this.TITLE_MAX}`)
+          .fontSize(11)
+          .fontColor(this.title.length > this.TITLE_MAX ? $r('app.color.color_live') : $r('app.color.color_text_3'))
+      }
+      .width('100%')
+      .margin({ top: 8 })
+      .justifyContent(FlexAlign.End)
     }
     .width('100%')
+    .padding(16)
+    .backgroundColor($r('app.color.color_bg_card'))
+    .borderRadius(AppConstants.RADIUS_LG)
+    .shadow(AppConstants.SHADOW_CARD)
     .alignItems(HorizontalAlign.Start)
   }
 
-  /** 正文输入区 */
+  /** 正文输入卡（对齐设计稿 qn-card + qn-pc-textarea） */
   @Builder
-  ContentSection() {
-    Column({ space: 6 }) {
-      Row({ space: 4 }) {
-        Text('*')
-          .fontSize(14)
-          .fontColor($r('app.color.color_error'))
-        Text('正文')
-          .fontSize(14)
-          .fontColor($r('app.color.color_text_primary'))
-          .fontWeight(FontWeight.Medium)
-        Blank()
-        Text(`${this.content.length}/${this.CONTENT_MAX}`)
-          .fontSize(11)
-          .fontColor(this.content.length > this.CONTENT_MAX ? $r('app.color.color_error') : $r('app.color.color_text_hint'))
-      }
-      .width('100%')
-      .alignItems(VerticalAlign.Center)
-
-      TextArea({ text: this.content, placeholder: '分享你的种植经验、销路心得、乡村生活…（1-5000字）' })
+  ContentCard() {
+    Column({ space: 0 }) {
+      // 正文 textarea（对齐设计稿 qn-pc-textarea：14px 160高 1.6行高）
+      TextArea({ text: this.content, placeholder: '分享你的助农故事、种植经验或乡村见闻...' })
         .fontSize(14)
-        .fontColor($r('app.color.color_text_primary'))
-        .placeholderColor($r('app.color.color_text_hint'))
-        .backgroundColor($r('app.color.color_bg_card'))
-        .borderRadius(12)
-        .padding({ left: 12, right: 12, top: 12, bottom: 12 })
+        .fontColor($r('app.color.color_ink'))
+        .placeholderColor($r('app.color.color_text_4'))
+        .backgroundColor(Color.Transparent)
+        .borderRadius(0)
+        .padding(0)
         .height(160)
         .maxLength(this.CONTENT_MAX)
         .onChange((value: string) => {
           this.content = value;
         })
+
+      // 分割线
+      Row()
+        .width('100%')
+        .height(1)
+        .backgroundColor($r('app.color.color_divider'))
+        .margin({ top: 10 })
+
+      // 字数统计
+      Row() {
+        Text(`${this.content.length}/${this.CONTENT_MAX}`)
+          .fontSize(11)
+          .fontColor(this.content.length > this.CONTENT_MAX ? $r('app.color.color_live') : $r('app.color.color_text_3'))
+      }
+      .width('100%')
+      .margin({ top: 8 })
+      .justifyContent(FlexAlign.End)
     }
     .width('100%')
+    .padding(16)
+    .backgroundColor($r('app.color.color_bg_card'))
+    .borderRadius(AppConstants.RADIUS_LG)
+    .shadow(AppConstants.SHADOW_CARD)
     .alignItems(HorizontalAlign.Start)
   }
 
-  /** 图片选择区 */
+  /** 图片区卡（对齐设计稿 qn-card + qn-pc-img-grid） */
   @Builder
-  ImageSection() {
-    Column({ space: 8 }) {
-      Row({ space: 4 }) {
-        Text('图片（可选，最多9张）')
-          .fontSize(14)
-          .fontColor($r('app.color.color_text_primary'))
+  ImageCard() {
+    Column({ space: 0 }) {
+      // 标签行（对齐设计稿 qn-pc-label：添加图片 + 最多9张）
+      Row() {
+        Text('添加图片')
+          .fontSize(13)
+          .fontColor($r('app.color.color_ink_2'))
           .fontWeight(FontWeight.Medium)
         Blank()
-        Text(`${this.selectedImages.length}/${this.IMAGE_MAX}`)
+        Text('最多9张')
           .fontSize(11)
-          .fontColor($r('app.color.color_text_hint'))
+          .fontColor($r('app.color.color_text_3'))
+          .fontWeight(FontWeight.Medium)
       }
       .width('100%')
-      .alignItems(VerticalAlign.Center)
 
-      // 已选图片预览网格 + 添加按钮
+      // 图片网格（对齐设计稿 qn-pc-img-grid：3列 80×80 + 8px gap）
       Grid() {
+        // 已选图片
         ForEach(this.selectedImages, (imgKey: string, idx: number) => {
           GridItem() {
             Stack({ alignContent: Alignment.TopEnd }) {
               Image(ImageUtil.get(imgKey))
-                .width('100%')
-                .aspectRatio(1)
-                .borderRadius(8)
+                .width(80)
+                .height(80)
+                .borderRadius(AppConstants.RADIUS_MD)
                 .objectFit(ImageFit.Cover)
+
+              // 删除按钮（对齐设计稿 qn-pc-img-del：右上角半透明圆）
               Text('✕')
                 .fontSize(12)
                 .fontColor(Color.White)
                 .width(20)
                 .height(20)
-                .borderRadius(10)
-                .backgroundColor('rgba(0,0,0,0.5)')
                 .textAlign(TextAlign.Center)
+                .borderRadius(AppConstants.RADIUS_PILL)
+                .backgroundColor('rgba(26,26,26,0.55)')
                 .margin({ top: 4, right: 4 })
                 .onClick(() => {
                   this.onRemoveImage(idx);
                 })
             }
-            .width('100%')
-            .aspectRatio(1)
+            .width(80)
+            .height(80)
+            .borderRadius(AppConstants.RADIUS_MD)
+            .clip(true)
           }
-        }, (imgKey: string, idx: number) => imgKey + idx)
-        // 添加按钮（未达9张时显示）
+        }, (imgKey: string, idx: number) => `${imgKey}_${idx}`)
+
+        // 添加框（对齐设计稿 qn-pc-addimg：虚线边框 + 相机图标 + 添加图片文字）
         if (this.selectedImages.length < this.IMAGE_MAX) {
           GridItem() {
             Column({ space: 4 }) {
-              Text('+')
-                .fontSize(28)
-                .fontColor($r('app.color.color_text_hint'))
+              Text('📷')
+                .fontSize(24)
               Text('添加图片')
                 .fontSize(10)
-                .fontColor($r('app.color.color_text_hint'))
+                .fontColor($r('app.color.color_text_3'))
             }
-            .width('100%')
-            .aspectRatio(1)
-            .borderRadius(8)
-            .backgroundColor($r('app.color.color_bg_card'))
-            .border({ width: 1, color: $r('app.color.color_divider') })
+            .width(80)
+            .height(80)
+            .borderRadius(AppConstants.RADIUS_MD)
+            .backgroundColor($r('app.color.color_bg_page'))
+            .borderWidth(1.5)
+            .borderColor($r('app.color.color_line_2'))
+            .borderStyle(BorderStyle.Dashed)
             .justifyContent(FlexAlign.Center)
             .alignItems(HorizontalAlign.Center)
             .onClick(() => {
-              this.showImageSheet = true;
+              this.onOpenImagePicker();
             })
           }
         }
       }
-      .columnsTemplate('1fr 1fr 1fr 1fr')
-      .rowsGap(8)
+      .columnsTemplate('80px 80px 80px')
       .columnsGap(8)
+      .rowsGap(8)
       .width('100%')
+      .margin({ top: 12 })
     }
     .width('100%')
+    .padding(16)
+    .backgroundColor($r('app.color.color_bg_card'))
+    .borderRadius(AppConstants.RADIUS_LG)
+    .shadow(AppConstants.SHADOW_CARD)
     .alignItems(HorizontalAlign.Start)
   }
 
-  /** 话题选择区 */
+  /** 发布按钮（对齐设计稿 qn-pc-publish2：黑底白字 + 箭头图标） */
   @Builder
-  TopicSection() {
-    Column({ space: 8 }) {
-      Row({ space: 4 }) {
-        Text('*')
-          .fontSize(14)
-          .fontColor($r('app.color.color_error'))
-        Text('话题')
-          .fontSize(14)
-          .fontColor($r('app.color.color_text_primary'))
-          .fontWeight(FontWeight.Medium)
-      }
-      .alignItems(VerticalAlign.Center)
-
-      Row({ space: 8 }) {
-        Text(this.currentTopicId.length > 0 ? `#${this.currentTopicName()}` : '请选择话题')
-          .fontSize(13)
-          .fontColor(this.currentTopicId.length > 0 ? $r('app.color.color_primary') : $r('app.color.color_text_hint'))
-          .layoutWeight(1)
-        Text('▾')
-          .fontSize(12)
-          .fontColor($r('app.color.color_text_secondary'))
-      }
-      .width('100%')
-      .padding({ left: 12, right: 12, top: 12, bottom: 12 })
-      .borderRadius(12)
-      .backgroundColor($r('app.color.color_bg_card'))
-      .alignItems(VerticalAlign.Center)
-      .onClick(() => {
-        this.showTopicSheet = true;
-      })
-    }
-    .width('100%')
-    .alignItems(HorizontalAlign.Start)
-  }
-
-  /** 底部操作栏 */
-  @Builder
-  BottomActionBar() {
-    Column() {
-      Text('发布')
+  PublishButton() {
+    Row({ space: 6 }) {
+      Text('发布帖子')
         .fontSize(15)
         .fontColor(Color.White)
-        .width('100%')
-        .height(48)
-        .borderRadius(24)
-        .backgroundColor(this.isSubmitting ? $r('app.color.color_button_disabled') : $r('app.color.color_primary'))
-        .textAlign(TextAlign.Center)
-        .onClick(() => {
-          this.onSubmit();
-        })
-    }
-    .width('100%')
-    .padding({ left: 16, right: 16, top: 12, bottom: 32 })
-    .backgroundColor($r('app.color.color_bg_card'))
-  }
-
-  /** 话题选择弹窗 */
-  @Builder
-  TopicSheet() {
-    Column({ space: 0 }) {
-      Text('选择话题')
-        .fontSize(16)
-        .fontColor($r('app.color.color_text_primary'))
         .fontWeight(FontWeight.Bold)
-        .width('100%')
-        .padding({ left: 16, top: 12, bottom: 12 })
-
-      List() {
-        ForEach(this.topics, (topic: Topic) => {
-          ListItem() {
-            Row({ space: 8 }) {
-              Text(topic.topicId === this.currentTopicId ? '✓' : '')
-                .fontSize(16)
-                .fontColor($r('app.color.color_primary'))
-                .width(24)
-              Text(`#${topic.name}`)
-                .fontSize(15)
-                .fontColor(topic.topicId === this.currentTopicId ? $r('app.color.color_primary') : $r('app.color.color_text_primary'))
-                .layoutWeight(1)
-            }
-            .width('100%')
-            .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-            .onClick(() => {
-              this.onTopicSelect(topic.topicId);
-            })
-          }
-        }, (topic: Topic) => topic.topicId)
-      }
-      .width('100%')
-      .layoutWeight(1)
-      .scrollBar(BarState.Off)
+      Text('→')
+        .fontSize(18)
+        .fontColor(Color.White)
+        .fontWeight(FontWeight.Bold)
     }
     .width('100%')
-    .height('100%')
+    .height(46)
+    .borderRadius(AppConstants.RADIUS_MD)
+    .backgroundColor(this.isSubmitting ? $r('app.color.color_text_4') : $r('app.color.color_ink'))
+    .justifyContent(FlexAlign.Center)
+    .alignItems(VerticalAlign.Center)
+    .onClick(() => {
+      this.onSubmit();
+    })
   }
 
-  /** 图片选择弹窗 */
+  /** 图片选择弹窗（对齐设计稿：3列网格图片池） */
   @Builder
   ImageSheet() {
     Column({ space: 0 }) {
+      // 标题行
       Row() {
-        Text('选择图片（已选 ' + this.selectedImages.length + '/' + this.IMAGE_MAX + '）')
+        Text(`选择图片（已选 ${this.selectedImages.length}/${this.IMAGE_MAX}）`)
           .fontSize(16)
-          .fontColor($r('app.color.color_text_primary'))
+          .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Bold)
           .layoutWeight(1)
         Text('完成')
           .fontSize(14)
-          .fontColor($r('app.color.color_primary'))
+          .fontColor($r('app.color.color_yellow_deep'))
+          .fontWeight(FontWeight.Bold)
           .onClick(() => {
             this.showImageSheet = false;
           })
@@ -480,6 +489,7 @@ export struct PostCreate {
       .width('100%')
       .padding({ left: 16, right: 16, top: 12, bottom: 12 })
 
+      // 图片池网格
       Grid() {
         ForEach(IMAGE_POOL, (imgKey: string) => {
           GridItem() {
@@ -505,21 +515,24 @@ export struct PostCreate {
       Image(ImageUtil.get(imgKey))
         .width('100%')
         .aspectRatio(1)
-        .borderRadius(8)
+        .borderRadius(AppConstants.RADIUS_SM)
         .objectFit(ImageFit.Cover)
+
       // 选中标记
       if (this.selectedImages.indexOf(imgKey) >= 0) {
         Column()
           .width('100%')
           .height('100%')
-          .borderRadius(8)
-          .backgroundColor('rgba(76,175,80,0.3)')
+          .borderRadius(AppConstants.RADIUS_SM)
+          .backgroundColor('rgba(255,226,52,0.35)')
+
         Text('✓')
           .fontSize(14)
-          .fontColor(Color.White)
-          .width(20)
-          .height(20)
-          .borderRadius(10)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+          .width(22)
+          .height(22)
+          .borderRadius(AppConstants.RADIUS_PILL)
           .backgroundColor($r('app.color.color_primary'))
           .textAlign(TextAlign.Center)
           .margin({ top: 4, right: 4 })

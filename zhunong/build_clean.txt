@@ -1,0 +1,530 @@
+﻿> hvigor [32mFinished :user:clean... after 3 ms [39m
+> hvigor [32mFinished :farmer:clean... after 1 ms [39m
+> hvigor [32mFinished :admin:clean... after 1 ms [39m
+hvigorw.bat : > hvigor [33mWARN: Missing module info for local modules 'common'. Check project-level build-profile.jso
+n5. [39m
+At line:15 char:5989
++ ...  $env:PATH; & "E:\DevEco Studio\tools\hvigor\bin\hvigorw.bat" assembl ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (> hvigor [33mW...le.json5. [39m:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+> hvigor [32mFinished :user:default@PreBuild... after 146 ms [39m
+> hvigor [33mWARN: Missing module info for local modules 'common'. Check project-level build-profile.json5. [39m
+> hvigor [32mFinished :farmer:default@PreBuild... after 19 ms [39m
+> hvigor [33mWARN: Missing module info for local modules 'common'. Check project-level build-profile.json5. [39m
+> hvigor [32mFinished :admin:default@PreBuild... after 18 ms [39m
+> hvigor [32mFinished :user:default@CreateModuleInfo... after 1 ms [39m
+> hvigor [32mFinished :user:default@GenerateMetadata... after 10 ms [39m
+> hvigor [32mFinished :user:default@ConfigureCmake... after 1 ms [39m
+> hvigor [33mWARN: C:\Users\21132\Project\zhunong\common\src\main\module.json does not exist. This library will not be
+ merged. This may occur when the project is manually modified and the local library is not declared in C:\Users\21132\P
+roject\zhunong\build-profile.json5. Please confirm the correctness of this module. You may try to solve the problem by 
+declare it in user build-profile.json5.[39m
+> hvigor [32mFinished :user:default@MergeProfile... after 17 ms [39m
+> hvigor [32mFinished :user:default@CreateBuildProfile... after 7 ms [39m
+> hvigor [32mFinished :user:default@PreCheckSyscap... after 1 ms [39m
+> hvigor [32mFinished :user:default@GeneratePkgContextInfo... after 13 ms [39m
+> hvigor [32mFinished :user:default@GeneratePkgSdkInfo... after 4 ms [39m
+> hvigor [32mFinished :user:default@ProcessIntegratedHsp... after 1 ms [39m
+> hvigor [32mFinished :farmer:default@CreateModuleInfo... after 1 ms [39m
+> hvigor [32mFinished :farmer:default@GenerateMetadata... after 8 ms [39m
+> hvigor [32mFinished :farmer:default@ConfigureCmake... after 1 ms [39m
+> hvigor [33mWARN: C:\Users\21132\Project\zhunong\common\src\main\module.json does not exist. This library will not be
+ merged. This may occur when the project is manually modified and the local library is not declared in C:\Users\21132\P
+roject\zhunong\build-profile.json5. Please confirm the correctness of this module. You may try to solve the problem by 
+declare it in farmer build-profile.json5.[39m
+> hvigor [32mFinished :farmer:default@MergeProfile... after 16 ms [39m
+> hvigor [32mFinished :farmer:default@CreateBuildProfile... after 8 ms [39m
+> hvigor [32mFinished :farmer:default@PreCheckSyscap... after 1 ms [39m
+> hvigor [32mFinished :farmer:default@GeneratePkgContextInfo... after 8 ms [39m
+> hvigor [32mFinished :farmer:default@GeneratePkgSdkInfo... after 2 ms [39m
+> hvigor [32mFinished :farmer:default@ProcessIntegratedHsp... after 1 ms [39m
+> hvigor [32mFinished :admin:default@CreateModuleInfo... after 1 ms [39m
+> hvigor [32mFinished :admin:default@GenerateMetadata... after 9 ms [39m
+> hvigor [32mFinished :admin:default@ConfigureCmake... after 1 ms [39m
+> hvigor [33mWARN: C:\Users\21132\Project\zhunong\common\src\main\module.json does not exist. This library will not be
+ merged. This may occur when the project is manually modified and the local library is not declared in C:\Users\21132\P
+roject\zhunong\build-profile.json5. Please confirm the correctness of this module. You may try to solve the problem by 
+declare it in admin build-profile.json5.[39m
+> hvigor [32mFinished :admin:default@MergeProfile... after 16 ms [39m
+> hvigor [32mFinished :admin:default@CreateBuildProfile... after 10 ms [39m
+> hvigor [32mFinished :admin:default@PreCheckSyscap... after 1 ms [39m
+> hvigor [32mFinished :admin:default@GeneratePkgContextInfo... after 7 ms [39m
+> hvigor [32mFinished :admin:default@GeneratePkgSdkInfo... after 2 ms [39m
+> hvigor [32mFinished :admin:default@ProcessIntegratedHsp... after 1 ms [39m
+> hvigor [32mFinished :user:default@BuildNativeWithCmake... after 1 ms [39m
+> hvigor [32mFinished :user:default@MakePackInfo... after 7 ms [39m
+> hvigor [32mFinished :user:default@SyscapTransform... after 2 ms [39m
+> hvigor [32mFinished :user:default@ProcessProfile... after 221 ms [39m
+> hvigor [32mFinished :user:default@ProcessRouterMap... after 12 ms [39m
+> hvigor [32mFinished :user:default@ProcessShareConfig... after 9 ms [39m
+> hvigor [32mFinished :user:default@ProcessStartupConfig... after 5 ms [39m
+> hvigor [32mFinished :farmer:default@BuildNativeWithCmake... after 1 ms [39m
+> hvigor [32mFinished :farmer:default@MakePackInfo... after 7 ms [39m
+> hvigor [32mFinished :farmer:default@SyscapTransform... after 1 ms [39m
+> hvigor [32mFinished :farmer:default@ProcessProfile... after 18 ms [39m
+> hvigor [32mFinished :farmer:default@ProcessRouterMap... after 31 ms [39m
+> hvigor [32mFinished :farmer:default@ProcessShareConfig... after 7 ms [39m
+> hvigor [32mFinished :farmer:default@ProcessStartupConfig... after 4 ms [39m
+> hvigor [32mFinished :admin:default@BuildNativeWithCmake... after 1 ms [39m
+> hvigor [32mFinished :admin:default@MakePackInfo... after 8 ms [39m
+> hvigor [32mFinished :admin:default@SyscapTransform... after 1 ms [39m
+> hvigor [32mFinished :admin:default@ProcessProfile... after 17 ms [39m
+> hvigor [32mFinished :admin:default@ProcessRouterMap... after 9 ms [39m
+> hvigor [32mFinished :admin:default@ProcessShareConfig... after 8 ms [39m
+> hvigor [32mFinished :admin:default@ProcessStartupConfig... after 4 ms [39m
+> hvigor [32mFinished :user:default@BuildNativeWithNinja... after 4 ms [39m
+> hvigor [32mFinished :user:default@ProcessResource... after 15 ms [39m
+> hvigor [32mFinished :user:default@GenerateLoaderJson... after 28 ms [39m
+> hvigor [32mFinished :farmer:default@BuildNativeWithNinja... after 5 ms [39m
+> hvigor [32mFinished :farmer:default@ProcessResource... after 15 ms [39m
+> hvigor [32mFinished :farmer:default@GenerateLoaderJson... after 28 ms [39m
+> hvigor [32mFinished :admin:default@BuildNativeWithNinja... after 3 ms [39m
+> hvigor [32mFinished :admin:default@ProcessResource... after 13 ms [39m
+> hvigor [32mFinished :admin:default@GenerateLoaderJson... after 27 ms [39m
+> hvigor [32mFinished :user:default@ProcessLibs... after 10 ms [39m
+> hvigor [33mWARN: Warning: 'common_back' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_cancel' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_code_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_confirm' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_cart' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_default' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_message' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_order' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_post' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_product' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_get_code' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_go_shopping' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_loading' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_login' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_logout' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_module_desc' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_network_error' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_password_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_phone_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_publish' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_refresh' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_retry' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_role_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_search_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_skip' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_submit' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_ai_timeout' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_operation_fail' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_param_error' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_service_error' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_too_frequent' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_unauthorized' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_username_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+[39m
+> hvigor [32mFinished :user:default@CompileResource... after 538 ms [39m
+> hvigor [32mFinished :farmer:default@ProcessLibs... after 4 ms [39m
+> hvigor [33mWARN: Warning: 'common_back' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_cancel' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_code_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_confirm' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_cart' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_default' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_message' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_order' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_post' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_product' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_get_code' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_go_shopping' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_loading' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_login' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_logout' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_module_desc' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_network_error' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_password_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_phone_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_publish' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_refresh' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_retry' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_role_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_search_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_skip' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_submit' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_ai_timeout' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_operation_fail' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_param_error' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_service_error' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_too_frequent' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_unauthorized' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_username_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\farmer\build\default\intermediates\res\default\resource_str\base\element\string.json
+[39m
+> hvigor [32mFinished :farmer:default@CompileResource... after 376 ms [39m
+> hvigor [32mFinished :admin:default@ProcessLibs... after 6 ms [39m
+> hvigor [33mWARN: Warning: 'common_back' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_cancel' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_code_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_confirm' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_cart' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_default' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_message' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_order' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_post' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_product' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_get_code' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_go_shopping' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_loading' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_login' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_logout' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_module_desc' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_network_error' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_password_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_phone_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_publish' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_refresh' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_retry' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_role_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_search_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_skip' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_submit' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_ai_timeout' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_operation_fail' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_param_error' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_service_error' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_too_frequent' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_unauthorized' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_username_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\admin\build\default\intermediates\res\default\resource_str\base\element\string.json
+[39m
+> hvigor [32mFinished :admin:default@CompileResource... after 347 ms [39m
+> hvigor [32mFinished :user:default@DoNativeStrip... after 9 ms [39m
+> hvigor [32mFinished :user:default@BuildJS... after 3 ms [39m
+> hvigor [32mFinished :farmer:default@DoNativeStrip... after 9 ms [39m
+> hvigor [32mFinished :farmer:default@BuildJS... after 3 ms [39m
+> hvigor [32mFinished :admin:default@DoNativeStrip... after 5 ms [39m
+> hvigor [32mFinished :admin:default@BuildJS... after 4 ms [39m
+> hvigor [32mFinished :user:default@CacheNativeLibs... after 29 ms [39m
+> hvigor [32mFinished :farmer:default@CacheNativeLibs... after 31 ms [39m
+> hvigor [32mFinished :admin:default@CacheNativeLibs... after 24 ms [39m
+> hvigor [32mFinished :admin:default@CompileArkTS... after 14 s 210 ms [39m
+> hvigor [32mFinished :admin:default@GeneratePkgModuleJson... after 10 ms [39m
+> hvigor [32mFinished :admin:default@ProcessCompiledResources... after 1 ms [39m
+> hvigor [32mFinished :admin:default@PackageHap... after 891 ms [39m
+> hvigor [32mFinished :admin:default@PackingCheck... after 28 ms [39m
+> hvigor [33mWARN: Will skip sign 'hos_hap'. No signingConfigs profile is configured in current project.
+             If needed, configure the signingConfigs in C:\Users\21132\Project\zhunong\build-profile.json5.[39m
+> hvigor [32mFinished :admin:default@SignHap... after 3 ms [39m
+> hvigor [32mFinished :admin:default@CollectDebugSymbol... after 2 ms [39m
+> hvigor [32mFinished :admin:assembleHap... after 1 ms [39m
+> hvigor [32mFinished :farmer:default@CompileArkTS... after 18 s 44 ms [39m
+> hvigor [32mFinished :farmer:default@GeneratePkgModuleJson... after 9 ms [39m
+> hvigor [32mFinished :farmer:default@ProcessCompiledResources... after 1 ms [39m
+> hvigor [32mFinished :farmer:default@PackageHap... after 922 ms [39m
+> hvigor [32mFinished :farmer:default@PackingCheck... after 20 ms [39m
+> hvigor [33mWARN: Will skip sign 'hos_hap'. No signingConfigs profile is configured in current project.
+             If needed, configure the signingConfigs in C:\Users\21132\Project\zhunong\build-profile.json5.[39m
+> hvigor [32mFinished :farmer:default@SignHap... after 1 ms [39m
+> hvigor [32mFinished :farmer:default@CollectDebugSymbol... after 1 ms [39m
+> hvigor [32mFinished :farmer:assembleHap... after 1 ms [39m
+> hvigor [32mFinished :user:default@CompileArkTS... after 22 s 518 ms [39m
+> hvigor [32mFinished :user:default@GeneratePkgModuleJson... after 7 ms [39m
+> hvigor [32mFinished :user:default@ProcessCompiledResources... after 1 ms [39m
+> hvigor [32mFinished :user:default@PackageHap... after 631 ms [39m
+> hvigor [32mFinished :user:default@PackingCheck... after 6 ms [39m
+> hvigor [33mWARN: Will skip sign 'hos_hap'. No signingConfigs profile is configured in current project.
+             If needed, configure the signingConfigs in C:\Users\21132\Project\zhunong\build-profile.json5.[39m
+> hvigor [32mFinished :user:default@SignHap... after 1 ms [39m
+> hvigor [32mFinished :user:default@CollectDebugSymbol... after 2 ms [39m
+> hvigor [32mFinished :user:assembleHap... after 1 ms [39m
+> hvigor [32mBUILD SUCCESSFUL in 31 s 785 ms [39m

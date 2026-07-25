@@ -1,0 +1,391 @@
+﻿> hvigor [32mUP-TO-DATE :user:default@PreBuild...  [39m
+> hvigor [32mFinished :user:default@CreateModuleInfo... after 2 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@GenerateMetadata...  [39m
+> hvigor [32mFinished :user:default@ConfigureCmake... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@MergeProfile...  [39m
+> hvigor [32mUP-TO-DATE :user:default@CreateBuildProfile...  [39m
+> hvigor [32mFinished :user:default@PreCheckSyscap... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@GeneratePkgContextInfo...  [39m
+> hvigor [32mFinished :user:default@GeneratePkgSdkInfo... after 3 ms [39m
+> hvigor [32mFinished :user:default@ProcessIntegratedHsp... after 1 ms [39m
+> hvigor [32mFinished :user:default@BuildNativeWithCmake... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@MakePackInfo...  [39m
+> hvigor [32mFinished :user:default@SyscapTransform... after 11 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@ProcessProfile...  [39m
+> hvigor [32mUP-TO-DATE :user:default@ProcessRouterMap...  [39m
+> hvigor [32mUP-TO-DATE :user:default@ProcessShareConfig...  [39m
+> hvigor [32mFinished :user:default@ProcessStartupConfig... after 3 ms [39m
+> hvigor [32mFinished :user:default@BuildNativeWithNinja... after 1 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@ProcessResource...  [39m
+> hvigor [32mUP-TO-DATE :user:default@GenerateLoaderJson...  [39m
+> hvigor [32mUP-TO-DATE :user:default@ProcessLibs...  [39m
+hvigorw.bat : > hvigor [33mWARN: Warning: 'module_desc' conflict, first declared.
+At line:15 char:6023
++ ... tudio\sdk"; hvigorw.bat assembleHap --mode module -p product=default  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (> hvigor [33mW...first declared.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+Warning: 'color_accent_gold' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_accent_green' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_accent_green_light' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_accent_orange' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_bg_card' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_bg_page' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_bg_panel_dark' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_brand_yellow' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_brand_yellow_dark' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_brand_yellow_light' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_button_disabled' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_card_yellow' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_cream' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_cta_black' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_divider' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_error' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_fill' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_green' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_green_deep' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_green_soft' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_info' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_ink' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_ink_2' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_line' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_line_2' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_live' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_live_soft' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_medal_bronze' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_medal_gold' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_medal_silver' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_outline' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_price' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_primary' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_primary_light' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_secondary' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_success' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_text_2' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_text_3' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_text_4' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_text_hint' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_text_on_dark' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_text_primary' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_text_secondary' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_warn' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_yellow' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_yellow_deep' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_yellow_soft' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_yellow_tint' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'start_window_background' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_gold' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_info_soft' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_warn_soft' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'color_yellow_text' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\color.json
+but declared again.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\color.json
+Warning: 'module_desc' conflict, first declared.
+at C:\Users\21132\Project\zhunong\user\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_back' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_cancel' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_code_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_confirm' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_cart' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_default' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_message' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_order' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_post' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_empty_product' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_get_code' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_go_shopping' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_loading' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_login' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_logout' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_network_error' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_password_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_phone_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_publish' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_refresh' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_retry' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_role_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_search_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_skip' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_submit' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_ai_timeout' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_operation_fail' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_param_error' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_service_error' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_too_frequent' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_toast_unauthorized' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+Warning: 'common_username_placeholder' conflict, first declared.
+at C:\Users\21132\Project\zhunong\common\src\main\resources\base\element\string.json
+but declared again.
+at C:\Users\21132\Project\zhunong\user\build\default\intermediates\res\default\resource_str\base\element\string.json
+[39m
+> hvigor [32mFinished :user:default@CompileResource... after 744 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@DoNativeStrip...  [39m
+> hvigor [32mFinished :user:default@BuildJS... after 4 ms [39m
+> hvigor [32mUP-TO-DATE :user:default@CacheNativeLibs...  [39m
+> hvigor [32mFinished :user:default@CompileArkTS... after 10 s 734 ms [39m
+> hvigor [32mFinished :user:default@GeneratePkgModuleJson... after 6 ms [39m
+> hvigor [32mFinished :user:default@ProcessCompiledResources... after 1 ms [39m
+> hvigor [32mFinished :user:default@PackageHap... after 657 ms [39m
+> hvigor [32mFinished :user:default@PackingCheck... after 7 ms [39m
+> hvigor [33mWARN: Will skip sign 'hos_hap'. No signingConfigs profile is configured in current project.
+             If needed, configure the signingConfigs in C:\Users\21132\Project\zhunong\build-profile.json5.[39m
+> hvigor [32mFinished :user:default@SignHap... after 2 ms [39m
+> hvigor [32mFinished :user:default@CollectDebugSymbol... after 1 ms [39m
+> hvigor [32mFinished :user:assembleHap... after 1 ms [39m
+> hvigor [32mBUILD SUCCESSFUL in 18 s 903 ms [39m

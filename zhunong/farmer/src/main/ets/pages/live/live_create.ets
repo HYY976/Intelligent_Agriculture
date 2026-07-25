@@ -1,4 +1,4 @@
-/**
+﻿/**
  * live_create - 开播表单（spec 3.2.4.3）
  *
  * 开播表单字段：
@@ -150,7 +150,7 @@ export struct LiveCreate {
               .width('100%')
               .height(48)
               .borderRadius(24)
-              .backgroundColor(this.isSubmitting ? $r('app.color.color_button_disabled') : $r('app.color.color_secondary'))
+              .backgroundColor(this.isSubmitting ? $r('app.color.color_button_disabled') : $r('app.color.color_cta_black'))
               .fontColor(Color.White)
               .fontSize(16)
               .fontWeight(FontWeight.Medium)
@@ -287,7 +287,7 @@ export struct LiveCreate {
           Text(opt.label)
             .fontSize(13)
             .fontColor(this.category === opt.value ? Color.White : $r('app.color.color_text_primary'))
-            .backgroundColor(this.category === opt.value ? $r('app.color.color_primary') : $r('app.color.color_bg_page'))
+            .backgroundColor(this.category === opt.value ? $r('app.color.color_cta_black') : $r('app.color.color_bg_page'))
             .padding({ left: 16, right: 16, top: 8, bottom: 8 })
             .borderRadius(16)
             .margin({ right: 8 })

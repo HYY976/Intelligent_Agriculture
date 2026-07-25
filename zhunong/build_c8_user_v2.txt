@@ -1,0 +1,20 @@
+﻿hvigorw.bat : > hvigor [91mERROR: [31m00303168 Configuration Error
+At line:15 char:5997
++ ...  $env:PATH; & "E:\DevEco Studio\tools\hvigor\bin\hvigorw.bat" assembl ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (> hvigor [91mE...iguration Error:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Error Message: SDK component missing.
+
+* Try the following:
+  > Please verify the integrity of your SDK.
+  > Please update the SDK at the download link below.
+  > More info: https://developer.huawei.com/consumer/cn/download
+[39m
+
+[31m* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --debug option to get more log output.
+[39m
+> hvigor [91mERROR: BUILD FAILED in 2 s 722 ms [39m

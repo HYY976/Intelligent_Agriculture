@@ -1,4 +1,4 @@
-/**
+﻿/**
  * seller_mall_page - 卖家商城页（spec 3.2.1）
  *
  * 上下分段结构：
@@ -172,7 +172,7 @@ export struct SellerMallPage {
             Button('完整发布 →')
               .height(44)
               .borderRadius(8)
-              .backgroundColor($r('app.color.color_secondary'))
+              .backgroundColor($r('app.color.color_cta_black'))
               .fontColor(Color.White)
               .fontSize(14)
               .padding({ left: 16, right: 16 })
@@ -187,7 +187,7 @@ export struct SellerMallPage {
           .width('100%')
           .height(44)
           .borderRadius(8)
-          .backgroundColor($r('app.color.color_primary'))
+          .backgroundColor($r('app.color.color_cta_black'))
           .fontColor(Color.White)
           .fontSize(14)
           .onClick(() => this.gotoPublish())
@@ -242,7 +242,7 @@ export struct SellerMallPage {
       .width('100%')
       .height(140)
       .borderRadius(8)
-      .backgroundColor($r('app.color.color_primary_light'))
+      .backgroundColor($r('app.color.color_card_yellow'))
       .alignContent(Alignment.Center)
 
       Text(item.title)

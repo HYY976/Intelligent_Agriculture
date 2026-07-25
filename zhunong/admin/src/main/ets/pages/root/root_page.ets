@@ -37,6 +37,9 @@ import { ApiKeyPage } from '../api_manage/api_key';
 import { ReviewList } from '../content_review/review_list';
 import { ReviewDetail } from '../content_review/review_detail';
 
+// 广告管理
+import { AdsList } from '../ads_manage/ads_list';
+
 @Entry
 @ComponentV2
 struct RootPage {
@@ -76,6 +79,8 @@ struct RootPage {
       ReviewList()
     } else if (name === RouteName.ADMIN_REVIEW_DETAIL) {
       ReviewDetail()
+    } else if (name === RouteName.ADMIN_ADS_LIST) {
+      AdsList()
     } else {
       // 未知路由：兜底空页面
       Column()

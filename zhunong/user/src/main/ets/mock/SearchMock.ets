@@ -3,7 +3,8 @@
  * 遵循 spec 3.1.1 搜索 / 3.1.2 双榜单 + 开屏广告规范
  */
 
-import { HotWord, RankItem, SplashAd, SearchLiveItem, SearchPostItem, SearchFarmerItem } from '../model/SearchModels';
+import { HotWord, RankItem, SplashAd, SearchLiveItem, SearchPostItem, SearchFarmerItem,
+  FarmerRankItem, GuideRankItem } from '../model/SearchModels';
 import { MOCK_PRODUCTS, MOCK_FARMER_NAMES, MOCK_FARMER_AVATARS } from './ProductMock';
 
 /** 热门搜索词 Top10（spec 3.1.1.2） */
@@ -49,6 +50,24 @@ export const MOCK_LIVE_RANK: RankItem[] = [
   { rank: 8, type: 'live', targetId: 'l008', title: '深山土蜂蜜采集纪实', coverImage: 'prod_honey_1', sellerName: '田园牧歌', monthlyAmount: 32560, monthlyCount: 19850, followed: false },
   { rank: 9, type: 'live', targetId: 'l009', title: '农家猪肉分割直播', coverImage: 'prod_meat_1', sellerName: '青禾农庄', monthlyAmount: 28960, monthlyCount: 16320, followed: false },
   { rank: 10, type: 'live', targetId: 'l010', title: '香菇采摘·神农架深山', coverImage: 'prod_mushroom_1', sellerName: '田园牧歌', monthlyAmount: 23560, monthlyCount: 12630, followed: false }
+];
+
+/** 农户榜 Top10（对齐设计稿 qn-rank-list[data-rank="farmer"]，按粉丝数排序） */
+export const MOCK_FARMER_RANK: FarmerRankItem[] = [
+  { rank: 1, farmerId: 'f003', farmerName: '田园牧歌 · 深山好物种植户', avatar: 'avatar_farmer_3', fansCount: 28690, goodRate: 99, followed: true },
+  { rank: 2, farmerId: 'f001', farmerName: '青禾农庄 · 高山有机果蔬', avatar: 'avatar_farmer_1', fansCount: 12560, goodRate: 98, followed: true },
+  { rank: 3, farmerId: 'f002', farmerName: '山野好物 · 农家散养户', avatar: 'avatar_farmer_2', fansCount: 8920, goodRate: 97, followed: false },
+  { rank: 4, farmerId: 'f004', farmerName: '黑土地米业 · 五常稻农', avatar: 'avatar_default', fansCount: 6320, goodRate: 98, followed: false },
+  { rank: 5, farmerId: 'f005', farmerName: '云雾山茶庄 · 高山茶农', avatar: 'avatar_default', fansCount: 4860, goodRate: 99, followed: false }
+];
+
+/** 攻略榜 Top10（对齐设计稿 qn-rank-list[data-rank="guide"]，按阅读数排序） */
+export const MOCK_GUIDE_RANK: GuideRankItem[] = [
+  { rank: 1, guideId: 'g001', title: '如何挑选新鲜草莓 · 产地老农教你三招', readCount: 12860, favoriteCount: 856 },
+  { rank: 2, guideId: 'g002', title: '有机蔬菜种植指南 · 从零开始的家庭菜园', readCount: 8560, favoriteCount: 642 },
+  { rank: 3, guideId: 'g003', title: '农家土鸡蛋辨别技巧 · 一看二摸三照', readCount: 6420, favoriteCount: 523 },
+  { rank: 4, guideId: 'g004', title: '五常大米选购攻略 · 辨别真假稻花香', readCount: 4320, favoriteCount: 386 },
+  { rank: 5, guideId: 'g005', title: '深山土蜂蜜冲泡指南 · 水温与禁忌', readCount: 3210, favoriteCount: 268 }
 ];
 
 /** 开屏广告 Mock（spec 3.1.2.2：双榜#1 获得 1 个月免费开屏广告） */

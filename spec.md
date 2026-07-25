@@ -1,8 +1,9 @@
 # 助农三端鸿蒙原生综合平台 需求规格说明书 (spec.md)
 
-> 文档版本：v3.1
-> 生成日期：2026-07-23
-> 编写依据：HarmonyOS NEXT ArkTS 原生开发规范、百度地图鸿蒙 SDK 规范、用户26批需求确认回执
+> 文档版本：v4.0
+> 生成日期：2026-07-25
+> 编写依据：HarmonyOS NEXT ArkTS 原生开发规范、百度地图鸿蒙 SDK 规范、用户28批需求确认回执、qunong-harmony-app UI 设计稿（65 HTML 页面 1:1 还原 + colors_and_type.css 设计令牌系统）
+> 旧版本归档：v3.4 已归档至 `spec_v3.4_archived.md`，本 v4.0 为唯一开发基线
 > 适用范围：普通用户端 APP、农户卖家端 APP、系统管理后台端 APP、Flask 后端服务（前后端分离 + Docker 容器化）
 > 更新记录：
 > - v1.0（2026-07-17）：初版，16批需求确认
@@ -27,6 +28,10 @@
 > - v2.9（2026-07-22）：三端 empty 态统一落地——10.17 节落地完整记录：调查发现 spec 2.3.5.2 / 10.14.6 / 10.15.4 所称"5 页面使用 EmptyState"失实（EmptyState common 组件实际 0 引用=死代码），三端 empty 态实为三套实现（user=EmptyStateCard 插画卡片 ~12 处/9 页 / farmer=内联 emoji+文本 5 页 / admin=内联 @Builder 文本 3 页 / ListStateView empty 态 0 使用）；增强 ListStateView empty 态支持双模式（image 模式默认：empty_state.svg 移入 common HAR media + Image 160×128 + title 16px + desc 13px + 按钮 / emoji 模式：emptyUseEmoji=true 时 emoji 64px + 文本 + 按钮）；迁移全部 ~20 处空态到 ListStateView；删除 EmptyState(死代码)+EmptyStateCard(吸收)；修正 spec 2.3.5.2/10.14.6/10.15.4 失实记录（详见第 10.17 节）
 > - v3.0（2026-07-22）：老年大字模式响应式监听根因修复——10.18 节落地完整记录：spec 10.10.7 标注"任务5 老年大字模式验证可立即启动"，代码核查发现响应式监听从未真正落地。根因有二：①CurrentModeKey / CurrentThemeKey（CommonModels.ets）为普通 class，缺 `@ObservedV2` + `@Trace value` 装饰器，setMode 的 `modeRef.value = mode` 仅普通赋值不触发 UI 刷新；②3 个页面用 `@Local currentMode: string` + aboutToAppear 中 `await ModeStore.getMode()` 一次性读取，模式切换后已打开页面不刷新。另发现 spec 10.9.3.3 原定的 `@Consumer('currentMode')` 方案为误报（@Consumer 属 V1 联动语义，与项目 V2 路线冲突，且无法跨 UIAbility 共享）。修复方案（经华为官方文档验证）：AppStorageV2.connect 同 key 返回同一共享实例 + @ObservedV2 + @Trace 装饰后，`ref.value` 变化自动触发引用了该值的 build() 重新执行；新增 `ModeStore.connectModeRef()` / `ThemeStore.connectThemeRef()` 封装；6 文件改造（common 3 文件 + farmer 2 页面 + user 1 页面），isElderMode() 30+ 调用点 0 改动（仅改内部实现读取 modeRef.value）；更正 spec 2.1.3 / 6.6.1 / 10.9.3.3 / 10.10.7 共 4 处误报；新增 10.18 节（10.18.1~10.18.8）；10.18.6 三端 BUILD SUCCESSFUL in 31 s 529 ms（0 ERROR，仅签名配置 WARN），10.18.7 v3.0 正式收口（详见第 10.18 节）
 > - v3.1（2026-07-23）：卖家端登录注册改造——将农户卖家端登录方式由"手机号+验证码"调整为与用户端一致的"账号（手机号）+密码"登录，并新增卖家注册页（账号/密码/确认密码）；保留登录页《卖家资质承诺》勾选；后端 `/api/farmer/login` 改为账号密码校验，`/api/farmer/register` 新增注册接口；前端 farmer_login.ets / farmer_register.ets / AppRouter / farmer/root_page.ets 同步改造（详见新增第 11 章）
+> - v3.2（2026-07-23）：全局配色改造——将三端（user/farmer/admin）配色由"助农绿主色"统一替换为"暖黄主题（黄色为主+绿作辅色）"；采用方案B（更新 color.json 旧名 value + 新增语义化颜色名）；零侵入页面内容与逻辑，仅修改三端 `resources/base/element/color.json`；老年大字模式同步换色（字号逻辑不动）；价格色改橙黄、错误色保持红、成功色用绿、深底文字改黄；硬编码状态色（admin 状态标签 #4CAF50/#FF9800）保留（详见新增第 12 章）
+> - v3.3（2026-07-23）：橙色渐变主题改造——v3.2 暖黄主题调整为全橙渐变方案：①三端 color.json 由"黄+绿"改为"纯橙色系"（去绿，主色 #D84315 深橙，背景 #FFF3E0 米橙，文字 #3E2723 深棕在橙底更清晰，成功色仅状态用深绿 #2E7D32）；②AppConstants 新增 GRADIENT_TOP/BOTTOM 渐变常量（#FF8F00→#FFF3E0 上重下淡）；③三端所有页面根容器加 .linearGradient 橙色渐变背景（70 页面）；④admin 硬编码浅绿 #4CAF50 统一改深绿 #2E7D32；⑤按钮深橙实底白字与背景强对比，卡片纯白浮起（详见新增第 13 章）
+> - v3.4（2026-07-24）：黑白黄极简主题改造——推翻 v3.3 橙黄渐变方案，改为"白底 + 黄卡 + 黑按钮白字 + 扁平导航栏"极简高对比方案。经第 27 批需求确认（4 项关键决策）：①背景去渐变改纯白 #FFFFFF（移除三端所有页面根容器 .linearGradient，改 .backgroundColor 纯白）；②color.json 重构——color_primary 由黄改纯黑 #000000（主 CTA 按钮/Tab 选中/标题强调统一黑色），color_bg_page 改纯白 #FFFFFF，color_bg_card 保持白 #FFFFFF（输入框/列表项/搜索栏不变），新增 color_card_yellow=#FFD93D 语义色供内容卡片引用；③内容卡片（商品卡/Banner/功能区/个人中心头部卡等）背景改 color_card_yellow 正黄；④顶/底导航栏去白色浮卡+阴影，扁平化与白底融合，选中态显示黑色框（黑底白字图标）；⑤仅主 CTA 按钮黑底白字，取消/描边按钮保持白底黑字描边；⑥价格保持红 #FF4D4F，成功绿/错误红/警告橙状态语义色不变（详见新增第 14 章）
+> - v4.0（2026-07-25）：UI 复刻实施基线——基于 qunong-harmony-app 设计稿（65 HTML 页面 + colors_and_type.css 设计令牌系统）对三端全部页面进行 1:1 UI 复刻。经第 28 批需求确认（4 项关键决策）：①按模块分批推进（user → farmer → admin）；②整页重写 .ets 文件，复用 common 层 Repository/Mock/services/router 不动；③生成 v4.0 spec 作为唯一开发基线，v3.4 归档；④HTML 中 pro 增强版页面（dashboard-pro/product-mgmt-pro）优先覆盖对应现有页，无 .ets 对应的 HTML 页面（splash-ad/market-quote/travel-map/poi-detail 等）按 spec 功能新建 .ets 并注册路由。新增第 15 章落地：设计令牌映射表（CSS 变量 → color.json/AppConstants，含 #FFE234 主黄取值对齐）、17 张图片资源迁移清单、13 个公共组件抽取清单、65 页面-HTML 对照总表（user 34 + farmer 18 + admin 12，含 9 个新建页）、整页重写规则（保留层/重写层/V2 强制/4 态状态机保留）、路由注册规则、三阶段分批实施计划、视觉保真度+功能保留+编译通过+V2 合规四维验收标准（详见新增第 15 章）
 
 ---
 
@@ -5416,3 +5421,803 @@ else if (name === RouteName.FARMER_REGISTER) {
 > 第 11 章需求已通过与用户确认，可作为后续开发的唯一基线依据。
 >
 > 如需变更需求，需重新走需求确认流程并更新 spec.md 版本号。
+
+---
+
+# 12 全局配色改造（v3.2 新增）
+
+## 12.1 改造目标
+
+将三端（user / farmer / admin）配色由原"助农绿主色"统一替换为"暖黄主题"（黄色为主色 + 绿色为辅色），使整体视觉更年轻、活泼、轻量化。
+
+**核心约束（用户明确要求）：**
+- ✅ **只改配色，不改任何页面内容、结构、布局、逻辑、交互**
+- ✅ 仅修改三端 `resources/base/element/color.json` 的颜色定义
+- ✅ 不修改任何 `.ets` 页面文件中的非颜色代码
+- ✅ 老年大字模式同步换色（仅字号逻辑不动）
+- ✅ 错误色保持红色、成功色用绿、价格色改橙黄
+
+## 12.2 改造策略（方案 B）
+
+采用**方案 B：更新旧颜色名 value + 新增语义化颜色名**：
+
+1. **更新现有颜色名的 value**：保持所有颜色名（如 `color_primary`）不变，仅修改其十六进制值。这样所有 `$r('app.color.xxx')` 引用**一行代码都不用改**，自动应用新配色。
+2. **新增语义化颜色名**：新增 `color_brand_yellow` / `color_accent_green` 等语义名，供未来新代码使用，提升可维护性。
+3. **零侵入**：不批量替换 `.ets` 中的颜色引用，避免误伤页面逻辑。
+
+## 12.3 颜色映射表（旧名 → 新值）
+
+| 颜色名 | 旧值 | 新值 | 用途说明 | 是否变更 |
+| --- | --- | --- | --- | --- |
+| `color_primary` | `#4CAF50` | `#FFC107` | 主色（按钮/Tab选中/标题）→ 改品牌黄 | ✅ 变更 |
+| `color_primary_light` | `#8BC34A` | `#FFE082` | 主色浅 → 改浅黄 | ✅ 变更 |
+| `color_secondary` | `#FF9800` | `#FF9800` | 强调橙（卖家端按钮/价格强调） | ⬜ 保持 |
+| `color_accent_gold` | `#FFD54F` | `#FFD54F` | 金色点缀（榜单/勋章） | ⬜ 保持 |
+| `color_bg_page` | `#F5F5F5` | `#FFFDE7` | 页面背景 → 改浅黄米白 | ✅ 变更 |
+| `color_bg_card` | `#FFFFFF` | `#FFFFFF` | 卡片背景 | ⬜ 保持 |
+| `color_bg_panel_dark` | `#1A1A1A` | `#1A1A1A` | 深色面板（卖家首页异形） | ⬜ 保持 |
+| `color_text_primary` | `#212121` | `#212121` | 主文字 | ⬜ 保持 |
+| `color_text_secondary` | `#757575` | `#757575` | 次文字 | ⬜ 保持 |
+| `color_text_hint` | `#BDBDBD` | `#BDBDBD` | 提示文字 | ⬜ 保持 |
+| `color_text_on_dark` | `#81C784` | `#FFE082` | 深底文字 → 改浅黄（原浅绿） | ✅ 变更 |
+| `color_error` | `#F44336` | `#F44336` | 错误色（保持红） | ⬜ 保持 |
+| `color_price` | `#FF5722` | `#FF8A00` | 价格色 → 改橙黄 | ✅ 变更 |
+| `color_divider` | `#E0E0E0` | `#E0E0E0` | 分割线 | ⬜ 保持 |
+| `color_button_disabled` | `#BDBDBD` | `#BDBDBD` | 禁用按钮 | ⬜ 保持 |
+| `color_medal_gold` | `#FFD54F` | `#FFD54F` | 金牌 | ⬜ 保持 |
+| `color_medal_silver` | `#9E9E9E` | `#9E9E9E` | 银牌 | ⬜ 保持 |
+| `color_medal_bronze` | `#8D6E63` | `#8D6E63` | 铜牌 | ⬜ 保持 |
+| `start_window_background` | `#FFFFFF` | `#FFFDE7` | 启动窗背景 → 改浅黄 | ✅ 变更 |
+
+## 12.4 新增语义化颜色名
+
+| 新颜色名 | 值 | 语义用途 |
+| --- | --- | --- |
+| `color_brand_yellow` | `#FFC107` | 品牌主色黄（= color_primary 新值，语义别名） |
+| `color_brand_yellow_light` | `#FFE082` | 品牌浅黄（= color_primary_light 新值） |
+| `color_brand_yellow_dark` | `#FFA000` | 品牌深黄（按钮按下态，新增） |
+| `color_accent_green` | `#4CAF50` | 辅色绿（成功/通过/认证，= 原 color_primary） |
+| `color_accent_green_light` | `#8BC34A` | 辅色浅绿（= 原 color_primary_light） |
+| `color_accent_orange` | `#FF9800` | 强调橙（= color_secondary，语义别名） |
+| `color_success` | `#4CAF50` | 成功色（语义化，绿色） |
+
+## 12.5 文件变更清单
+
+| 文件 | 变更类型 | 说明 |
+| --- | --- | --- |
+| `zhunong/user/src/main/resources/base/element/color.json` | 修改 | 更新 5 个旧名 value + 新增 7 个语义名 |
+| `zhunong/farmer/src/main/resources/base/element/color.json` | 修改 | 同上 |
+| `zhunong/admin/src/main/resources/base/element/color.json` | 修改 | 同上 |
+
+**不修改的文件：**
+- 所有 `.ets` 页面/组件文件（零侵入）
+- 后端代码
+- 路由/配置文件
+
+## 12.6 硬编码颜色处理说明
+
+经排查，admin 端有 12 处硬编码颜色（`#4CAF50` 绿 / `#FF9800` 橙），位于：
+- `api_detail.ets` / `api_list.ets` / `rate_limit.ets` / `review_detail.ets` / `review_list.ets`
+
+这些是**状态标签色**（绿=正常/通过，橙=警告/待审），语义上属于"成功色用绿 + 强调橙"，符合本次"黄为主+绿为辅"主题，**保留不动**。
+
+`farmer/home_page.ets` 注释中提到的 `#81C784` 实际代码引用的是 `$r('app.color.color_text_on_dark')`，更新 color.json 即可生效。
+
+## 12.7 老年大字模式同步说明
+
+老年大字模式仅影响**字号**（通过 `isElderMode() ? 大字号 : 标准字号` 三元判断），不涉及独立配色文件。所有配色仍走 `color.json`，因此更新 color.json 后老年模式自动同步换色，**字号逻辑零改动**。
+
+## 12.8 深色模式说明
+
+项目当前**无 dark 资源目录**（仅有 `base/element/color.json`），不存在独立深色配色。本次改造的浅黄背景 `#FFFDE7` 在 base 中定义，深色场景未单独适配（与原状一致）。
+
+## 12.9 验收标准
+
+1. 三端所有页面主色（按钮、Tab 选中、标题强调）显示为暖黄 `#FFC107`。
+2. 页面背景显示为浅黄米白 `#FFFDE7`。
+3. 卖家首页异形面板深底上的营收数据文字显示为浅黄 `#FFE082`（原浅绿）。
+4. 价格数字显示为橙黄 `#FF8A00`（原红橙）。
+5. 错误提示仍为红色 `#F44336`。
+6. 成功/通过状态仍为绿色 `#4CAF50`。
+7. 启动页背景为浅黄 `#FFFDE7`。
+8. 老年大字模式切换后配色同步为黄色主题，字号逻辑不变。
+9. 所有页面内容、结构、交互、逻辑零改动。
+10. 三端 `hvigorw assembleHap` BUILD SUCCESSFUL。
+
+---
+
+**文档结束（v3.2）**
+
+> 本 spec.md v3.2 已涵盖项目概述、三端产品定位、全局技术规范、分端页面清单+布局规范、完整数据实体Model、路由清单、业务全流程、权限清单、AI预留接口清单、交互规则、榜单广告规则、切换模式规则、开发实现顺序、待确认疑问清单、第 11 章卖家端登录注册改造、第 12 章全局配色改造全部章节。
+>
+> 第 12 章需求已通过与用户确认（访谈），可作为后续开发的唯一基线依据。
+>
+> 如需变更需求，需重新走需求确认流程并更新 spec.md 版本号。
+
+---
+
+# 13 橙色渐变主题改造（v3.3 新增）
+
+## 13.1 改造目标
+
+将 v3.2 的"暖黄主题"调整为**全橙渐变方案**：
+- 所有页面背景为橙色渐变（上重下淡：中橙 → 米橙）
+- 彻底去除绿色主色（成功色仅状态用深绿）
+- 按钮深橙实底白字，与橙色背景强对比，不混为一体
+- 卡片/输入框纯白浮起
+
+**核心约束：**
+- ✅ 只改配色和背景渐变，不改页面内容/逻辑/结构/事件
+- ✅ 渐变只加在页面最外层根容器，子容器（卡片等）保持纯白
+- ✅ 老年大字模式同步换色（字号逻辑不动）
+
+## 13.2 配色方案（v3.3 最终值）
+
+### 13.2.1 color.json 颜色映射
+
+| 颜色名 | v3.2 值 | v3.3 值 | 说明 |
+| --- | --- | --- | --- |
+| `color_primary` | `#FFC107` 黄 | `#D84315` 深橙 | 主色→深橙（按钮实底） |
+| `color_primary_light` | `#FFE082` 浅黄 | `#FF8F00` 中橙 | 渐变顶色 |
+| `color_secondary` | `#FF9800` | `#E65100` 深橙强调 | |
+| `color_bg_page` | `#FFFDE7` 浅黄 | `#FFF3E0` 米橙 | 渐变底色/局部背景兜底 |
+| `color_text_primary` | `#212121` | `#3E2723` 深棕 | 橙底上更清晰 |
+| `color_text_secondary` | `#757575` | `#5D4037` 棕 | 次文字 |
+| `color_text_hint` | `#BDBDBD` | `#BCAAA4` 浅棕 | 提示文字 |
+| `color_text_on_dark` | `#FFE082` 浅黄 | `#FFFFFF` 白 | 深底文字 |
+| `color_error` | `#F44336` | `#C62828` 深红 | 橙底上更醒目 |
+| `color_price` | `#FF8A00` 橙黄 | `#D84315` 深橙 | 与按钮一致 |
+| `color_divider` | `#E0E0E0` | `#FFCC80` 浅橙 | 分割线 |
+| `color_button_disabled` | `#BDBDBD` | `#FFCC80` 浅橙 | 禁用按钮 |
+| `color_accent_green` | `#4CAF50` | `#2E7D32` 深绿 | 仅状态用 |
+| `color_success` | `#4CAF50` | `#2E7D32` 深绿 | 仅状态用 |
+| `start_window_background` | `#FFFDE7` | `#FF8F00` 中橙 | 启动窗 |
+| 其余（card/dark/gold/medal 等） | 不变 | 不变 | |
+
+### 13.2.2 渐变参数
+
+```typescript
+// AppConstants 新增
+static readonly GRADIENT_TOP: string = '#FF8F00';   // 中橙
+static readonly GRADIENT_BOTTOM: string = '#FFF3E0'; // 米橙
+
+// 页面根容器调用
+.linearGradient({ angle: 180, colors: [[AppConstants.GRADIENT_TOP, 0.0], [AppConstants.GRADIENT_BOTTOM, 1.0]] })
+```
+
+## 13.3 文件变更清单
+
+| 文件 | 变更类型 | 说明 |
+| --- | --- | --- |
+| 三端 `color.json` | 修改 | 颜色值改为橙色系 |
+| `common/.../AppConstants.ets` | 修改 | 新增 GRADIENT_TOP/BOTTOM 常量 |
+| 三端所有页面 `.ets`（~70 文件） | 修改 | 根容器加 .linearGradient 橙色渐变 |
+| admin 端 5 个状态页 `.ets` | 修改 | 硬编码 #4CAF50 改 #2E7D32 |
+
+## 13.4 验收标准
+
+1. 所有页面背景显示为中橙→米橙渐变（上重下淡）。
+2. 按钮为深橙实底 + 白字，与背景明显区分。
+3. 卡片/输入框为纯白，在橙背景上清晰浮起。
+4. 页面中无浅绿色出现（#4CAF50 / #8BC34A / #81C784 全部消除）。
+5. 成功/通过状态显示为深绿 #2E7D32（仅状态标签/图标用）。
+6. 文字在橙背景上清晰可读（深棕 #3E2723）。
+7. 老年大字模式切换后背景同步为橙色渐变，字号逻辑不变。
+8. farmer 首页深色异形面板保持深黑不变。
+9. 三端 `hvigorw assembleHap` BUILD SUCCESSFUL。
+
+---
+
+# 14 黑白黄极简主题改造（v3.4 新增）
+
+## 14.1 改造目标
+
+推翻 v3.3 橙黄渐变方案，改为**白底 + 黄卡 + 黑按钮白字 + 扁平导航栏**的极简高对比方案，整体视觉更干净、现代、赏心悦目。
+
+**核心设计语言（三色制）：**
+- **白（#FFFFFF）**：页面背景主色，输入框/列表项/搜索栏底色
+- **黄（#FFD93D 正黄）**：内容卡片底色（商品卡/Banner/功能区/个人中心头部卡等）
+- **黑（#000000）**：主 CTA 按钮底色、Tab 选中框、标题强调
+
+**核心约束（用户明确要求，经第 27 批需求确认回执确认）：**
+- ✅ **只改 UI 设计（配色/背景/导航栏/按钮/卡片样式），不改任何页面内容、结构、布局骨架、业务逻辑、事件交互、数据流**
+- ✅ 背景去黄色渐变，改纯白（移除三端所有页面根容器 `.linearGradient`，改 `.backgroundColor` 纯白）
+- ✅ 仅**内容卡片**变正黄 `#FFD93D`；输入框/列表项/搜索栏保持白底（不变黄）
+- ✅ 顶/底导航栏去白色浮卡 + 阴影，扁平化与白底融合；选中态显示**黑色框**（黑底白字图标）
+- ✅ 仅**主 CTA 按钮**黑底白字；取消/描边按钮保持白底黑字描边
+- ✅ Tab 选中黑色图标文字；价格保持红 `#FF4D4F`；成功绿/错误红/警告橙状态语义色不变
+- ✅ 老年大字模式同步换色（字号逻辑不动）
+
+## 14.2 配色方案（v3.4 最终值）
+
+### 14.2.1 color.json 颜色映射（旧名 → 新值）
+
+| 颜色名 | v3.3 值 | v3.4 值 | 用途说明 | 是否变更 |
+| --- | --- | --- | --- | --- |
+| `color_primary` | `#FFD93D` 黄 | `#FFD93D` 黄 | 品牌黄色（Banner主题色/角标/装饰，保留不变；CTA按钮改用新增的 `color_cta_black`） | ⬜ 保持 |
+| `color_primary_light` | `#FFF6B8` 浅黄 | `#FFF6B8` 浅黄 | 浅黄辅色（图标圆背景等点缀，保留） | ⬜ 保持 |
+| `color_secondary` | `#7ED321` 绿 | `#7ED321` 绿 | 辅助色（Banner角标等，保留） | ⬜ 保持 |
+| `color_accent_gold` | `#FFD93D` | `#FFD93D` | 金色点缀（榜单/勋章） | ⬜ 保持 |
+| `color_bg_page` | `#FFFEF5` 奶油白 | `#FFFFFF` 纯白 | 页面背景→纯白（去渐变） | ✅ 变更 |
+| `color_bg_card` | `#FFFFFF` | `#FFFFFF` 白 | 卡片背景（输入框/列表项/搜索栏用，不变黄） | ⬜ 保持 |
+| `color_bg_panel_dark` | `#1A1A1A` | `#1A1A1A` | farmer 营收异形面板深黑背景（特殊保留） | ⬜ 保持 |
+| `color_text_primary` | `#1A1A1A` | `#1A1A1A` | 主文字 | ⬜ 保持 |
+| `color_text_secondary` | `#666666` | `#666666` | 次文字 | ⬜ 保持 |
+| `color_text_hint` | `#BFBFBF` | `#BFBFBF` | 提示文字 | ⬜ 保持 |
+| `color_text_on_dark` | `#FFFEF5` 奶油 | `#FFFEF5` | 黑按钮/深底上的白字（保留） | ⬜ 保持 |
+| `color_error` | `#E53935` | `#E53935` 红 | 错误色（保持红） | ⬜ 保持 |
+| `color_price` | `#FF4D4F` | `#FF4D4F` 红 | 价格色（保持红） | ⬜ 保持 |
+| `color_divider` | `#F0F0F0` | `#F0F0F0` | 分割线（保留；新增 `color_outline` 作为描边专用别名） | ⬜ 保持 |
+| `color_button_disabled` | `#BFBFBF` | `#BFBFBF` | 禁用按钮 | ⬜ 保持 |
+| `color_ink` | `#1A1A1A` | `#1A1A1A` | 选中态墨色（保留，Tab选中用 `color_cta_black`） | ⬜ 保持 |
+| `color_yellow` | `#FFE234` | `#FFE234` | 黄系（保留） | ⬜ 保持 |
+| `color_yellow_deep` | `#FFD93D` | `#FFD93D` | 深黄（保留） | ⬜ 保持 |
+| `color_yellow_soft` / `color_yellow_tint` | 浅黄系 | 不变 | 浅黄/极浅黄 | ⬜ 保持 |
+| `color_green` / `color_green_deep` / `color_green_soft` | 绿系 | 不变 | 状态用绿（成功/通过） | ⬜ 保持 |
+| `color_live` / `color_live_soft` | 红系 | 不变 | 直播红 | ⬜ 保持 |
+| `color_warn` / `color_info` | 橙/蓝 | 不变 | 警告/信息 | ⬜ 保持 |
+| `start_window_background` | `#FFFEF5` | `#FFFFFF` 纯白 | 启动窗背景→纯白 | ✅ 变更 |
+
+### 14.2.2 新增语义化颜色名
+
+| 新颜色名 | 值 | 语义用途 |
+| --- | --- | --- |
+| `color_card_yellow` | `#FFD93D` | 内容卡片正黄底色（商品卡/Banner/功能区/头部卡等） |
+| `color_outline` | `#E5E5E5` | 描边按钮/输入框边框/导航栏分割线（比 color_divizer 略深，白底上更清晰） |
+| `color_cta_black` | `#000000` | 主CTA按钮底色/Tab选中框/筛选选中文字色（纯黑，替代原 color_primary 在按钮背景场景） |
+
+### 14.2.3 AppConstants 常量调整
+
+```typescript
+// GRADIENT_TOP / GRADIENT_BOTTOM 值改为 #FFFFFF（纯白），保留常量定义避免编译断链
+// 所有页面根容器 .linearGradient(...) 已批量替换为 .backgroundColor($r('app.color.color_bg_page'))
+static readonly GRADIENT_TOP: string = '#FFFFFF';
+static readonly GRADIENT_BOTTOM: string = '#FFFFFF';
+```
+
+页面根容器统一改为：
+```typescript
+.backgroundColor($r('app.color.color_bg_page'))  // 纯白 #FFFFFF
+```
+
+## 14.3 顶/底导航栏扁平化规范
+
+### 14.3.1 顶部导航栏（TopSearchBar / 顶部标题栏）
+- **去白色浮卡 + 阴影**：移除 `.backgroundColor($r('app.color.color_bg_card'))` + `.shadow(ShadowStyle.OUTER_DEFAULT_*)`
+- **扁平化**：背景透明或与白底融合（不设独立卡片背景，或设 `color_bg_page` 纯白），无圆角浮起
+- **搜索输入框**：白底 `color_bg_card` + 1vp 描边 `color_outline`（#E5E5E5）+ 圆角 18vp，**无阴影**
+- **顶部标题栏（带返回按钮的二级页）**：扁平白底，底部 1vp `color_divider` 细分割线，返回箭头 + 标题黑色
+
+### 14.3.2 底部 Tab 导航栏（Tabs）
+- **去白色浮卡**：Tabs bar 背景与页面白底融合，**无阴影、无顶部圆角浮起**
+- **未选中 Tab**：图标 + 文字灰色 `color_text_secondary`（#666666），无框
+- **选中 Tab（黑色框选中态）**：
+  - 图标 + 文字外包**黑色圆角框（pill）**：`.backgroundColor($r('app.color.color_cta_black'))` + `.borderRadius(20vp)` + padding `{6,16}`
+  - 框内图标 + 文字改**白色** `Color.White`
+  - 即"选中态显示黑色框"，替代原"选中变绿/变黄"方案
+- **barHeight**：保持 56vp
+
+## 14.4 按钮规范
+
+| 按钮类型 | 底色 | 字色 | 边框 | 示例 |
+| --- | --- | --- | --- | --- |
+| 主 CTA | `#000000` 黑 | `#FFFFFF` 白 | 无 | 登录/注册/提交/确认/立即购买/发布商品/支付 |
+| 次要/描边 | 透明或白 `#FFFFFF` | `#1A1A1A` 黑 | 1vp `#E5E5E5` | 取消/返回/再想想/编辑/筛选 |
+| 危险 CTA | `#E53935` 红 | `#FFFFFF` 白 | 无 | 删除/撤销/下架（保持语义色） |
+| 禁用 | `#BFBFBF` 灰 | `#FFFFFF` 白 | 无 | 不可点击态 |
+| 对话框双按钮 | 取消=描边白底黑字 / 确认=黑底白字 | — | — | 方案 C 自建模态统一规则 |
+
+**实现要点：**
+- 主 CTA 按钮统一：`.backgroundColor($r('app.color.color_cta_black'))` + `.fontColor(Color.White)`
+- 批量替换方案：将所有 `.backgroundColor()` 上下文中的 `color_primary`/`color_secondary` 替换为 `color_cta_black`（58 个文件）
+- 原"取消/描边"按钮若用了 `color_bg_card` 白底 + 黑字，保持不变；若误用了 `color_primary`，需改为描边样式（逐页核查）
+- 筛选/标签选中态文字：批量将 `.fontColor(condition ? color_primary : ...)` 替换为 `color_cta_black`（22 个文件）
+
+## 14.5 卡片规范
+
+### 14.5.1 内容卡片 → 正黄 `#FFD93D`
+统一改背景为 `$r('app.color.color_card_yellow')`：
+- 商品卡片（ProductCard 组件，user 模块共用）
+- 首页 5 快捷入口区（QuickEntries 圆形图标背景改黄 `color_card_yellow`，去阴影）
+- 个人中心头部卡（profile_page 顶部用户信息区，去渐变改纯黄底；订单卡/功能网格/额外入口卡改黄）
+- 钱包余额卡/统计卡/交易明细卡/优惠券入口卡（wallet.ets）
+- admin 统计卡（StatCard）/欢迎信息卡
+- farmer 商品卡片（横滑商品卡改黄底）
+- 订单/地址/搜索等页面内容卡（批量匹配 borderRadius 12/16 模式，19 个文件）
+
+### 14.5.2 保持白底 `#FFFFFF`（不变黄）
+- 所有 `TextInput` / `TextArea` 输入框（+ 描边 `color_outline`）
+- 列表项（List/FlowItem 单行/单卡片内层）
+- 搜索栏内搜索输入框
+- 弹窗/对话框内容区（模态遮罩 rgba(0,0,0,0.5) 保持）
+
+### 14.5.3 特殊保留（不改）
+- **farmer 首页营收异形面板**：保持深黑 `color_bg_panel_dark`（#1A1A1A）+ 浅黄/白数据文字（异形特殊设计，非标准卡片，保留 v3.3 处理）
+- **splash 开屏页**：无广告兜底页背景由 `color_primary` 改 `color_bg_page` 纯白（白底 + 麦穗图标 + 黑字）；有广告海报页保持全屏图
+
+## 14.6 文件变更清单
+
+| 文件 | 变更类型 | 说明 |
+| --- | --- | --- |
+| 三端 4 个 `color.json`（common/user/farmer/admin）+ dark 主题 | 修改 | `color_bg_page`→#FFFFFF、`start_window_background`→#FFFFFF；新增 `color_card_yellow`(#FFD93D)、`color_outline`(#E5E5E5)、`color_cta_black`(#000000) |
+| `common/.../constants/AppConstants.ets` | 修改 | GRADIENT_TOP/BOTTOM 值改为 #FFFFFF（纯白），保留常量定义避免编译断链 |
+| `common/.../components/ListStateView.ets` | 修改 | 错误/空态刷新按钮 `color_ink` → `color_cta_black` |
+| 三端所有页面 `.ets`（~70 文件） | 批量修改 | ①根容器 `.linearGradient(...)` → `.backgroundColor($r('app.color.color_bg_page'))`（58 文件）；②CTA 按钮 `.backgroundColor()` 中 `color_primary`/`color_secondary` → `color_cta_black`（58 文件）；③筛选选中态 `.fontColor()` 中 `color_primary`/`color_secondary` → `color_cta_black`（22 文件）；④修复误替换 `color_cta_black_light` → `color_card_yellow`（13 文件） |
+| user `home_page.ets` / farmer `home_page.ets` / admin `admin_home.ets` | 手动修改 | 顶/底导航栏扁平化 + Tab 选中黑色胶囊框 + 内容卡片改黄 + CTA 黑底白字 |
+| user `ProductCard.ets` | 修改 | 卡片底色 `color_bg_card` → `color_card_yellow`，去阴影 |
+| user `profile_page.ets` / `wallet.ets` | 手动修改 | 内容卡片改黄 + 余额卡去渐变 + CTA 按钮黑底白字 |
+| 订单/地址/搜索等 19 个页面 | 批量修改 | 匹配 borderRadius 12/16 模式，`color_bg_card` → `color_card_yellow` |
+
+## 14.7 不改动范围（硬约束）
+- ❌ 不改任何业务逻辑、数据流、Repository、DataSource、路由、事件处理
+- ❌ 不改页面结构骨架（Column/Row/Tabs 嵌套层级）、不改文案内容
+- ❌ 不改后端代码、配置文件、oh-package.json5、module.json5
+- ❌ 不改老年大字模式字号逻辑（仅同步配色）
+- ❌ 状态语义色（成功绿/错误红/警告橙/直播红/价格红）不变
+- ❌ admin 端硬编码状态标签色（#4CAF50 绿 / #FF9800 橙）保留不动（v3.2/v3.3 已确认）
+
+## 14.8 验收标准
+
+1. 所有页面背景显示为**纯白 #FFFFFF**，无任何黄色/橙色渐变。
+2. 内容卡片（商品卡/Banner/快捷入口/头部卡等）显示为**正黄 #FFD93D**。
+3. 输入框/列表项/搜索栏保持**白底 + 描边**，不变黄。
+4. 顶部导航栏**无白色浮卡 + 阴影**，扁平与白底融合；搜索框白底 + 描边。
+5. 底部 Tab 栏**无白色浮卡**；选中 Tab 显示**黑色圆角框 + 白字白图标**，未选中灰色无框。
+6. 主 CTA 按钮显示为**黑底 #000000 + 白字**；取消/描边按钮白底黑字描边。
+7. 价格数字显示为**红 #FF4D4F**（不变）。
+8. 成功/通过状态显示为**绿**，错误显示为**红**，警告显示为**橙**（语义色不变）。
+9. 文字在白底/黄底上清晰可读（主文字 #1A1A1A 黑）。
+10. farmer 首页营收异形面板保持深黑不变。
+11. 老年大字模式切换后配色同步（白底黄卡黑按钮），字号逻辑不变。
+12. 三端 `hvigorw assembleHap` BUILD SUCCESSFUL，0 ERROR。
+13. 所有页面内容、结构、业务逻辑、事件交互零改动（仅 UI 样式变更）。
+
+---
+
+**文档结束（v3.4 章节区）** — 以下为 v4.0 新增第 15 章。
+
+---
+
+# 15 UI 复刻实施（v4.0 新增，2026-07-25）
+
+## 15.1 v4.0 决策回执（第 28 批需求确认）
+
+用户基于 `qunong-harmony-app` 设计稿（位于 `c:\Users\21132\Desktop\qunong-harmony-app\`，含 65 个 HTML 页面 + `colors_and_type.css` 设计令牌 + 17 张图片资源）提出对三端全部页面进行 1:1 UI 复刻。经第 28 批需求确认回执，4 项关键决策如下：
+
+| 编号 | 决策项 | 用户选定方案 | 说明 |
+| --- | --- | --- | --- |
+| D15-1 | 实施节奏 | **按模块分批（推荐）** | 先 user 模块全部页面 → 再 farmer 模块 → 最后 admin 模块。每完成一个模块整体编译验证后再进入下一个，便于回归 |
+| D15-2 | 现有代码处理 | **整页重写复用服务层** | 整页 .ets 文件重写（UI build + 页面级 state 重新组织），复用 common 层 Repository/Mock/services/router 不动。视觉对齐彻底 |
+| D15-3 | spec.md 处理 | **生成 v4.0 新 spec（推荐）** | 在 v3.4 基础上整合新增第 15 章「UI 复刻实施」，作为唯一开发基线；v3.4 归档至 `spec_v3.4_archived.md` |
+| D15-4 | Pro 页与缺页 | **Pro 优先 + 新页新建（推荐）** | 存在 pro 版时以 pro 版为准覆盖现有页（dashboard-pro / product-mgmt-pro）；无 .ets 对应的 HTML 页面按 spec 功能新建 .ets 并注册路由 |
+
+## 15.2 视觉设计令牌映射
+
+### 15.2.1 设计令牌总表（CSS 变量 → ArkUI）
+
+设计稿 `colors_and_type.css` 定义了完整的 CSS 自定义属性（`:root` 变量），需 1:1 映射到 ArkUI 的 `color.json` 资源 + `AppConstants.ets` 常量。映射总表如下：
+
+| CSS 变量 | 十六进制 | 用途 | ArkUI 资源名 | 现有值（v3.4） | v4.0 处理 |
+| --- | --- | --- | --- | --- | --- |
+| `--qn-yellow` | `#FFE234` | 主品牌黄：背景强调/选中态/Logo | `color_card_yellow` / `color_brand_yellow` / `color_yellow` / `color_primary` / `color_accent_gold` / `color_medal_gold` | `#FFEB3B` | **更新 → #FFE234** |
+| `--qn-yellow-deep` | `#FFD93D` | 渐变深端 | `color_yellow_deep` / `color_brand_yellow_dark` | `#FBC02D` | **更新 → #FFD93D** |
+| `--qn-yellow-soft` | `#FFF6B8` | 浅黄底：标签/次级卡片 | `color_yellow_soft` / `color_primary_light` / `color_brand_yellow_light` | `#FFF9C4` | **更新 → #FFF6B8** |
+| `--qn-yellow-tint` | `#FFFBE6` | 极浅黄：分区背景 | `color_yellow_tint` | `#FFFBE6` | 保持 ✓ |
+| `--qn-green` | `#7ED321` | 选中/成功/在线/积分 | `color_secondary` / `color_green` / `color_accent_green` / `color_success` | `#7ED321` | 保持 ✓ |
+| `--qn-green-deep` | `#5BB315` | 绿色深端 | `color_green_deep` | `#5BB315` | 保持 ✓ |
+| `--qn-green-soft` | `#EAF7D8` | 浅绿底 | `color_green_soft` / `color_accent_green_light` | `#EAF7D8` | 保持 ✓ |
+| `--qn-cream` | `#FFFEF5` | App 主背景（暖奶油白） | `color_bg_page` / `color_cream` | `#FFFFFF`（v3.4 改纯白） | **更新 → #FFFEF5**（恢复奶油白） |
+| `--qn-white` | `#FFFFFF` | 卡片底 | `color_bg_card` | `#FFFFFF` | 保持 ✓ |
+| `--qn-ink` | `#1A1A1A` | 主文字/主按钮/中间发布键 | `color_ink` / `color_cta_black` / `color_text_primary` | `#000000`（color_cta_black）/ `#1A1A1A`（color_ink） | **color_cta_black 更新 → #1A1A1A**（对齐 ink，与 HTML .qn-btn-primary 一致） |
+| `--qn-ink-2` | `#333333` | 次级文字 | `color_ink_2`（新增） | — | **新增 color_ink_2 = #333333** |
+| `--qn-text-2` | `#666666` | 辅助文字 | `color_text_secondary` / `color_text_2`（新增） | `#1A1A1A`（v3.4 错误） | **更新 → #666666**（v3.4 将 secondary 误设为 ink，本次纠正） |
+| `--qn-text-3` | `#999999` | 弱化文字 | `color_text_3` | `#999999` | 保持 ✓ |
+| `--qn-text-4` | `#BFBFBF` | 占位/失效 | `color_text_4` / `color_text_hint` / `color_button_disabled` | `#BFBFBF` | 保持 ✓ |
+| `--qn-line` | `#F0F0F0` | 分割线/描边 | `color_line` / `color_divider` | `#F0F0F0` | 保持 ✓ |
+| `--qn-line-2` | `#E8E8E8` | 次级描边 | `color_line_2` / `color_outline` | `#E5E5E5`（color_outline） | **color_outline 更新 → #E8E8E8** |
+| `--qn-fill` | `#F6F6F4` | 次级填充/ghost 按钮底 | `color_fill` | `#F6F6F4` | 保持 ✓ |
+| `--qn-live` | `#FF4D4F` | LIVE 直播标 | `color_live` / `color_price` | `#FF4D4F` | 保持 ✓ |
+| `--qn-live-soft` | `#FFE7E7` | 直播浅底 | `color_live_soft` | `#FFE7E7` | 保持 ✓ |
+| `--qn-warn` | `#FF9F1C` | 警告 | `color_warn` / `color_accent_orange` | `#FF9F1C` | 保持 ✓ |
+| `--qn-info` | `#4A90E2` | 信息 | `color_info` | `#4A90E2` | 保持 ✓ |
+| `--qn-bg-panel-dark` | `#1A1A1A` | 深色面板（farmer 营收异形板） | `color_bg_panel_dark` | `#1A1A1A` | 保持 ✓ |
+| `--qn-text-on-dark` | `#FFFEF5` | 深底文字 | `color_text_on_dark` | `#FFFEF5` | 保持 ✓ |
+
+> 注：`color_error` 保持 `#E53935`（错误语义色，与 `--qn-live` #FF4D4F 区分；HTML 中错误态用 `.qn-live` 红，但项目错误色已落地为 #E53935，沿用不动避免破坏现有错误态视觉）。
+
+### 15.2.2 与 v3.4 的差异点（color.json 更新清单）
+
+v4.0 相对 v3.4 的颜色变更（仅以下 token 需更新，三端 user/farmer/admin/common 的 `resources/base/element/color.json` 同步修改）：
+
+| 资源名 | v3.4 值 | v4.0 值 | 变更原因 |
+| --- | --- | --- | --- |
+| `color_bg_page` | `#FFFFFF` | `#FFFEF5` | 恢复奶油白主背景，对齐 `--qn-cream` |
+| `color_card_yellow` | `#FFEB3B` | `#FFE234` | 对齐 `--qn-yellow` 主品牌黄 |
+| `color_yellow` | `#FFEB3B` | `#FFE234` | 同上 |
+| `color_yellow_deep` | `#FBC02D` | `#FFD93D` | 对齐 `--qn-yellow-deep` |
+| `color_yellow_soft` | `#FFF9C4` | `#FFF6B8` | 对齐 `--qn-yellow-soft` |
+| `color_primary` | `#FFEB3B` | `#FFE234` | 主品牌黄语义统一 |
+| `color_primary_light` | `#FFF9C4` | `#FFF6B8` | 跟随 primary |
+| `color_accent_gold` | `#FFEB3B` | `#FFE234` | 金色统一为品牌黄 |
+| `color_medal_gold` | `#FFEB3B` | `#FFE234` | 金牌统一为品牌黄 |
+| `color_brand_yellow` | `#FFEB3B` | `#FFE234` | 品牌黄统一 |
+| `color_brand_yellow_light` | `#FFF9C4` | `#FFF6B8` | 跟随品牌黄 |
+| `color_brand_yellow_dark` | `#FBC02D` | `#FFD93D` | 跟随品牌黄 |
+| `color_cta_black` | `#000000` | `#1A1A1A` | 对齐 `--qn-ink`，与 HTML `.qn-btn-primary` 一致 |
+| `color_text_secondary` | `#1A1A1A` | `#666666` | 纠正 v3.4 误设，对齐 `--qn-text-2` |
+| `color_outline` | `#E5E5E5` | `#E8E8E8` | 对齐 `--qn-line-2` |
+| `color_ink_2`（新增） | — | `#333333` | 新增次级文字色，对齐 `--qn-ink-2` |
+| `color_text_2`（新增） | — | `#666666` | 新增辅助文字色别名，对齐 `--qn-text-2` |
+| `start_window_background` | `#FFFFFF` | `#FFFEF5` | 启动窗对齐主背景 |
+
+**AppConstants.ets 同步更新**：
+- `GRADIENT_TOP` / `GRADIENT_BOTTOM` 由 `#FFFFFF` 更新为 `#FFFEF5`（虽 v4.0 去渐变，但常量保留供历史代码引用，值对齐奶油白）
+- 新增阴影常量段（对齐 CSS `--qn-shadow-*`）：
+
+```typescript
+/** UI 复刻阴影令牌（spec 15.2.2，对齐 colors_and_type.css --qn-shadow-*） */
+static readonly SHADOW_CARD: ShadowOptions = { radius: 16, color: 'rgba(26,26,26,0.06)', offsetX: 0, offsetY: 4 };
+static readonly SHADOW_FLOAT: ShadowOptions = { radius: 24, color: 'rgba(26,26,26,0.12)', offsetX: 0, offsetY: 8 };
+static readonly SHADOW_NAV: ShadowOptions = { radius: 12, color: 'rgba(26,26,26,0.05)', offsetX: 0, offsetY: -2 };
+static readonly SHADOW_FAB: ShadowOptions = { radius: 12, color: 'rgba(26,26,26,0.28)', offsetX: 0, offsetY: 4 };
+static readonly SHADOW_YELLOW: ShadowOptions = { radius: 18, color: 'rgba(255,217,61,0.35)', offsetX: 0, offsetY: 6 };
+```
+
+### 15.2.3 排版 / 圆角 / 阴影 / 间距尺度
+
+**排版尺度**（CSS `font-size` → ArkUI `fp`，1:1 还原）：
+
+| 语义 | CSS px | ArkUI fp | 字重 | 用途 |
+| --- | --- | --- | --- | --- |
+| display | 28 | 28 | 800 | 登录页品牌标题 |
+| h1 | 20 | 20 | 800 | 价格整数、大数字 |
+| h2 | 18 | 18 | 800 | 区块标题、统计数字 |
+| title-center | 17 | 17 | 700 | 顶部导航居中标题 |
+| h3 | 16 | 16 | 800 | 区块小标题 |
+| body-strong | 15 | 15 | 700/600 | 按钮文字、状态栏 |
+| body | 14 | 14 | 400 | 正文（默认） |
+| caption | 13 | 13 | 400/600 | 辅助文字、字段动作 |
+| small | 12 | 12 | 400 | 协议、弱化文字 |
+| micro | 11 | 11 | 600 | 胶囊标签 |
+| nano | 10 | 10 | 500/800 | Tab 文字、LIVE 角标 |
+
+**圆角尺度**（CSS `--qn-r-*` → ArkUI `borderRadius` vp）：
+
+| 语义 | CSS 变量 | px/vp | 用途 |
+| --- | --- | --- | --- |
+| xs | `--qn-r-xs` | 6 | 小元素 |
+| sm | `--qn-r-sm` | 10 | 小按钮、头像内框 |
+| md | `--qn-r-md` | 14 | 按钮、输入框、卡片内元素 |
+| lg | `--qn-r-lg` | 18 | 卡片 |
+| xl | `--qn-r-xl` | 24 | 底部 Sheet 顶部圆角 |
+| pill | `--qn-r-pill` | 999 | 胶囊、圆形头像、搜索栏 |
+
+**阴影尺度**：见 15.2.2 AppConstants 阴影常量段（5 种：CARD/FLOAT/NAV/FAB/YELLOW）。
+
+**间距尺度**（CSS padding/gap → ArkUI `padding`/`gap` vp）：
+- 页面左右内边距：16vp（`.qn-px`）
+- 卡片内边距：16vp（`.qn-card`）/ 18vp（`.qn-card-yellow`）
+- 区块上下间距：12vp（`.qn-pt`）
+- 顶部状态栏高度：44vp（`.qn-statusbar`）
+- 顶部导航栏：padding `4 16 10`
+- 底部 Tab 栏高度：64vp（`.qn-tabbar`）+ 页面底部留白 76vp（`.qn-screen padding-bottom`）
+- 中间 FAB 尺寸：52×36vp（`.qn-tab-fab`）
+
+## 15.3 资源迁移清单（17 张图片）
+
+设计稿 `assets/` 目录下 17 张图片需迁移到 `AppScope/resources/base/media/`（三端共享），命名采用下划线小写（替换原连字符）：
+
+| 设计稿文件名 | 迁移后资源名（media/） | 用途 | 引用方式 |
+| --- | --- | --- | --- |
+| `avatar-customer.jpg` | `avatar_customer.jpg` | 用户默认头像 | `$r('app.media.avatar_customer')` |
+| `avatar-farmer.jpg` | `avatar_farmer.jpg` | 农户默认头像 | `$r('app.media.avatar_farmer')` |
+| `farm-picking.jpg` | `farm_picking.jpg` | 采摘园/文旅配图 | `$r('app.media.farm_picking')` |
+| `farmer-li.jpg` | `farmer_li.jpg` | 农户李（榜单/列表） | `$r('app.media.farmer_li')` |
+| `farmer-sun.jpg` | `farmer_sun.jpg` | 农户孙 | `$r('app.media.farmer_sun')` |
+| `farmer-wang.jpg` | `farmer_wang.jpg` | 农户王 | `$r('app.media.farmer_wang')` |
+| `farmer-zhang.jpg` | `farmer_zhang.jpg` | 农户张 | `$r('app.media.farmer_zhang')` |
+| `farmer-zhao.jpg` | `farmer_zhao.jpg` | 农户赵 | `$r('app.media.farmer_zhao')` |
+| `farmer-zhou.jpg` | `farmer_zhou.jpg` | 农户周 | `$r('app.media.farmer_zhou')` |
+| `hero-harvest.jpg` | `hero_harvest.jpg` | 首页英雄横幅（丰收主题） | `$r('app.media.hero_harvest')` |
+| `live-orchard.jpg` | `live_orchard.jpg` | 直播间/果园直播封面 | `$r('app.media.live_orchard')` |
+| `mascot-farmer.jpg` | `mascot_farmer.jpg` | 登录页吉祥物 | `$r('app.media.mascot_farmer')` |
+| `prod-eggs.jpg` | `prod_eggs.jpg` | 商品图：鸡蛋 | `$r('app.media.prod_eggs')` |
+| `prod-honey.jpg` | `prod_honey.jpg` | 商品图：蜂蜜 | `$r('app.media.prod_honey')` |
+| `prod-rice.jpg` | `prod_rice.jpg` | 商品图：大米 | `$r('app.media.prod_rice')` |
+| `prod-strawberry.jpg` | `prod_strawberry.jpg` | 商品图：草莓 | `$r('app.media.prod_strawberry')` |
+| `prod-tea.jpg` | `prod_tea.jpg` | 商品图：茶叶 | `$r('app.media.prod_tea')` |
+| `prod-tomato.jpg` | `prod_tomato.jpg` | 商品图：番茄 | `$r('app.media.prod_tomato')` |
+
+**迁移规则**：
+1. 图片放入 `AppScope/resources/base/media/`（三端共享，避免重复）
+2. 文件名连字符 `-` 统一替换为下划线 `_`（ArkUI 资源命名规范）
+3. Mock 数据中的图片字段（如 `Product.imageUrl`）改用 `$r('app.media.xxx')` 资源引用，不再使用网络 URL（设计稿为本地资源）
+4. 现有 AppScope 已有资源（如 `empty_state.svg`）保留不动，仅新增上述 17 张
+
+## 15.4 公共组件抽取清单
+
+### 15.4.1 新增公共组件（13 个，放入 `common/src/main/ets/components/`）
+
+设计稿中反复出现的 UI 模式需抽取为可复用 ArkUI 组件，统一放入 common 模块。所有组件强制 `@ComponentV2`，禁止 V1。
+
+| 组件文件 | 对应 CSS 类 | 职责 | 关键属性（@Param） |
+| --- | --- | --- | --- |
+| `QnStatusBar.ets` | `.qn-statusbar` | 顶部状态栏占位（9:41 + 信号/Wi-Fi/电池图标） | `title?: string`（左上角文字，默认 "9:41"） |
+| `QnTopBar.ets` | `.qn-topbar` | 顶部导航栏（左返回/中标题/右图标按钮） | `title: string`, `showBack: boolean`, `onBack: () => void`, `rightIcon?: Resource` |
+| `QnTabBar.ets` | `.qn-tabbar` | 底部 5 Tab 导航（含中间黑色 FAB 发布键） | `activeIndex: number`, `onTabChange: (i: number) => void`, `onFabClick: () => void`, `role: 'user'\|'farmer'` |
+| `QnCard.ets` | `.qn-card` / `.qn-card-yellow` | 通用卡片（白底/黄渐变两模式） | `variant: 'white'\|'yellow'`, `padding?: number` |
+| `QnButton.ets` | `.qn-btn` 全系列 | 按钮变体（primary/yellow/green/ghost/line + block/sm/pill 修饰） | `variant`, `size`, `block`, `pill`, `text`, `on_click` |
+| `QnPill.ets` | `.qn-pill` 全系列 | 胶囊标签（green/yellow/ink/live/soft） | `variant`, `text`, `icon?: Resource` |
+| `QnSearchBar.ets` | `.qn-search` | 搜索栏（胶囊形，白底+阴影） | `placeholder: string`, `on_submit: (q: string) => void` |
+| `QnInput.ets` | `.qn-input` / `.qn-field` | 输入框（fill 底/带左图标/带右侧动作） | `placeholder`, `icon?: Resource`, `actionText?: string`, `on_action` |
+| `QnAvatar.ets` | `.qn-avatar` / `.qn-avatar-ring` | 头像（支持 ring 黄色描边） | `src: Resource`, `size: number`, `ring: boolean` |
+| `QnPrice.ets` | `.qn-price` + `.qn-price-old` | 价格（¥符号小+整数大+划线原价） | `symbol`, `int`, `old?: string` |
+| `QnStatRow.ets` | `.qn-stat-row` | 统计行（关注/粉丝/获赞三栏） | `stats: Array<{num, lab}>` |
+| `QnSectionHead.ets` | `.qn-section-head` | 区块标题（左标题+右"更多"） | `title`, `showMore: boolean`, `on_more` |
+| `QnSheet.ets` | `.qn-mask` + `.qn-sheet` | 底部弹出层（遮罩+圆角面板） | `show: boolean`, `on_close`, 内容通过 @BuilderParam 注入 |
+
+### 15.4.2 现有组件调整
+
+| 组件文件 | 调整内容 |
+| --- | --- |
+| `common/components/ListStateView.ets` | 视觉对齐设计稿：loading 态 LoadingProgress 48vp 主品牌黄；error 态 ⚠️ 64px + "加载失败" + 黑色"刷新"按钮（对齐 `.qn-btn-primary`）；empty 态保留双模式（image/emoji） |
+| `common/components/ErrorToast.ets` | 视觉对齐：背景改 `color_ink` #1A1A1A，文字 `color_text_on_dark` #FFFEF5，圆角 `--qn-r-md` 14vp |
+| `user/components/ProductCard.ets` | 重写：对齐设计稿商品卡（黄底/白底两模式、LIVE 角标、价格组件引用） |
+| `user/components/OrderStatusBadge.ets` | 重写：对齐 `.qn-pill` 胶囊变体 |
+| `user/components/QuantitySelector.ets` | 重写：对齐设计稿数量选择器（圆角方块按钮） |
+| `user/components/StarRating.ets` | 重写：对齐设计稿星级（黄色填充+灰色描边） |
+
+## 15.5 页面-HTML 对照总表（65 页）
+
+### 15.5.1 user 模块（34 页）
+
+| HTML 设计稿 | 现有 .ets 路径 | 操作 | 备注 |
+| --- | --- | --- | --- |
+| `login.html` | `login/user_login.ets` | 重写 | 统一登录页（含角色选择卡片×3），用户角色默认选中 |
+| `user-register.html` | `login/user_register.ets` | 重写 | 用户注册页 |
+| `splash-ad.html` | `splash/splash_ad.ets` | 重写 | 开屏广告页 |
+| `user-home.html` | `home/home_page.ets` | 重写 | 首页 Tab（英雄横幅+九宫格+直播横滑+商品瀑布流） |
+| `user-live.html` | `live/live_list.ets` | 重写 | 直播 Tab |
+| `user-community.html` | `community/community_list.ets` | 重写 | 社区 Tab |
+| `user-cart.html` | `cart/cart_page.ets` | 重写 | 购物车 Tab |
+| `user-profile.html` | `profile/profile_page.ets` | 重写 | 我的 Tab |
+| `user-booking.html` | `travel/user_booking.ets` | **新建** | 文旅预约页（注册路由） |
+| `user-detail.html` | `profile/user_detail.ets` | **新建** | 用户公开主页/他人主页（注册路由） |
+| `search.html` | `search/search_page.ets` | 重写 | 搜索页 |
+| `category.html` | `mall/category_page.ets` | **新建** | 分类页（注册路由） |
+| `product-list.html` | `mall/product_list.ets` | 重写 | 商品列表 |
+| `product-detail.html` | `mall/product_detail.ets` | 重写 | 商品详情 |
+| `order.html` | `mall/order_list.ets` | 重写 | 订单列表 |
+| `order-detail.html` | `mall/order_detail.ets` | 重写 | 订单详情 |
+| `order-confirm.html` | `mall/order_confirm.ets` | 重写 | 订单确认 |
+| `payment.html` | `mall/payment_page.ets` | **新建** | 支付页（注册路由） |
+| `favorite.html` | `profile/favorite_list.ets` | 重写 | 收藏列表 |
+| `follow.html` | `profile/follow_list.ets` | 重写 | 关注列表 |
+| `history.html` | `profile/history_list.ets` | 重写 | 浏览历史 |
+| `address-list.html` | `profile/address_list.ets` | 重写 | 地址列表 |
+| `address-edit.html` | `profile/address_edit.ets` | 重写 | 地址编辑 |
+| `coupon.html` | `profile/coupon_list.ets` | 重写 | 优惠券 |
+| `wallet.html` | `profile/wallet.ets` | 重写 | 我的钱包 |
+| `setting.html` | `profile/setting.ets` | 重写 | 设置页 |
+| `message.html` | `message/message_list.ets` | 重写 | 消息列表 |
+| `chat-detail.html` | `message/chat_detail.ets` | 重写 | 聊天详情 |
+| `post-detail.html` | `community/post_detail.ets` | 重写 | 帖子详情 |
+| `post-create.html` | `community/post_create.ets` | 重写 | 发帖页 |
+| `review-create.html` | `mall/review_create.ets` | 重写 | 评价创建 |
+| `review-detail.html` | `mall/review_detail.ets` | **新建** | 评价详情（注册路由） |
+| `live-room.html` | `live/live_room.ets` | 重写 | 直播间 |
+| `travel-map.html` | `travel/travel_map.ets` | 重写 | 文旅地图（百度地图 SDK） |
+| `poi-detail.html` | `travel/poi_detail.ets` | 重写 | 景点详情 |
+
+> user 模块新建页 5 个：user_booking / user_detail / category_page / payment_page / review_detail
+
+### 15.5.2 farmer 模块（18 页）
+
+| HTML 设计稿 | 现有 .ets 路径 | 操作 | 备注 |
+| --- | --- | --- | --- |
+| `farmer-login.html` | `login/farmer_login.ets` | 重写 | 农户登录（含资质承诺勾选） |
+| `farmer-register.html` | `login/farmer_register.ets` | 重写 | 农户注册 |
+| `farmer-home.html` | `home/home_page.ets` | 重写 | 农户首页（深色营收异形面板） |
+| `farmer-products.html` | `profile/product_manage.ets` | 重写 | 商品管理 |
+| `farmer-live.html` | `live/live_create.ets` | 重写 | 直播开播页 |
+| `farmer-income.html` | `home/revenue_detail.ets` | 重写 | 营收明细（与 revenue-detail.html 合并为同一页，income 为概览+明细合一） |
+| `revenue-detail.html` | `home/revenue_detail.ets` | 合并 | 与 farmer-income 合并实现，HTML 设计取两者交集 |
+| `farmer-agent.html` | `agent/agent_page.ets` | 重写 | AI 智能体页 |
+| `farmer-setting.html` | `profile/setting.ets` | 重写 | 农户设置 |
+| `seller-mall.html` | `mall/seller_mall_page.ets` | 重写 | 卖家商城 |
+| `seller-profile.html` | `profile/seller_profile.ets` | 重写 | 卖家主页 |
+| `product-publish.html` | `mall/product_publish.ets` | 重写 | 商品发布 |
+| `product-edit.html` | `mall/product_edit.ets` | 重写 | 商品编辑 |
+| `product-mgmt-pro.html` | `profile/product_manage.ets` | 重写（Pro 覆盖） | **Pro 优先**：以 product-mgmt-pro 设计为准重写 product_manage.ets，覆盖 farmer-products.html 的非 Pro 版 |
+| `live-management.html` | `profile/live_manage.ets` | 重写 | 直播管理 |
+| `withdraw.html` | `profile/withdraw.ets` | 重写 | 提现页 |
+| `fans-list.html` | `profile/fans_list.ets` | 重写 | 粉丝列表 |
+| `certification.html` | `profile/certification.ets` | 重写 | 实名认证 |
+| `market-quote.html` | `mall/market_quote.ets` | **新建** | 行情报价页（注册路由） |
+
+> farmer 模块新建页 1 个：market_quote。Pro 覆盖 1 处：product_manage.ets 以 product-mgmt-pro 为准。
+
+### 15.5.3 admin 模块（12 页）
+
+| HTML 设计稿 | 现有 .ets 路径 | 操作 | 备注 |
+| --- | --- | --- | --- |
+| `admin-login.html` | `login/admin_login.ets` | 重写 | 管理员登录 |
+| `admin-dashboard.html` | `home/admin_home.ets` | 重写 | 控制台概览 |
+| `dashboard-pro.html` | `home/admin_home.ets` | 重写（Pro 覆盖） | **Pro 优先**：以 dashboard-pro 设计为准重写 admin_home.ets，覆盖 admin-dashboard.html 的非 Pro 版 |
+| `admin-users.html` | `user_manage/user_list.ets` | 重写 | 用户列表 |
+| `user-detail.html` | `user_manage/user_detail.ets` | 重写 | 用户详情（HTML 与 user 模块共享设计，admin 侧实现为管理视角） |
+| `admin-review.html` | `content_review/review_list.ets` | 重写 | 内容审核列表 |
+| `review-detail.html` | `content_review/review_detail.ets` | 重写 | 审核详情（HTML 与 user 模块共享设计，admin 侧实现为审核视角） |
+| `admin-ads.html` | `home/admin_ads.ets` | **新建** | 广告管理页（注册路由） |
+| `api-key.html` | `api_manage/api_key.ets` | 重写 | API 密钥 |
+| `api-list.html` | `api_manage/api_list.ets` | 重写 | API 列表 |
+| `api-detail.html` | `api_manage/api_detail.ets` | 重写 | API 详情 |
+| `rate-limit.html` | `api_manage/rate_limit.ets` | 重写 | 限流配置 |
+
+> admin 模块新建页 1 个：admin_ads。Pro 覆盖 1 处：admin_home.ets 以 dashboard-pro 为准。
+
+**三端汇总**：65 HTML → 64 个 .ets（farmer-income 与 revenue-detail 合并为 1）+ 7 个新建页（user 5 + farmer 1 + admin 1）+ 2 个 Pro 覆盖（product_manage / admin_home）。另 user-detail / review-detail HTML 在 user/admin 两模块共享设计，按各模块视角分别实现。
+
+## 15.6 整页重写规则
+
+### 15.6.1 保留层（不动，复用现有实现）
+
+以下 common 层文件**严格保持现状**，UI 复刻期间不得修改其接口契约（仅可因新页接入扩展，不得删除/改签名）：
+
+- **数据层**：`common/repository/BaseRepository.ets` + 三端各 Repository 文件
+- **Mock 层**：现有 Mock 数据函数（返回 `PaginatedResult<T>` / 具体接口类型）
+- **DataSource 层**：`common/constants/BaseDataSource.ets` 基类 + 三端各 DataSource（含 4 态状态机 `loadFailed` / `getLoadFailed()` / `fetchPage` try-catch）
+- **状态管理**：`common/store/ModeStore.ets` / `ThemeStore.ets` / `TokenStore.ets`
+- **工具层**：`common/utils/ConfigUtil.ets` / `HttpUtil.ets` / `Logger.ets` / `NavigationHelper.ets` / `PreferencesUtil.ets` / `ToastUtil.ets`
+- **路由层**：`common/router/AppRouter.ets`（RouteName 常量 + 导航封装）
+- **常量层**：`common/constants/AppConstants.ets`（仅新增 15.2.2 阴影令牌常量 + 更新 GRADIENT_TOP/BOTTOM 值，不改其他现有常量）
+- **模型层**：`common/model/CommonModels.ets`（数据接口定义）
+
+### 15.6.2 重写层（整页重写）
+
+每个 .ets 页面文件**整页重写**，但必须遵守以下边界：
+
+- **build() 函数**：完全按 HTML 设计稿 1:1 还原，使用 15.4 抽取的公共组件 + 原生 ArkUI 组件
+- **页面级 state**：使用 `@Local` 重新组织，字段命名对齐 HTML 设计语义（如 `selectedRole` / `agreementChecked` / `countdownSec`）
+- **生命周期**：`aboutToAppear` 保留现有 Repository 调用与 DataSource 初始化逻辑，仅调整 UI 相关副作用
+- **事件处理**：保留现有业务跳转（`NavigationHelper.push` / Repository 写操作），按钮文案与位置按 HTML 还原
+- **数据绑定**：保留现有 DataSource / Repository 返回的数据结构，UI 渲染按 HTML 布局重组
+- **@Builder 方法**：HTML 中的复用区块（如商品卡、Tab 项）抽为 @Builder，与公共组件配合
+
+### 15.6.3 V2 装饰器强制（零 V1 例外）
+
+延续 v2.8/v3.0 已落地的「全项目 100% V2 化」路线，UI 复刻期间：
+
+- 所有页面/组件强制 `@ComponentV2`
+- 页面 state 用 `@Local`，跨组件传参用 `@Param` + `@Event`
+- 全局响应式状态（mode/theme/token）用 `@ObservedV2` + `@Trace` + `AppStorageV2.connect`
+- **禁止** `@Component` / `@State` / `@Prop` / `@Link` / `@Provide` / `@Consume` / `@Watch` / `@ObjectLink` / `@Observed` 等 V1 装饰器
+- **禁止** `@CustomDialog`（v2.8 已清零）
+- `@ObservedV2` / `@Trace` 等 builtin 装饰器**不得从 @kit.ArkUI 导入**，直接使用
+
+### 15.6.4 4 态状态机保留
+
+延续 v2.5/v2.6/v2.9 落地的 4 态状态机（error / loading / empty / list），所有列表型页面 build() 内必须保留：
+
+```
+if (dataSource.getLoadFailed()) {
+  // error 态：ListStateView state='error'
+} else if (dataSource.getIsFirstLoad()) {
+  // loading 态：ListStateView state='loading'
+} else if (dataSource.totalCount() === 0) {
+  // empty 态：ListStateView state='empty'
+} else {
+  // list 态：LazyForEach + .cachedCount(AppConstants.LIST_CACHED_COUNT) + keyGenerator
+}
+```
+
+ListStateView 视觉按 15.4.2 对齐设计稿（LoadingProgress 48 主黄、⚠️ 64px、黑色刷新按钮）。
+
+### 15.6.5 自定义对话框方案 C 保留
+
+延续 v2.8 落地的方案 C 自建模态模式，所有自定义对话框/底部 Sheet：
+
+- `@Local showXxxDialog: boolean = false`
+- `build()` 顶层 `Stack` 包裹 + `if (this.showXxxDialog) { this.XxxConfirmDialog() }`
+- `@Builder XxxConfirmDialog()`：`Stack` + 遮罩 `rgba(0,0,0,0.45)` + 内容 `Column` 80% 宽 + 双按钮
+- 设计稿 `.qn-mask` + `.qn-sheet` 模式由 15.4.1 `QnSheet` 组件承载
+
+## 15.7 路由注册规则
+
+新页（15.5 标注"新建"的 7 个）必须完成路由注册方可访问：
+
+1. **RouteName 常量**：在 `common/router/AppRouter.ets` 的 `RouteName` 类中新增路由名常量（如 `USER_BOOKING` / `USER_DETAIL` / `CATEGORY_PAGE` / `PAYMENT_PAGE` / `REVIEW_DETAIL` / `MARKET_QUOTE` / `ADMIN_ADS`）
+2. **NavPathStack 路由表**：在对应模块 `root_page.ets` 的 `@Builder PageMap`（或 Navigation navDestination 路由表）中新增 case 分支，加载新页面组件
+3. **main_pages.json**：保持现状（仅 `pages/root/root_page`），新页通过 Navigation NavPathStack 动态加载，无需注册到 main_pages.json
+4. **跳转调用**：使用 `NavigationHelper.push(RouteName.XXX, params)` 声明式路由
+
+## 15.8 分批实施计划
+
+### 15.8.1 Phase A：user 模块（34 页）
+
+**前置**：完成 15.2 color.json 更新 + 15.3 资源迁移 + 15.4 公共组件抽取
+
+**实施顺序**（按依赖关系排序）：
+
+| 批次 | 页面 | 数量 | 说明 |
+| --- | --- | --- | --- |
+| A-1 | login + user-register + splash-ad | 3 | 登录注册流，含角色选择卡片、吉祥物、协议勾选 |
+| A-2 | user-home | 1 | 首页 Tab（最复杂，含英雄横幅、九宫格、直播横滑、瀑布流） |
+| A-3 | user-live + live-room | 2 | 直播 Tab + 直播间 |
+| A-4 | user-community + post-detail + post-create | 3 | 社区 Tab + 帖子详情/发帖 |
+| A-5 | user-cart + order + order-detail + order-confirm + payment + review-create + review-detail | 7 | 购物车 + 订单全流 + 评价 |
+| A-6 | user-profile + favorite + follow + history + address-list + address-edit + coupon + wallet + setting + user-detail | 10 | 我的 Tab + 个人中心子页 |
+| A-7 | message + chat-detail | 2 | 消息模块 |
+| A-8 | search + category + product-list + product-detail | 4 | 搜索/分类/商品 |
+| A-9 | travel-map + poi-detail + user-booking | 3 | 文旅模块（含百度地图） |
+
+**Phase A 收口**：user 模块 hvigorw assembleHap BUILD SUCCESSFUL + 模拟器视觉走查 34 页
+
+### 15.8.2 Phase B：farmer 模块（18 页）
+
+| 批次 | 页面 | 数量 |
+| --- | --- | --- |
+| B-1 | farmer-login + farmer-register + splash-ad（farmer 侧） | 3 |
+| B-2 | farmer-home + farmer-income + revenue-detail + withdraw | 4 |
+| B-3 | farmer-products + product-mgmt-pro（Pro 覆盖）+ product-publish + product-edit + seller-mall + market-quote（新建） | 6 |
+| B-4 | farmer-live + live-management + live-room（farmer 侧） | 3 |
+| B-5 | farmer-agent + seller-profile + fans-list + certification + farmer-setting | 5 |
+
+**Phase B 收口**：farmer 模块 BUILD SUCCESSFUL + 视觉走查 18 页
+
+### 15.8.3 Phase C：admin 模块（12 页）
+
+| 批次 | 页面 | 数量 |
+| --- | --- | --- |
+| C-1 | admin-login + splash-ad（admin 侧） | 2 |
+| C-2 | admin-dashboard + dashboard-pro（Pro 覆盖）+ admin-ads（新建） | 3 |
+| C-3 | admin-users + user-detail + admin-review + review-detail | 4 |
+| C-4 | api-key + api-list + api-detail + rate-limit | 4 |
+
+**Phase C 收口**：admin 模块 BUILD SUCCESSFUL + 视觉走查 12 页 + v4.0 整体收口
+
+## 15.9 验收标准（四维）
+
+### 15.9.1 视觉保真度
+- 每个页面与对应 HTML 设计稿 1:1 对齐：颜色（取值按 15.2.1 令牌表）、字号（15.2.3 排版尺度）、圆角、阴影、间距
+- 公共组件（15.4）视觉与 CSS 类定义一致
+- 允许的差异：ArkUI 无 box-shadow，用 `.shadow(ShadowOptions)` 等价映射；CSS `linear-gradient` 用 `.linearGradient` 等价映射；CSS hover/active 伪类用 `.stateStyles` / `:.pressed` 替代
+
+### 15.9.2 功能保留
+- 现有 Repository / Mock / DataSource / ViewModel 调用链路不变
+- 现有路由跳转（NavigationHelper.push）全部可达
+- 现有 4 态状态机（error/loading/empty/list）保留
+- 现有业务逻辑（登录/下单/支付/直播/IM/审核/RBAC）行为不变
+
+### 15.9.3 编译通过
+- 每个模块完成后 `hvigorw assembleHap --no-daemon` 三端 BUILD SUCCESSFUL
+- 0 ERROR（仅允许签名配置 WARN）
+- 0 弃用 API 警告（延续 v1.8/v3.0 成果）
+- VSCode GetDiagnostics 静态诊断 0 ERROR
+
+### 15.9.4 V2 合规
+- 全项目 0 个 V1 装饰器（@Component/@State/@Prop/@Link/@Provide/@Consume/@Watch/@ObjectLink/@Observed）
+- 全项目 0 个 @CustomDialog
+- 所有新增/重写页面/组件使用 @ComponentV2 + @Local/@Param/@Event/@ObservedV2/@Trace
+- @ObservedV2/@Trace 不从 @kit.ArkUI 导入
+
+## 15.10 风险与回滚
+
+| 风险 | 影响 | 缓解措施 |
+| --- | --- | --- |
+| 设计稿 HTML 与 spec v3.4 业务功能存在冲突 | 中 | 以 HTML 为 UI 准、spec v3.4 为功能准；冲突点上报用户确认，不擅自取舍 |
+| 整页重写可能引入业务回归 | 高 | 保留层（15.6.1）不动；每批次编译验证；模拟器走查关键路径 |
+| 新建页 7 个无现有 Mock 数据 | 中 | 复用同模块同类 Mock（如 payment 复用 order Mock）；必要时新增 Mock 函数但保持 PaginatedResult<T>/接口契约 |
+| 百度地图 SDK 集成在 travel-map 复刻 | 低 | 沿用 v1.3 落地的 SDK 开关策略，ConfigUtil.baiduMapAk 已就位 |
+| 图片资源体积较大（17 张 ~6MB） | 低 | 放入 AppScope/media 三端共享，避免重复打包 |
+| 回滚需求 | — | v3.4 已归档至 `spec_v3.4_archived.md`；代码层每模块完成后 git commit，可按模块回滚 |
+
+---
+
+**文档结束（v4.0）**
+
+> 本 spec.md v4.0 已涵盖 v3.4 全部章节（项目概述、三端产品定位、全局技术规范、分端页面清单+布局规范、完整数据实体Model、路由清单、业务全流程、权限清单、AI预留接口清单、交互规则、榜单广告规则、切换模式规则、开发实现顺序、待确认疑问清单、第 11~14 章配色/主题改造）+ 新增第 15 章 UI 复刻实施基线（决策回执、设计令牌映射、资源迁移、组件抽取、65 页对照总表、重写规则、路由注册、三阶段分批计划、四维验收标准、风险回滚）。
+>
+> 第 15 章需求已通过与用户确认（第 28 批需求确认回执，4 项关键决策：按模块分批 / 整页重写复用服务层 / 生成 v4.0 新 spec / Pro 优先+新页新建），可作为后续 UI 复刻开发的唯一基线依据。
+>
+> 实施期间如遇 HTML 设计稿与 spec 既有功能冲突，需重新走需求确认流程并更新 spec.md 版本号。

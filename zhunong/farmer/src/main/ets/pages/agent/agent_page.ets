@@ -1,139 +1,198 @@
 /**
  * agent_page - 智能体页（spec 3.2.1 / 8.3）
  *
- * 现阶段仅搭建空白页面 + 预留全局接口调用层
- * 预留 AI 场景接口：
- *  - 智能商品介绍（TTS 语音合成）→ AiAgentClient.tts
- *  - 智能商品顺序推荐 → AiAgentClient.recommend
+ * 对齐设计稿 pages/farmer-agent.html：
+ *  - 顶部栏：返回 + "AI 助手" + 清空对话
+ *  - 黄色助手介绍卡（头像 + 名称 + 在线状态）
+ *  - 对话区域（AI 消息 + 用户消息 + 建议卡片）
+ *  - 快捷提问芯片（5个：销量/采摘/病虫害/话术/价格）
+ *  - 底部输入栏（语音 + 输入框 + 发送）
  *
- * 现阶段 Mock 策略：
- *  - TTS：返回预设音频文件 URL
- *  - 商品推荐：返回该卖家销量 Top5 商品
+ * spec 8.3：AI 农业顾问对话式交互
  */
 
 import { Logger, AppConstants, ToastUtil, NavigationHelper, RouteName } from 'common';
-import { AiTtsRequest, AiTtsResponse, AiRecommendRequest, AiRecommendResponse, AiRecommendItem } from '../../model/AiModels';
-import { AiAgentClient } from '../../utils/AiAgentClient';
-import { FarmerProductItem } from '../../model/FarmerModels';
-import { MOCK_FARMER_ID, MOCK_FARMER_PRODUCTS } from '../../mock/FarmerMock';
+import { ImageUtil } from '../../utils/ImageUtil';
 
-/** 推荐商品展示项（含商品基础信息） */
-interface RecommendDisplayItem {
-  productId: string;
-  reason: string;
-  priority: number;
-  productTitle: string;
-  productPrice: number;
+/** 消息角色 */
+type ChatRole = 'ai' | 'user';
+
+/** 消息类型 */
+type ChatMessageType = 'text' | 'suggest' | 'quote';
+
+/** 聊天消息 */
+interface ChatMessage {
+  /** 消息 ID */
+  msgId: string;
+  /** 角色 */
+  role: ChatRole;
+  /** 消息类型 */
+  type: ChatMessageType;
+  /** 文本内容 */
+  content: string;
+  /** 引用块内容（话术） */
+  quote?: string;
+  /** 建议卡片（仅 type=suggest 时） */
+  suggest?: ChatSuggest;
 }
 
-/** 音色选项 */
-interface VoiceOption {
-  value: string;
-  label: string;
-}
-
-/** 商品选项（用于 Select 下拉） */
-interface ProductOption {
-  productId: string;
+/** 建议卡片 */
+interface ChatSuggest {
+  /** 标题 */
   title: string;
+  /** 描述 */
+  desc: string;
+  /** 预期提升百分比 */
+  uplift: string;
+  /** 按钮文案 */
+  btnLabel: string;
+  /** 跳转路由 */
+  route: string;
+}
+
+/** 快捷提问项 */
+interface QuickPrompt {
+  /** 图标 emoji */
+  icon: string;
+  /** 提示文案 */
+  label: string;
+  /** 发送内容 */
+  content: string;
 }
 
 @ComponentV2
 export struct AgentPage {
-  /** 推荐结果列表 */
-  @Local recommendList: RecommendDisplayItem[] = [];
-  /** 是否正在加载推荐 */
-  @Local isLoadingRecommend: boolean = false;
-  /** 是否正在生成 TTS */
-  @Local isGeneratingTts: boolean = false;
-  /** TTS 输入文本 */
-  @Local ttsText: string = '';
-  /** 选中的音色 */
-  @Local voiceType: string = 'female';
-  /** TTS 结果 URL */
-  @Local ttsAudioUrl: string = '';
-  /** TTS 时长 */
-  @Local ttsDuration: number = 0;
-  /** 选中的商品 ID（用于 TTS） */
-  @Local selectedProductId: string = '';
+  /** 消息列表 */
+  @Local messages: ChatMessage[] = [];
+  /** 输入框文本 */
+  @Local inputText: string = '';
+  /** 是否正在思考 */
+  @Local isThinking: boolean = false;
+  /** 滚动控制器 */
+  private scroller: Scroller = new Scroller();
 
-  /** 音色选项 */
-  private voiceOptions: VoiceOption[] = [
-    { value: 'female', label: '女声' },
-    { value: 'male', label: '男声' },
-    { value: 'dialect', label: '方言' }
+  /** 快捷提问 */
+  private quickPrompts: QuickPrompt[] = [
+    { icon: '📈', label: '如何提高销量?', content: '最近草莓销量下降了, 怎么办?' },
+    { icon: '🌾', label: '今天适合采摘吗?', content: '今天适合采摘吗?' },
+    { icon: '🐛', label: '病虫害防治', content: '番茄叶子发黄, 怎么防治?' },
+    { icon: '📹', label: '直播话术', content: '帮我写个草莓直播话术' },
+    { icon: '💰', label: '价格建议', content: '草莓定价多少合适?' }
   ];
 
-  /** 商品选项（Mock：卖家在售商品） */
-  private productOptions: ProductOption[] = MOCK_FARMER_PRODUCTS
-    .filter((p: FarmerProductItem): boolean => p.status === 'approved')
-    .map((p: FarmerProductItem): ProductOption => { return { productId: p.productId, title: p.title }; });
-
-  async aboutToAppear(): Promise<void> {
+  aboutToAppear(): void {
     Logger.info(AppConstants.SCENE_FARMER, { action: 'agent_page_appear' });
-    if (this.productOptions.length > 0) {
-      this.selectedProductId = this.productOptions[0].productId;
-    }
+    this.initConversation();
   }
 
-  /** 调用 TTS 接口（spec 8.3.1） */
-  private async generateTts(): Promise<void> {
-    if (this.ttsText.length === 0) {
-      ToastUtil.warning('请输入待合成文本');
-      return;
-    }
-    if (this.selectedProductId.length === 0) {
-      ToastUtil.warning('请选择商品');
-      return;
-    }
-    this.isGeneratingTts = true;
-    this.ttsAudioUrl = '';
-    try {
-      const request: AiTtsRequest = {
-        productId: this.selectedProductId,
-        text: this.ttsText,
-        voiceType: this.voiceType
-      };
-      const response: AiTtsResponse = await AiAgentClient.tts(request);
-      this.ttsAudioUrl = response.audioUrl;
-      this.ttsDuration = response.duration;
-      ToastUtil.success(`语音合成完成，时长 ${response.duration}s`);
-      Logger.info(AppConstants.SCENE_FARMER, { action: 'tts_success', duration: response.duration });
-    } catch (err) {
-      Logger.error(AppConstants.SCENE_FARMER, { action: 'tts_fail', error: (err as Error).message });
-      ToastUtil.error('语音合成失败');
-    } finally {
-      this.isGeneratingTts = false;
-    }
+  /** 初始化对话 */
+  private initConversation(): void {
+    this.messages = [
+      {
+        msgId: 'm1',
+        role: 'ai',
+        type: 'text',
+        content: '你好, 王大叔! 我是你的AI农业助手。有什么可以帮你的吗? 可以问我种植技巧、销售建议、直播话术等问题。'
+      }
+    ];
   }
 
-  /** 调用商品推荐接口（spec 8.3.2） */
-  private async generateRecommend(): Promise<void> {
-    this.isLoadingRecommend = true;
-    this.recommendList = [];
-    try {
-      const request: AiRecommendRequest = {
-        farmerId: MOCK_FARMER_ID,
-        context: 'opening'
+  /** 清空对话 */
+  private clearConversation(): void {
+    Logger.info(AppConstants.SCENE_FARMER, { action: 'agent_clear_chat' });
+    this.initConversation();
+    ToastUtil.info('已清空对话');
+  }
+
+  /** 发送消息 */
+  private sendMessage(text: string): void {
+    if (text.trim().length === 0 || this.isThinking) {
+      return;
+    }
+    // 添加用户消息
+    const userMsg: ChatMessage = {
+      msgId: `u${Date.now()}`,
+      role: 'user',
+      type: 'text',
+      content: text.trim()
+    };
+    this.messages.push(userMsg);
+    this.inputText = '';
+    Logger.info(AppConstants.SCENE_FARMER, { action: 'agent_user_send', msg: text.trim() });
+
+    // 模拟 AI 思考并回复
+    this.isThinking = true;
+    setTimeout(() => {
+      this.isThinking = false;
+      this.generateAiReply(text.trim());
+    }, 800);
+  }
+
+  /** 生成 AI 回复（Mock 智能回复） */
+  private generateAiReply(userText: string): void {
+    let aiMsg: ChatMessage;
+    if (userText.includes('销量') || userText.includes('下降')) {
+      // 销量建议 + 建议卡片
+      aiMsg = {
+        msgId: `a${Date.now()}`,
+        role: 'ai',
+        type: 'suggest',
+        content: '根据分析, 你的草莓销量近7天下降了12%。建议: 1. 开启直播带货, 展示采摘过程; 2. 推出限时优惠组合装; 3. 优化商品主图, 突出"现摘"卖点。',
+        suggest: {
+          title: '开启直播',
+          desc: '展示采摘过程，吸引买家下单',
+          uplift: '30%',
+          btnLabel: '去开播',
+          route: RouteName.FARMER_LIVE_CREATE
+        }
       };
-      const response: AiRecommendResponse = await AiAgentClient.recommend(request);
-      this.recommendList = response.recommendations.map((r: AiRecommendItem): RecommendDisplayItem => {
-        const product: FarmerProductItem | undefined = MOCK_FARMER_PRODUCTS.find((p: FarmerProductItem): boolean => p.productId === r.productId);
-        return {
-          productId: r.productId,
-          reason: r.reason,
-          priority: r.priority,
-          productTitle: product?.title ?? '商品',
-          productPrice: product?.price ?? 0
-        };
-      });
-      ToastUtil.success(`已生成 ${response.recommendations.length} 个推荐商品`);
-      Logger.info(AppConstants.SCENE_FARMER, { action: 'recommend_success', count: response.recommendations.length });
-    } catch (err) {
-      Logger.error(AppConstants.SCENE_FARMER, { action: 'recommend_fail', error: (err as Error).message });
-      ToastUtil.error('推荐生成失败');
-    } finally {
-      this.isLoadingRecommend = false;
+    } else if (userText.includes('话术') || userText.includes('直播')) {
+      // 直播话术 + 引用块
+      aiMsg = {
+        msgId: `a${Date.now()}`,
+        role: 'ai',
+        type: 'quote',
+        content: '没问题! 以下是草莓直播话术:',
+        quote: '『家人们好! 欢迎来到王大叔的果园! 今天带大家看看我家现摘的奶油草莓~ 你看这颜色, 红透透的, 咬一口满嘴奶香! 限时特价29.9元2斤, 顺丰冷链直达, 收到还是新鲜的! 数量有限, 先到先得!』'
+      };
+    } else if (userText.includes('采摘')) {
+      aiMsg = {
+        msgId: `a${Date.now()}`,
+        role: 'ai',
+        type: 'text',
+        content: '根据今日天气预报, 气温 22-28℃, 湿度 65%, 无降雨。上午 8-10 点是最佳采摘时段, 此时草莓表面无露水, 利于保存。建议今天采摘, 但避免正午高温时段。'
+      };
+    } else if (userText.includes('病虫害') || userText.includes('发黄')) {
+      aiMsg = {
+        msgId: `a${Date.now()}`,
+        role: 'ai',
+        type: 'text',
+        content: '番茄叶子发黄可能原因: 1. 缺氮肥, 建议追施尿素 5kg/亩; 2. 根腐病, 检查根部是否发黑, 可用多菌灵灌根; 3. 浇水过多导致根系缺氧, 控制浇水频率。建议先检查根部状况, 再对症处理。'
+      };
+    } else if (userText.includes('价格') || userText.includes('定价')) {
+      aiMsg = {
+        msgId: `a${Date.now()}`,
+        role: 'ai',
+        type: 'text',
+        content: '根据市场行情分析, 当前草莓均价 ¥12.8/斤。你的草莓品质较好, 建议定价 ¥29.9/2斤 (约 ¥15/斤), 略高于市场均价, 突出"现摘奶油"卖点。可配合限时优惠促进转化。'
+      };
+    } else {
+      // 默认回复
+      aiMsg = {
+        msgId: `a${Date.now()}`,
+        role: 'ai',
+        type: 'text',
+        content: '我理解你的问题。作为你的AI农业助手, 我可以帮你解答种植技巧、销售策略、直播话术、病虫害防治等问题。请告诉我更具体的需求。'
+      };
+    }
+    this.messages.push(aiMsg);
+  }
+
+  /** 点击建议卡片按钮 */
+  private onSuggestClick(route: string): void {
+    Logger.info(AppConstants.SCENE_FARMER, { action: 'agent_suggest_click', url: route });
+    if (route.length > 0) {
+      NavigationHelper.push(route);
     }
   }
 
@@ -141,17 +200,10 @@ export struct AgentPage {
     NavDestination() {
       Column() {
         this.TopBar()
-        Scroll() {
-          Column({ space: 16 }) {
-            this.HeaderCard()
-            this.TtsCard()
-            this.RecommendCard()
-          }
-          .width('100%')
-          .padding({ left: 16, right: 16, top: 16, bottom: 24 })
-        }
-        .layoutWeight(1)
-        .scrollBar(BarState.Off)
+        this.AgentIntroCard()
+        this.ChatArea()
+        this.QuickChipsBar()
+        this.InputBar()
       }
       .width('100%')
       .height('100%')
@@ -160,237 +212,346 @@ export struct AgentPage {
     .hideTitleBar(true)
   }
 
-  /** 顶部导航 */
+  /** 顶部导航栏 */
   @Builder
   TopBar() {
-    Row({ space: 12 }) {
+    Row() {
       Text('‹')
         .fontSize(28)
         .fontColor($r('app.color.color_text_primary'))
+        .width(40)
+        .height(40)
+        .textAlign(TextAlign.Center)
         .onClick(() => NavigationHelper.pop())
-      Text('AI 智能体')
+      Text('AI 助手')
         .fontSize(18)
         .fontColor($r('app.color.color_text_primary'))
         .fontWeight(FontWeight.Medium)
         .layoutWeight(1)
+        .textAlign(TextAlign.Center)
+      Text('清空')
+        .fontSize(12)
+        .fontColor($r('app.color.color_text_secondary'))
+        .width(40)
+        .height(40)
+        .textAlign(TextAlign.Center)
+        .onClick(() => this.clearConversation())
     }
     .width('100%')
     .height(56)
-    .padding({ left: 16, right: 16 })
+    .padding({ left: 12, right: 12 })
     .backgroundColor($r('app.color.color_bg_card'))
     .alignItems(VerticalAlign.Center)
   }
 
-  /** 头部说明卡 */
+  /** 黄色助手介绍卡 */
   @Builder
-  HeaderCard() {
-    Column({ space: 8 }) {
-      Text('🤖')
-        .fontSize(48)
-      Text('AI 智能体助手')
-        .fontSize(18)
-        .fontColor($r('app.color.color_text_primary'))
-        .fontWeight(FontWeight.Bold)
-      Text('为卖家提供智能商品介绍语音合成与商品顺序推荐')
-        .fontSize(12)
-        .fontColor($r('app.color.color_text_secondary'))
-        .textAlign(TextAlign.Center)
-      Text('当前阶段：接口层完整预留 + Mock 数据')
-        .fontSize(11)
-        .fontColor($r('app.color.color_text_hint'))
-        .margin({ top: 4 })
-    }
-    .width('100%')
-    .padding(20)
-    .borderRadius(12)
-    .backgroundColor($r('app.color.color_bg_card'))
-    .alignItems(HorizontalAlign.Center)
-  }
-
-  /** TTS 卡片（spec 8.3.1） */
-  @Builder
-  TtsCard() {
-    Column({ space: 12 }) {
-      Row() {
-        Text('🔊 智能商品介绍 TTS')
-          .fontSize(14)
-          .fontColor($r('app.color.color_text_primary'))
+  AgentIntroCard() {
+    Row({ space: 12 }) {
+      // AI 头像
+      Image(ImageUtil.get('mascot_farmer'))
+        .width(48)
+        .height(48)
+        .borderRadius(24)
+        .objectFit(ImageFit.Cover)
+        .border({ width: 2, color: Color.White })
+      // 名称 + 副标题
+      Column({ space: 2 }) {
+        Text('趣农AI助手')
+          .fontSize(16)
+          .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Bold)
-          .layoutWeight(1)
-        Text('spec 8.3.1')
-          .fontSize(10)
-          .fontColor($r('app.color.color_text_hint'))
-      }
-      .width('100%')
-
-      // 商品选择
-      Column({ space: 6 }) {
-        Text('选择商品')
+        Text('你的智能农业顾问')
           .fontSize(12)
-          .fontColor($r('app.color.color_text_secondary'))
-          .alignSelf(ItemAlign.Start)
-        Select(this.productOptions.map((p: ProductOption): SelectOption => { return { value: p.title }; }))
-          .selected(this.productOptions.findIndex((p: ProductOption) => p.productId === this.selectedProductId))
-          .value(this.productOptions.find((p: ProductOption) => p.productId === this.selectedProductId)?.title ?? '请选择商品')
-          .height(44)
-          .borderRadius(8)
-          .backgroundColor($r('app.color.color_bg_page'))
-          .onSelect((idx: number) => {
-            this.selectedProductId = this.productOptions[idx].productId;
-          })
+          .fontColor('rgba(26,26,26,0.6)')
       }
-      .width('100%')
-
-      // 音色选择
-      Column({ space: 6 }) {
-        Text('音色')
-          .fontSize(12)
-          .fontColor($r('app.color.color_text_secondary'))
-          .alignSelf(ItemAlign.Start)
-        Row() {
-          ForEach(this.voiceOptions, (opt: VoiceOption) => {
-            Text(opt.label)
-              .fontSize(12)
-              .fontColor(this.voiceType === opt.value ? Color.White : $r('app.color.color_text_primary'))
-              .backgroundColor(this.voiceType === opt.value ? $r('app.color.color_primary') : $r('app.color.color_bg_page'))
-              .padding({ left: 12, right: 12, top: 6, bottom: 6 })
-              .borderRadius(14)
-              .margin({ right: 8 })
-              .onClick(() => { this.voiceType = opt.value; })
-          }, (opt: VoiceOption) => opt.value)
-        }
-        .width('100%')
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+      // 在线状态
+      Row({ space: 4 }) {
+        Text('')
+          .width(6)
+          .height(6)
+          .borderRadius(3)
+          .backgroundColor($r('app.color.color_primary'))
+        Text('在线')
+          .fontSize(11)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Medium)
       }
-      .width('100%')
-
-      // 待合成文本
-      Column({ space: 6 }) {
-        Text('介绍文案')
-          .fontSize(12)
-          .fontColor($r('app.color.color_text_secondary'))
-          .alignSelf(ItemAlign.Start)
-        TextArea({ text: this.ttsText, placeholder: '输入商品介绍文案，如：高山有机青菜，新鲜采摘，富含维生素...' })
-          .height(80)
-          .borderRadius(8)
-          .backgroundColor($r('app.color.color_bg_page'))
-          .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-          .fontSize(13)
-          .maxLength(500)
-          .onChange((v: string) => { this.ttsText = v; })
-      }
-      .width('100%')
-
-      // 生成按钮
-      Button(this.isGeneratingTts ? '合成中...' : '生成语音')
-        .width('100%')
-        .height(40)
-        .borderRadius(20)
-        .backgroundColor(this.isGeneratingTts ? $r('app.color.color_button_disabled') : $r('app.color.color_secondary'))
-        .fontColor(Color.White)
-        .fontSize(13)
-        .enabled(!this.isGeneratingTts)
-        .onClick(() => { this.generateTts(); })
-
-      // TTS 结果
-      if (this.ttsAudioUrl.length > 0) {
-        Row({ space: 8 }) {
-          Text('🔊')
-            .fontSize(20)
-          Column({ space: 2 }) {
-            Text('合成成功')
-              .fontSize(12)
-              .fontColor($r('app.color.color_primary'))
-              .fontWeight(FontWeight.Medium)
-            Text(`时长：${this.ttsDuration}s · URL: ${this.ttsAudioUrl}`)
-              .fontSize(10)
-              .fontColor($r('app.color.color_text_hint'))
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-          }
-          .alignItems(HorizontalAlign.Start)
-          .layoutWeight(1)
-        }
-        .width('100%')
-        .padding(10)
-        .borderRadius(8)
-        .backgroundColor($r('app.color.color_primary_light'))
-        .opacity(0.3)
-      }
+      .padding({ left: 8, right: 10, top: 4, bottom: 4 })
+      .borderRadius(AppConstants.RADIUS_PILL)
+      .backgroundColor('rgba(255,255,255,0.5)')
     }
     .width('100%')
     .padding(16)
-    .borderRadius(12)
-    .backgroundColor($r('app.color.color_bg_card'))
+    .borderRadius(AppConstants.RADIUS_LG)
+    .backgroundColor($r('app.color.color_yellow'))
+    .alignItems(VerticalAlign.Center)
   }
 
-  /** 商品推荐卡片（spec 8.3.2） */
+  /** 对话区域 */
   @Builder
-  RecommendCard() {
-    Column({ space: 12 }) {
-      Row() {
-        Text('🎯 智能商品顺序推荐')
-          .fontSize(14)
+  ChatArea() {
+    Scroll(this.scroller) {
+      Column({ space: 16 }) {
+        ForEach(this.messages, (msg: ChatMessage) => {
+          if (msg.role === 'ai') {
+            this.AiMessage(msg)
+          } else {
+            this.UserMessage(msg)
+          }
+        }, (msg: ChatMessage) => msg.msgId)
+        // 思考中提示
+        if (this.isThinking) {
+          this.ThinkingIndicator()
+        }
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 16, bottom: 16 })
+    }
+    .layoutWeight(1)
+    .scrollBar(BarState.Off)
+    .align(Alignment.TopStart)
+  }
+
+  /** AI 消息（左侧 + 头像） */
+  @Builder
+  AiMessage(msg: ChatMessage) {
+    Row({ space: 8 }) {
+      // AI 头像
+      Image(ImageUtil.get('mascot_farmer'))
+        .width(32)
+        .height(32)
+        .borderRadius(16)
+        .objectFit(ImageFit.Cover)
+      // 消息气泡 + 建议卡片
+      Column({ space: 8 }) {
+        // 气泡
+        Column({ space: 8 }) {
+          Text(msg.content)
+            .fontSize(13)
+            .fontColor($r('app.color.color_text_primary'))
+            .lineHeight(20)
+          // 引用块（话术）
+          if (msg.quote) {
+            Text(msg.quote)
+              .fontSize(12)
+              .fontColor('rgba(26,26,26,0.7)')
+              .fontStyle(FontStyle.Italic)
+              .lineHeight(18)
+              .padding(10)
+              .borderRadius(8)
+              .backgroundColor('rgba(255,255,255,0.6)')
+              .border({ width: 1, color: 'rgba(26,26,26,0.1)' })
+              .width('100%')
+          }
+        }
+        .padding(12)
+        .borderRadius(AppConstants.RADIUS_LG)
+        .backgroundColor($r('app.color.color_bg_card'))
+        .shadow(AppConstants.SHADOW_CARD)
+        .alignItems(HorizontalAlign.Start)
+
+        // 建议卡片
+        if (msg.type === 'suggest' && msg.suggest) {
+          this.SuggestCard(msg.suggest)
+        }
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+    }
+    .width('100%')
+    .alignItems(VerticalAlign.Top)
+  }
+
+  /** 用户消息（右侧 + 头像） */
+  @Builder
+  UserMessage(msg: ChatMessage) {
+    Row({ space: 8 }) {
+      // 消息气泡
+      Column() {
+        Text(msg.content)
+          .fontSize(13)
+          .fontColor($r('app.color.color_ink'))
+          .lineHeight(20)
+      }
+      .padding(12)
+      .borderRadius(AppConstants.RADIUS_LG)
+      .backgroundColor($r('app.color.color_yellow'))
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+
+      // 用户头像
+      Image(ImageUtil.get('avatar_farmer'))
+        .width(32)
+        .height(32)
+        .borderRadius(16)
+        .objectFit(ImageFit.Cover)
+    }
+    .width('100%')
+    .alignItems(VerticalAlign.Top)
+  }
+
+  /** 建议卡片 */
+  @Builder
+  SuggestCard(suggest: ChatSuggest) {
+    Column({ space: 8 }) {
+      // 标题行
+      Row({ space: 6 }) {
+        Text('✨')
+          .fontSize(16)
+        Text(suggest.title)
+          .fontSize(13)
           .fontColor($r('app.color.color_text_primary'))
           .fontWeight(FontWeight.Bold)
           .layoutWeight(1)
-        Text('spec 8.3.2')
-          .fontSize(10)
-          .fontColor($r('app.color.color_text_hint'))
       }
       .width('100%')
-      Text('根据商品销量与直播间上下文，智能推荐讲解顺序')
-        .fontSize(11)
-        .fontColor($r('app.color.color_text_secondary'))
-        .width('100%')
+      .alignItems(VerticalAlign.Center)
 
-      Button(this.isLoadingRecommend ? '推荐中...' : '生成推荐')
-        .width('100%')
-        .height(40)
-        .borderRadius(20)
-        .backgroundColor(this.isLoadingRecommend ? $r('app.color.color_button_disabled') : $r('app.color.color_primary'))
-        .fontColor(Color.White)
-        .fontSize(13)
-        .enabled(!this.isLoadingRecommend)
-        .onClick(() => { this.generateRecommend(); })
+      // 描述行（含预期提升）
+      Row({ space: 4 }) {
+        Text('↑')
+          .fontSize(11)
+          .fontColor($r('app.color.color_primary'))
+        Text('预计提升')
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_hint'))
+        Text(suggest.uplift)
+          .fontSize(11)
+          .fontColor($r('app.color.color_primary'))
+          .fontWeight(FontWeight.Bold)
+        Text('销量')
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_hint'))
+        Blank()
+        Text(suggest.desc)
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_secondary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
 
-      // 推荐结果
-      ForEach(this.recommendList, (item: RecommendDisplayItem, _idx: number) => {
-        Row({ space: 8 }) {
-          Text(`${item.priority}`)
-            .fontSize(14)
-            .fontColor(Color.White)
-            .fontWeight(FontWeight.Bold)
-            .width(28)
-            .height(28)
-            .borderRadius(14)
-            .backgroundColor($r('app.color.color_secondary'))
-            .textAlign(TextAlign.Center)
-          Column({ space: 2 }) {
-            Text(item.productTitle)
-              .fontSize(13)
-              .fontColor($r('app.color.color_text_primary'))
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-            Text(item.reason)
+      // 操作按钮
+      Row({ space: 4 }) {
+        Text(suggest.btnLabel)
+          .fontSize(12)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+        Text('›')
+          .fontSize(12)
+          .fontColor($r('app.color.color_ink'))
+      }
+      .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+      .borderRadius(AppConstants.RADIUS_PILL)
+      .backgroundColor($r('app.color.color_yellow'))
+      .onClick(() => this.onSuggestClick(suggest.route))
+    }
+    .width('100%')
+    .padding(12)
+    .borderRadius(AppConstants.RADIUS_LG)
+    .backgroundColor($r('app.color.color_yellow_tint'))
+    .border({ width: 1, color: $r('app.color.color_yellow_soft') })
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  /** 思考中指示器 */
+  @Builder
+  ThinkingIndicator() {
+    Row({ space: 8 }) {
+      Image(ImageUtil.get('mascot_farmer'))
+        .width(32)
+        .height(32)
+        .borderRadius(16)
+        .objectFit(ImageFit.Cover)
+      Row({ space: 4 }) {
+        Text('.')
+          .fontSize(20)
+          .fontColor($r('app.color.color_text_hint'))
+        Text('.')
+          .fontSize(20)
+          .fontColor($r('app.color.color_text_hint'))
+        Text('.')
+          .fontSize(20)
+          .fontColor($r('app.color.color_text_hint'))
+      }
+      .padding(12)
+      .borderRadius(AppConstants.RADIUS_LG)
+      .backgroundColor($r('app.color.color_bg_card'))
+      .shadow(AppConstants.SHADOW_CARD)
+    }
+    .width('100%')
+    .alignItems(VerticalAlign.Top)
+  }
+
+  /** 快捷提问芯片栏 */
+  @Builder
+  QuickChipsBar() {
+    Scroll() {
+      Row({ space: 8 }) {
+        ForEach(this.quickPrompts, (prompt: QuickPrompt) => {
+          Row({ space: 4 }) {
+            Text(prompt.icon)
+              .fontSize(11)
+            Text(prompt.label)
               .fontSize(11)
               .fontColor($r('app.color.color_text_secondary'))
           }
-          .alignItems(HorizontalAlign.Start)
-          .layoutWeight(1)
-          Text(`¥${item.productPrice.toFixed(2)}`)
-            .fontSize(12)
-            .fontColor($r('app.color.color_price'))
-            .fontWeight(FontWeight.Bold)
-        }
-        .width('100%')
-        .padding(10)
-        .borderRadius(8)
-        .backgroundColor($r('app.color.color_bg_page'))
-      }, (item: RecommendDisplayItem) => item.productId)
+          .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+          .borderRadius(AppConstants.RADIUS_PILL)
+          .backgroundColor($r('app.color.color_bg_card'))
+          .border({ width: 1, color: $r('app.color.color_divider') })
+          .onClick(() => { this.sendMessage(prompt.content); })
+        }, (prompt: QuickPrompt) => prompt.label)
+      }
+      .padding({ left: 16, right: 16 })
+    }
+    .scrollable(ScrollDirection.Horizontal)
+    .scrollBar(BarState.Off)
+    .width('100%')
+    .padding({ top: 8, bottom: 8 })
+  }
+
+  /** 底部输入栏 */
+  @Builder
+  InputBar() {
+    Row({ space: 8 }) {
+      // 语音按钮
+      Text('🎤')
+        .fontSize(20)
+        .width(36)
+        .height(36)
+        .borderRadius(18)
+        .backgroundColor($r('app.color.color_bg_card'))
+        .textAlign(TextAlign.Center)
+        .onClick(() => ToastUtil.info('语音输入功能开发中'))
+      // 输入框
+      TextInput({ text: this.inputText, placeholder: '输入你的问题...' })
+        .layoutWeight(1)
+        .height(36)
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .backgroundColor($r('app.color.color_bg_card'))
+        .padding({ left: 14, right: 14 })
+        .fontSize(13)
+        .onChange((v: string) => { this.inputText = v; })
+        .onSubmit(() => { this.sendMessage(this.inputText); })
+      // 发送按钮
+      Text('↑')
+        .fontSize(18)
+        .fontColor(Color.White)
+        .width(36)
+        .height(36)
+        .borderRadius(18)
+        .backgroundColor($r('app.color.color_cta_black'))
+        .textAlign(TextAlign.Center)
+        .onClick(() => { this.sendMessage(this.inputText); })
     }
     .width('100%')
-    .padding(16)
-    .borderRadius(12)
+    .padding({ left: 16, right: 16, top: 8, bottom: 8 })
     .backgroundColor($r('app.color.color_bg_card'))
+    .alignItems(VerticalAlign.Center)
   }
 }

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * post_detail - 帖子详情（spec 3.2.4.2 / 9.9.2）
  *
  * - 帖子详情展示（作者信息+标题+正文+图片+互动）
@@ -215,7 +215,7 @@ export struct PostDetail {
           .width(40)
           .height(40)
           .borderRadius(20)
-          .backgroundColor($r('app.color.color_primary_light'))
+          .backgroundColor($r('app.color.color_card_yellow'))
           .textAlign(TextAlign.Center)
         Column({ space: 2 }) {
           Row({ space: 4 }) {
@@ -227,7 +227,7 @@ export struct PostDetail {
               Text('V 卖家')
                 .fontSize(9)
                 .fontColor(Color.White)
-                .backgroundColor($r('app.color.color_secondary'))
+                .backgroundColor($r('app.color.color_cta_black'))
                 .padding({ left: 4, right: 4, top: 1, bottom: 1 })
                 .borderRadius(4)
             }
@@ -300,7 +300,7 @@ export struct PostDetail {
             .fontSize(14)
           Text(`${this.post?.favoriteCount ?? 0}`)
             .fontSize(12)
-            .fontColor(this.hasFavorited ? $r('app.color.color_secondary') : $r('app.color.color_text_hint'))
+            .fontColor(this.hasFavorited ? $r('app.color.color_cta_black') : $r('app.color.color_text_hint'))
         }
         .onClick(() => this.onFavorite())
         Blank()
@@ -364,7 +364,7 @@ export struct PostDetail {
             Text('V')
               .fontSize(8)
               .fontColor(Color.White)
-              .backgroundColor($r('app.color.color_secondary'))
+              .backgroundColor($r('app.color.color_cta_black'))
               .width(12)
               .height(12)
               .borderRadius(6)
@@ -411,7 +411,7 @@ export struct PostDetail {
       Button('发送')
         .height(36)
         .borderRadius(18)
-        .backgroundColor($r('app.color.color_secondary'))
+        .backgroundColor($r('app.color.color_cta_black'))
         .fontColor(Color.White)
         .fontSize(12)
         .padding({ left: 16, right: 16 })

@@ -1,20 +1,20 @@
 /**
- * withdraw - 提现页（spec 3.2.4.5 / 9.3）
+ * withdraw - 提现页
+ * 对齐设计稿 pages/withdraw.html：
+ *  - 顶部导航栏：返回键 + "提现"标题 + 隐藏占位
+ *  - 余额卡（深色面板 #1A1A1A：可提现余额(元) + 眼睛图标 + 8,680.50浅绿 + 冻结金额¥1,200.00 + 提现规则›）
+ *  - 提现表单卡（提现金额 + ¥大字输入框 + 全部提现链接 + 分割线 + 收款账号输入框）
+ *  - 立即提现按钮（黄色全宽）
+ *  - 提现记录卡（提现记录 + 查看更多› + 4条记录：金额+状态胶囊 / 账号+时间）
  *
- * - 顶部：可提现余额 + 冻结金额
- * - 中部：提现表单（金额 + 收款账号 Mock）
- * - 下部：提现记录列表
- *
- * 提现规则（spec 9.3）：
- *  - 订单确认收货后即可提现，无后台审核
- *  - 提现后状态变为"已提现"
+ * spec 3.2.4.5 / 9.3：订单确认收货后即可提现，无后台审核
  */
 
-import { Logger, AppConstants, ToastUtil, NavigationHelper, RouteName, PageResult } from 'common';
+import { Logger, AppConstants, ToastUtil, NavigationHelper, PageResult } from 'common';
 import { Withdrawal, FarmerProfile } from '../../model/FarmerModels';
 import { RevenueRepository } from '../../repository/RevenueRepository';
 import { FarmerRepository } from '../../repository/FarmerRepository';
-import { MOCK_FARMER_ID } from '../../mock/FarmerMock';
+import { MOCK_FARMER_ID, MOCK_WITHDRAWALS } from '../../mock/FarmerMock';
 
 @ComponentV2
 export struct Withdraw {
@@ -28,14 +28,10 @@ export struct Withdraw {
   @Local account: string = '';
   /** 是否正在提交 */
   @Local isSubmitting: boolean = false;
+  /** 余额是否可见 */
+  @Local balanceVisible: boolean = true;
   /** 提现记录列表 */
   @Local withdrawals: Withdrawal[] = [];
-  /** 当前页码 */
-  @Local page: number = 1;
-  /** 是否正在加载记录 */
-  @Local isLoadingRecords: boolean = false;
-  /** 是否还有更多 */
-  @Local hasMore: boolean = true;
 
   async aboutToAppear(): Promise<void> {
     Logger.info(AppConstants.SCENE_FARMER, { action: 'withdraw_appear' });
@@ -56,36 +52,23 @@ export struct Withdraw {
 
   /** 刷新提现记录 */
   private async refreshRecords(): Promise<void> {
-    this.page = 1;
-    this.withdrawals = [];
-    this.hasMore = true;
-    await this.loadMoreRecords();
-  }
-
-  /** 加载更多提现记录 */
-  private async loadMoreRecords(): Promise<void> {
-    if (this.isLoadingRecords || !this.hasMore) {
-      return;
-    }
-    this.isLoadingRecords = true;
     try {
-      const result: PageResult<Withdrawal> = await RevenueRepository.getWithdrawals(MOCK_FARMER_ID, this.page, 20);
-      if (this.page === 1) {
-        this.withdrawals = result.list;
-      } else {
-        this.withdrawals = this.withdrawals.concat(result.list);
-      }
-      this.hasMore = result.hasMore;
+      const result: PageResult<Withdrawal> = await RevenueRepository.getWithdrawals(MOCK_FARMER_ID, 1, 20);
+      this.withdrawals = result.list;
     } catch (err) {
       Logger.error(AppConstants.SCENE_FARMER, { action: 'load_withdrawals_fail', error: (err as Error).message });
-    } finally {
-      this.isLoadingRecords = false;
+      this.withdrawals = MOCK_WITHDRAWALS.slice();
     }
   }
 
   /** 全部提现 */
   private fillAllBalance(): void {
     this.amountStr = this.availableBalance.toFixed(2);
+  }
+
+  /** 切换余额显隐 */
+  private toggleBalanceVisible(): void {
+    this.balanceVisible = !this.balanceVisible;
   }
 
   /** 校验 */
@@ -117,10 +100,8 @@ export struct Withdraw {
       await RevenueRepository.requestWithdraw(MOCK_FARMER_ID, amount, this.account);
       ToastUtil.success('提现申请已提交');
       Logger.info(AppConstants.SCENE_FARMER, { action: 'withdraw_success', amount });
-      // 更新本地余额
       this.availableBalance -= amount;
       this.amountStr = '';
-      // 刷新记录
       await this.refreshRecords();
     } catch (err) {
       Logger.error(AppConstants.SCENE_FARMER, { action: 'withdraw_fail', error: (err as Error).message });
@@ -130,7 +111,7 @@ export struct Withdraw {
     }
   }
 
-  /** 格式化时间 */
+  /** 格式化时间（yyyy-MM-dd HH:mm） */
   private formatTime(ts: number): string {
     const d: Date = new Date(ts);
     const yyyy: number = d.getFullYear();
@@ -141,19 +122,35 @@ export struct Withdraw {
     return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
   }
 
+  /** 获取余额展示文案 */
+  private getBalanceText(): string {
+    if (!this.balanceVisible) {
+      return '******';
+    }
+    return this.availableBalance.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
   build() {
     NavDestination() {
       Column() {
+        // 1. 顶部导航栏
         this.TopBar()
+        // 2. 内容滚动区
         Scroll() {
-          Column({ space: 16 }) {
+          Column({ space: 12 }) {
+            // a) 余额卡（深色面板）
             this.BalanceCard()
+            // b) 提现表单卡
             this.WithdrawFormCard()
-            this.WithdrawRecordsSection()
+            // c) 立即提现按钮
+            this.SubmitButton()
+            // d) 提现记录卡
+            this.WithdrawRecordsCard()
           }
           .width('100%')
-          .padding({ left: 16, right: 16, top: 16, bottom: 24 })
+          .padding({ left: 16, right: 16, top: 12, bottom: 24 })
         }
+        .width('100%')
         .layoutWeight(1)
         .scrollBar(BarState.Off)
       }
@@ -164,189 +161,285 @@ export struct Withdraw {
     .hideTitleBar(true)
   }
 
-  /** 顶部导航 */
+  /** 顶部导航栏（对齐 qn-topbar：返回键 + 居中标题 + 占位） */
   @Builder
   TopBar() {
-    Row({ space: 12 }) {
-      Text('‹')
-        .fontSize(28)
-        .fontColor($r('app.color.color_text_primary'))
-        .onClick(() => NavigationHelper.pop())
+    Row() {
+      // 返回键
+      Row() {
+        Text('‹')
+          .fontSize(22)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+      }
+      .width(32)
+      .height(32)
+      .borderRadius(AppConstants.RADIUS_PILL)
+      .backgroundColor($r('app.color.color_bg_card'))
+      .shadow(AppConstants.SHADOW_CARD)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .onClick(() => NavigationHelper.pop())
+
+      // 居中标题
       Text('提现')
-        .fontSize(18)
-        .fontColor($r('app.color.color_text_primary'))
-        .fontWeight(FontWeight.Medium)
+        .fontSize(17)
+        .fontColor($r('app.color.color_ink'))
+        .fontWeight(FontWeight.Bold)
         .layoutWeight(1)
+        .textAlign(TextAlign.Center)
+
+      // 占位
+      Row()
+        .width(32)
+        .height(32)
     }
     .width('100%')
-    .height(56)
-    .padding({ left: 16, right: 16 })
-    .backgroundColor($r('app.color.color_bg_card'))
+    .padding({ left: 16, right: 16, top: 4, bottom: 10 })
     .alignItems(VerticalAlign.Center)
   }
 
-  /** 余额卡片 */
+  /** 余额卡（对齐 qn-balance-card：深黑底 + 余额 + 眼睛 + 冻结 + 规则） */
   @Builder
   BalanceCard() {
-    Column({ space: 12 }) {
-      Text('可提现余额（元）')
-        .fontSize(12)
-        .fontColor('rgba(255,255,255,0.7)')
-        .alignSelf(ItemAlign.Start)
-      Text(`¥${this.availableBalance.toFixed(2)}`)
-        .fontSize(32)
-        .fontColor($r('app.color.color_text_on_dark'))
-        .fontWeight(FontWeight.Bold)
+    Column() {
+      // 顶部行：标签 + 眼睛图标
       Row() {
-        Column({ space: 2 }) {
-          Text(`¥${this.frozenBalance.toFixed(2)}`)
-            .fontSize(14)
-            .fontColor('rgba(255,213,79,0.9)')
-          Text('冻结金额')
-            .fontSize(10)
-            .fontColor('rgba(255,255,255,0.6)')
+        Text('可提现余额(元)')
+          .fontSize(12)
+          .fontColor('rgba(255,255,255,0.55)')
+          .fontWeight(FontWeight.Medium)
+        Blank()
+        Row() {
+          Text(this.balanceVisible ? '👁' : '🙈')
+            .fontSize(16)
         }
-        .alignItems(HorizontalAlign.Start)
-        .layoutWeight(1)
-        Text('订单确认收货后即可提现，无审核')
-          .fontSize(10)
-          .fontColor('rgba(255,255,255,0.5)')
+        .width(30)
+        .height(30)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+        .onClick(() => { this.toggleBalanceVisible(); })
       }
       .width('100%')
+      .alignItems(VerticalAlign.Top)
+
+      // 余额大字（浅绿 #81C784）
+      Text(this.getBalanceText())
+        .fontSize(32)
+        .fontColor($r('app.color.color_green_mint'))
+        .fontWeight(FontWeight.Bold)
+        .letterSpacing(0.5)
+        .margin({ top: 8 })
+
+      // 底部行：冻结金额 + 提现规则
+      Row() {
+        Text(`冻结金额 ¥${this.frozenBalance.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+          .fontSize(12)
+          .fontColor('rgba(255,255,255,0.5)')
+        Blank()
+        Row() {
+          Text('提现规则')
+            .fontSize(12)
+            .fontColor('rgba(255,255,255,0.55)')
+            .fontWeight(FontWeight.Medium)
+          Text('›')
+            .fontSize(12)
+            .fontColor('rgba(255,255,255,0.55)')
+        }
+        .alignItems(VerticalAlign.Center)
+      }
+      .width('100%')
+      .margin({ top: 16 })
+      .alignItems(VerticalAlign.Center)
     }
     .width('100%')
     .padding(20)
-    .borderRadius(12)
-    .backgroundColor($r('app.color.color_bg_panel_dark'))
+    .borderRadius(AppConstants.RADIUS_LG)
+    .backgroundColor($r('app.color.color_dark_panel'))
+    .shadow(AppConstants.SHADOW_FLOAT)
   }
 
-  /** 提现表单 */
+  /** 提现表单卡（对齐 qn-card：提现金额 + ¥输入框 + 全部提现 + 收款账号） */
   @Builder
   WithdrawFormCard() {
-    Column({ space: 12 }) {
-      Text('提现申请')
+    Column() {
+      // 标题
+      Text('提现金额')
         .fontSize(14)
-        .fontColor($r('app.color.color_text_primary'))
-        .fontWeight(FontWeight.Medium)
+        .fontColor($r('app.color.color_ink_2'))
+        .fontWeight(FontWeight.Bold)
         .alignSelf(ItemAlign.Start)
-      Column({ space: 6 }) {
-        Row() {
-          Text('* 提现金额（元）')
-            .fontSize(13)
-            .fontColor($r('app.color.color_text_primary'))
-            .layoutWeight(1)
-          Text('全部提现')
-            .fontSize(11)
-            .fontColor($r('app.color.color_secondary'))
-            .onClick(() => this.fillAllBalance())
-        }
-        .width('100%')
+
+      // ¥ + 金额输入框
+      Row({ space: 8 }) {
+        Text('¥')
+          .fontSize(26)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
         TextInput({ text: this.amountStr, placeholder: '0.00' })
           .type(InputType.Number)
-          .height(44)
-          .borderRadius(8)
-          .backgroundColor($r('app.color.color_bg_page'))
-          .padding({ left: 12, right: 12 })
-          .fontSize(14)
+          .fontSize(30)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+          .placeholderFont({ size: 30, weight: FontWeight.Bold })
+          .placeholderColor($r('app.color.color_text_4'))
+          .backgroundColor(Color.Transparent)
+          .padding({ left: 0, right: 0 })
+          .layoutWeight(1)
+          .height(40)
           .onChange((v: string) => { this.amountStr = v; })
       }
       .width('100%')
-      Column({ space: 6 }) {
-        Text('* 收款账号')
+      .margin({ top: 12 })
+      .alignItems(VerticalAlign.Center)
+
+      // 全部提现链接
+      Row() {
+        Text('全部提现')
           .fontSize(13)
-          .fontColor($r('app.color.color_text_primary'))
-          .alignSelf(ItemAlign.Start)
-        TextInput({ text: this.account, placeholder: '请输入收款账号（Mock）' })
-          .height(44)
-          .borderRadius(8)
-          .backgroundColor($r('app.color.color_bg_page'))
-          .padding({ left: 12, right: 12 })
+          .fontColor($r('app.color.color_green_deep'))
+          .fontWeight(FontWeight.Bold)
+        Text('›')
+          .fontSize(13)
+          .fontColor($r('app.color.color_green_deep'))
+          .fontWeight(FontWeight.Bold)
+      }
+      .alignSelf(ItemAlign.End)
+      .margin({ top: 6 })
+      .onClick(() => { this.fillAllBalance(); })
+
+      // 分割线
+      Divider()
+        .strokeWidth(1)
+        .color($r('app.color.color_line'))
+        .margin({ top: 8 })
+
+      // 收款账号行
+      Row({ space: 12 }) {
+        Text('收款账号')
           .fontSize(14)
+          .fontColor($r('app.color.color_ink_2'))
+          .fontWeight(FontWeight.Medium)
+        TextInput({ text: this.account, placeholder: '请输入支付宝/银行卡' })
+          .fontSize(14)
+          .fontColor($r('app.color.color_ink'))
+          .placeholderColor($r('app.color.color_text_4'))
+          .backgroundColor(Color.Transparent)
+          .padding({ left: 0, right: 0 })
+          .layoutWeight(1)
+          .height(48)
           .maxLength(32)
           .onChange((v: string) => { this.account = v; })
       }
       .width('100%')
-      Button(this.isSubmitting ? '提交中...' : '立即提现')
-        .width('100%')
-        .height(44)
-        .borderRadius(22)
-        .backgroundColor(this.isSubmitting ? $r('app.color.color_button_disabled') : $r('app.color.color_secondary'))
-        .fontColor(Color.White)
-        .fontSize(14)
-        .fontWeight(FontWeight.Medium)
-        .enabled(!this.isSubmitting)
-        .onClick(() => this.submitWithdraw())
+      .height(48)
+      .alignItems(VerticalAlign.Center)
     }
     .width('100%')
     .padding(16)
-    .borderRadius(12)
+    .borderRadius(AppConstants.RADIUS_LG)
     .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
   }
 
-  /** 提现记录 */
+  /** 立即提现按钮（对齐 qn-btn-yellow qn-btn-block：黄色全宽） */
   @Builder
-  WithdrawRecordsSection() {
-    Column({ space: 12 }) {
-      Text(`提现记录 ${this.withdrawals.length}`)
-        .fontSize(14)
-        .fontColor($r('app.color.color_text_primary'))
-        .fontWeight(FontWeight.Medium)
-        .alignSelf(ItemAlign.Start)
+  SubmitButton() {
+    Row() {
+      Text(this.isSubmitting ? '提交中...' : '立即提现')
+        .fontSize(15)
+        .fontColor($r('app.color.color_ink'))
+        .fontWeight(FontWeight.Bold)
+    }
+    .width('100%')
+    .height(46)
+    .borderRadius(AppConstants.RADIUS_MD)
+    .backgroundColor(this.isSubmitting ? $r('app.color.color_text_4') : $r('app.color.color_yellow'))
+    .justifyContent(FlexAlign.Center)
+    .alignItems(VerticalAlign.Center)
+    .opacity(this.isSubmitting ? 0.7 : 1)
+    .onClick(() => { this.submitWithdraw(); })
+  }
 
+  /** 提现记录卡（对齐 qn-card qn-record-card：标题 + 查看更多 + 记录列表） */
+  @Builder
+  WithdrawRecordsCard() {
+    Column() {
+      // 标题行
+      Row() {
+        Text('提现记录')
+          .fontSize(16)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+        Blank()
+        Row() {
+          Text('查看更多')
+            .fontSize(12)
+            .fontColor($r('app.color.color_text_3'))
+          Text('›')
+            .fontSize(12)
+            .fontColor($r('app.color.color_text_3'))
+        }
+        .alignItems(VerticalAlign.Center)
+      }
+      .width('100%')
+      .padding({ top: 4, bottom: 12 })
+
+      // 记录列表
       if (this.withdrawals.length === 0) {
         Text('暂无提现记录')
           .fontSize(12)
-          .fontColor($r('app.color.color_text_hint'))
+          .fontColor($r('app.color.color_text_3'))
           .width('100%')
           .textAlign(TextAlign.Center)
-          .padding({ top: 12, bottom: 12 })
+          .padding({ top: 24, bottom: 24 })
       } else {
-        ForEach(this.withdrawals, (record: Withdrawal, _idx: number) => {
-          Row({ space: 12 }) {
-            Column({ space: 2 }) {
+        ForEach(this.withdrawals, (record: Withdrawal, idx: number) => {
+          Column() {
+            // 顶部行：金额 + 状态胶囊
+            Row() {
               Text(`¥${record.amount.toFixed(2)}`)
                 .fontSize(14)
-                .fontColor($r('app.color.color_price'))
+                .fontColor($r('app.color.color_ink'))
                 .fontWeight(FontWeight.Bold)
-              Text(`账号：${record.account}`)
-                .fontSize(11)
-                .fontColor($r('app.color.color_text_hint'))
-            }
-            .alignItems(HorizontalAlign.Start)
-            .layoutWeight(1)
-            Column({ space: 2 }) {
-              Text('已完成')
-                .fontSize(11)
-                .fontColor($r('app.color.color_primary'))
-                .fontWeight(FontWeight.Medium)
-              Text(this.formatTime(record.createdAt))
+              Blank()
+              // 状态胶囊（已完成 = 绿色 已到账）
+              Text('已到账')
                 .fontSize(10)
-                .fontColor($r('app.color.color_text_hint'))
+                .fontColor($r('app.color.color_green_deep'))
+                .fontWeight(FontWeight.Medium)
+                .padding({ left: 8, right: 8, top: 2, bottom: 2 })
+                .borderRadius(AppConstants.RADIUS_PILL)
+                .backgroundColor($r('app.color.color_green_soft'))
             }
-            .alignItems(HorizontalAlign.End)
+            .width('100%')
+            .alignItems(VerticalAlign.Center)
+
+            // 底部行：账号 + 时间
+            Row() {
+              Text(record.account)
+                .fontSize(11)
+                .fontColor($r('app.color.color_text_3'))
+              Blank()
+              Text(this.formatTime(record.createdAt))
+                .fontSize(11)
+                .fontColor($r('app.color.color_text_3'))
+            }
+            .width('100%')
+            .margin({ top: 2 })
+            .alignItems(VerticalAlign.Center)
           }
           .width('100%')
-          .padding({ top: 10, bottom: 10 })
-          .borderRadius(8)
-          .backgroundColor($r('app.color.color_bg_page'))
+          .height(52)
+          .justifyContent(FlexAlign.Center)
+          .border({ width: { bottom: idx === this.withdrawals.length - 1 ? 0 : 1 }, color: $r('app.color.color_line') })
         }, (record: Withdrawal) => record.withdrawalId)
-        if (this.hasMore) {
-          Text(this.isLoadingRecords ? '加载中...' : '上拉加载更多')
-            .fontSize(11)
-            .fontColor($r('app.color.color_text_hint'))
-            .width('100%')
-            .textAlign(TextAlign.Center)
-            .padding({ top: 8, bottom: 8 })
-            .onClick(() => {
-              this.page++;
-              this.loadMoreRecords();
-            })
-        }
       }
     }
     .width('100%')
-    .padding(16)
-    .borderRadius(12)
+    .padding({ left: 16, right: 16, top: 4, bottom: 8 })
+    .borderRadius(AppConstants.RADIUS_LG)
     .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
   }
 }

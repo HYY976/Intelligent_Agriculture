@@ -90,14 +90,18 @@ export interface OrderListItem {
   totalAmount: number;
   /** 卖家昵称（单卖家时显示，多卖家显示"N个店铺"） */
   sellerDisplay: string;
+  /** 卖家昵称（单卖家时的店铺名，用于卡片头展示） */
+  farmerName: string;
+  /** 商品项列表（用于多商品行展示，对齐设计稿 qn-prod-row） */
+  items: OrderItem[];
   createdAt: number;
 }
 
-/** 订单状态分组（个人中心5状态 Tab） */
-export type OrderStatusTab = 'all' | 'pending_payment' | 'pending_shipment' | 'pending_receipt' | 'pending_review';
+/** 订单状态分组（个人中心5状态 Tab，对齐设计稿 order.html） */
+export type OrderStatusTab = 'all' | 'pending_payment' | 'pending_shipment' | 'pending_receipt' | 'completed';
 
 /** Mock 支付方式 */
-export type PaymentMethod = 'alipay_mock' | 'wechat_mock' | 'balance_mock';
+export type PaymentMethod = 'alipay_mock' | 'wechat_mock' | 'unionpay_mock' | 'balance_mock';
 
 /** Mock 支付结果 */
 export interface PaymentResult {

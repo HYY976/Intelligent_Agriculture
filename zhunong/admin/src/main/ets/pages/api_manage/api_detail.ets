@@ -79,27 +79,27 @@ export struct ApiDetail {
   }
 
   /** 方法 Tag 背景色 */
-  private methodBg(method: HttpMethod): string {
+  private methodBg(method: HttpMethod): Resource {
     if (method === 'GET') {
-      return 'rgba(76,175,80,0.15)';
+      return $r('app.color.color_green_soft');
     } else if (method === 'POST') {
-      return 'rgba(33,150,243,0.15)';
+      return $r('app.color.color_info_soft');
     } else if (method === 'PUT') {
-      return 'rgba(255,152,0,0.15)';
+      return $r('app.color.color_warn_soft');
     }
-    return 'rgba(244,67,54,0.15)';
+    return $r('app.color.color_live_soft');
   }
 
   /** 方法 Tag 文字色 */
-  private methodColor(method: HttpMethod): string {
+  private methodColor(method: HttpMethod): Resource {
     if (method === 'GET') {
-      return '#4CAF50';
+      return $r('app.color.color_green_deep');
     } else if (method === 'POST') {
-      return '#2196F3';
+      return $r('app.color.color_info_deep');
     } else if (method === 'PUT') {
-      return '#FF9800';
+      return $r('app.color.color_warn_deep');
     }
-    return '#F44336';
+    return $r('app.color.color_live');
   }
 
   /** 状态码文字色 */
@@ -175,107 +175,103 @@ export struct ApiDetail {
     .hideTitleBar(true)
   }
 
-  /** 顶部导航 */
+  /** 顶部导航：圆形返回键 + 居中标题 */
   @Builder
   TopBar() {
-    Row({ space: 12 }) {
-      Text('‹')
-        .fontSize(28)
-        .fontColor($r('app.color.color_text_primary'))
-        .onClick(() => NavigationHelper.pop())
+    Row() {
+      Stack() {
+        Text('‹')
+          .fontSize(22)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+      }
+      .width(32)
+      .height(32)
+      .borderRadius(AppConstants.RADIUS_PILL)
+      .backgroundColor($r('app.color.color_bg_card'))
+      .shadow(AppConstants.SHADOW_CARD)
+      .onClick(() => NavigationHelper.pop())
+
       Text('接口详情')
-        .fontSize(18)
-        .fontColor($r('app.color.color_text_primary'))
-        .fontWeight(FontWeight.Medium)
+        .fontSize(17)
+        .fontColor($r('app.color.color_ink'))
+        .fontWeight(FontWeight.Bold)
         .layoutWeight(1)
-      Text(this.apiId)
-        .fontSize(11)
-        .fontColor($r('app.color.color_text_hint'))
+        .textAlign(TextAlign.Center)
+
+      // 占位保持标题居中
+      Column().width(32).height(32)
     }
     .width('100%')
-    .height(56)
-    .padding({ left: 16, right: 16 })
-    .backgroundColor($r('app.color.color_bg_card'))
+    .height(48)
+    .padding({ left: 16, right: 16, top: 4, bottom: 10 })
     .alignItems(VerticalAlign.Center)
   }
 
-  /** 接口基本信息卡 */
+  /** 接口基本信息卡（对齐 api-detail.html：方法 pill + 路径 + 描述 + meta 行） */
   @Builder
   InfoCard() {
     Column({ space: 8 }) {
+      // 方法 pill + 路径
       Row({ space: 8 }) {
         Text(this.detail!.apiInfo.method)
           .fontSize(11)
           .fontColor(this.methodColor(this.detail!.apiInfo.method))
           .backgroundColor(this.methodBg(this.detail!.apiInfo.method))
-          .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-          .borderRadius(4)
+          .padding({ left: 7, right: 7, top: 2, bottom: 2 })
+          .borderRadius(AppConstants.RADIUS_XS)
           .fontWeight(FontWeight.Bold)
         Text(this.detail!.apiInfo.path)
-          .fontSize(14)
-          .fontColor($r('app.color.color_text_primary'))
+          .fontSize(13)
+          .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Medium)
           .layoutWeight(1)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
       .width('100%')
+      .alignItems(VerticalAlign.Center)
 
+      // 描述
       Text(this.detail!.apiInfo.description)
-        .fontSize(12)
-        .fontColor($r('app.color.color_text_secondary'))
+        .fontSize(13)
+        .fontColor($r('app.color.color_text_2'))
         .width('100%')
 
-      Divider().color($r('app.color.color_divider')).margin({ top: 4, bottom: 4 })
-
-      Row({ space: 16 }) {
-        Column({ space: 2 }) {
-          Text('今日请求')
-            .fontSize(10)
-            .fontColor($r('app.color.color_text_hint'))
-          Text(`${this.detail!.apiInfo.todayRequestCount}`)
-            .fontSize(14)
-            .fontColor($r('app.color.color_text_primary'))
-            .fontWeight(FontWeight.Bold)
-        }
-        .alignItems(HorizontalAlign.Start)
-        .layoutWeight(1)
-
-        Column({ space: 2 }) {
-          Text('错误率')
-            .fontSize(10)
-            .fontColor($r('app.color.color_text_hint'))
-          Text(`${(this.detail!.apiInfo.errorRate * 100).toFixed(2)}%`)
-            .fontSize(14)
-            .fontColor($r('app.color.color_error'))
-            .fontWeight(FontWeight.Bold)
-        }
-        .alignItems(HorizontalAlign.Start)
-        .layoutWeight(1)
-
-        Column({ space: 2 }) {
-          Text('平均响应')
-            .fontSize(10)
-            .fontColor($r('app.color.color_text_hint'))
-          Text(`${this.detail!.apiInfo.avgResponseTime} ms`)
-            .fontSize(14)
-            .fontColor($r('app.color.color_text_primary'))
-            .fontWeight(FontWeight.Bold)
-        }
-        .alignItems(HorizontalAlign.Start)
-        .layoutWeight(1)
-      }
-      .width('100%')
-
-      Text(`创建时间：${this.formatTime(this.detail!.apiInfo.createdAt)}`)
-        .fontSize(11)
-        .fontColor($r('app.color.color_text_hint'))
-        .width('100%')
+      // meta 行（请求方式 / 响应格式 / 鉴权 / 版本）
+      Divider().color($r('app.color.color_line')).strokeWidth(1)
+      this.MetaRow('请求方式', this.detail!.apiInfo.method)
+      Divider().color($r('app.color.color_line')).strokeWidth(1)
+      this.MetaRow('响应格式', 'JSON')
+      Divider().color($r('app.color.color_line')).strokeWidth(1)
+      this.MetaRow('鉴权', 'Bearer Token')
+      Divider().color($r('app.color.color_line')).strokeWidth(1)
+      this.MetaRow('版本', 'v1')
     }
     .width('100%')
-    .padding(12)
-    .borderRadius(12)
+    .padding(16)
+    .borderRadius(AppConstants.RADIUS_LG)
     .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  /** meta 行（label + value） */
+  @Builder
+  MetaRow(label: string, value: string) {
+    Row() {
+      Text(label)
+        .fontSize(13)
+        .fontColor($r('app.color.color_text_3'))
+      Blank()
+      Text(value)
+        .fontSize(13)
+        .fontColor($r('app.color.color_ink_2'))
+        .fontWeight(FontWeight.Medium)
+    }
+    .width('100%')
+    .padding({ top: 9, bottom: 9 })
+    .alignItems(VerticalAlign.Center)
   }
 
   /** 请求量趋势图（近 7 天，Mock 柱状图） */
@@ -308,7 +304,7 @@ export struct ApiDetail {
               Column()
                 .width('100%')
                 .height(`${this.barHeightRatio(point) * 100}%`)
-                .backgroundColor($r('app.color.color_primary'))
+                .backgroundColor($r('app.color.color_cta_black'))
                 .borderRadius({ topLeft: 4, topRight: 4 })
             }
             .width('100%')

@@ -1,123 +1,104 @@
-/**
- * home_page - 农户卖家端首页（营收异形面板 + 模式开关 + 横滑商品卡片）
- * 遵循 spec 3.2.1 / 3.2.3 / 3.2.4 / 6.6.1：
- *  - 顶部全局固定导航栏（56vp，4入口：商城/直播/智能体/搜索）spec 3.2.1
- *  - 底部 5 Tab：首页 / 社区 / 直播 / 消息 / 个人 spec 3.2.4
- *  - 首页 Tab = 营收异形面板（深黑 #1A1A1A + 浅绿数据 #81C784 + 丰收橙点缀 + 金色装饰 + 24vp 异形圆角）spec 3.2.3.1
- *  - 右上角圆形开关（48vp×48vp）切换标准/老年大字模式，仅卖家端生效 spec 3.2.3.2 / 6.6.1
- *  - 横向滚动商品卡片（展示该卖家全部上架商品）spec 3.2.3.1
- *  - 阶段1：营收/商品数据为 Mock 占位，后续阶段接入后端
+﻿﻿﻿﻿﻿/**
+ * home_page - 农户卖家端首页
+ * 对齐设计稿 pages/farmer-home.html：
+ *  - 顶部 4 入口导航栏（商城/直播/智能体/搜索）白底圆角18浮卡 56vp
+ *  - 营收异形面板（深黑 #1A1A1A 底 + 右上角径向光晕 + 时间范围胶囊组 + 圆形模式开关
+ *    + 营收金额大字浅绿 #81C784 + 辅助数据3等分 + 金色分隔线 + 卖家名称行+V徽章）
+ *  - 我的商品标题区（"我的商品" + "查看全部 ›"）
+ *  - 横向滚动商品卡片（120宽：120×120图 + 名称 + 价格 + 月销）
+ *  - 查看营收明细按钮（黄色胶囊全宽按钮 + 右箭头）
+ *  - 底部 5 Tab 导航（首页/社区/直播/消息/个人，5等分无FAB，选中态黄色图标）
+ *
+ * spec 3.2.1 / 3.2.3 / 3.2.4 / 6.6.1
  */
 
-import { TokenStore, Logger, AppConstants, ModeStore, FarmerRoutes, NavigationHelper, RouteName } from 'common';
+import { TokenStore, Logger, AppConstants, ModeStore, NavigationHelper, RouteName } from 'common';
 import { UserInfo } from 'common';
 import type { CurrentModeKey } from 'common';
+import { FarmerProfile, RevenueSummary, RevenueRange, FarmerProductItem } from '../../model/FarmerModels';
+import { FarmerRepository } from '../../repository/FarmerRepository';
+import { RevenueRepository } from '../../repository/RevenueRepository';
+import { MOCK_FARMER_ID, getMockRevenueSummary, getMockHomeProducts } from '../../mock/FarmerMock';
+import { ImageUtil } from '../../utils/ImageUtil';
 
 /** 跳转商品编辑页的路由参数（spec 10.12：ArkTS 严格模式要求具体 interface） */
 interface ProductEditParam {
   productId: string;
 }
 
-/** 营收时间范围 */
-type RevenueRange = 'today' | 'month' | 'year' | 'total';
-
-/** 营收汇总数据 */
-interface RevenueSummary {
-  /** 营收金额（元） */
-  amount: number;
-  /** 订单数 */
-  orderCount: number;
-  /** 商品数 */
-  productCount: number;
-  /** 转化率（百分比） */
-  conversionRate: number;
-}
-
-/** 横滑商品卡片数据（spec 3.2.3.1：商品图+名称+价格+月销量） */
-interface ProductCardInfo {
-  productId: string;
-  name: string;
-  price: number;
-  monthlySales: number;
-  imageUrl: string;
+/** 营收时间范围胶囊项 */
+interface RevenueRangeOption {
+  value: RevenueRange;
+  label: string;
 }
 
 @ComponentV2
 export struct FarmerHomePage {
   /** 当前底部 Tab 索引（0=首页 1=社区 2=直播 3=消息 4=个人） */
   @Local currentTab: number = 0;
-  /** 当前顶部导航入口索引（0=商城 1=直播 2=智能体 3=搜索）spec 3.2.1 */
-  @Local currentNav: number = 0;
-  /** 卖家昵称 */
-  @Local nickname: string = '助农卖家';
-  /** 当前模式（标准/老年大字）—— spec 10.18：@Local modeRef 持有 AppStorageV2 共享 ref，@Trace value 变更自动刷新 build() */
+  /** 卖家信息 */
+  @Local profile: FarmerProfile | null = null;
+  /** 当前模式（标准/老年大字）—— spec 10.18：@Local modeRef 持有 AppStorageV2 共享 ref */
   @Local modeRef: CurrentModeKey = ModeStore.connectModeRef();
   /** 营收时间范围 */
   @Local revenueRange: RevenueRange = 'today';
-  /** 营收数据（Mock） */
+  /** 营收数据 */
   @Local revenueData: RevenueSummary = {
-    amount: 1286.50,
+    amount: 8652.00,
     orderCount: 23,
     productCount: 8,
     conversionRate: 12.5
   };
-  /** 横滑商品列表（Mock） */
-  @Local productList: ProductCardInfo[] = [
-    { productId: 'p001', name: '有机青菜', price: 9.90, monthlySales: 156, imageUrl: '' },
-    { productId: 'p002', name: '土鸡蛋30枚', price: 39.90, monthlySales: 89, imageUrl: '' },
-    { productId: 'p003', name: '农家大米5kg', price: 59.00, monthlySales: 64, imageUrl: '' },
-    { productId: 'p004', name: '新鲜番茄', price: 12.80, monthlySales: 42, imageUrl: '' }
+  /** 横滑商品列表 */
+  @Local productList: FarmerProductItem[] = [];
+
+  /** 营收时间范围选项（对齐设计稿 qn-rev-seg） */
+  private rangeOptions: RevenueRangeOption[] = [
+    { value: 'today', label: '今日' },
+    { value: 'month', label: '本月' },
+    { value: 'year', label: '本年' },
+    { value: 'total', label: '累计' }
   ];
 
   async aboutToAppear(): Promise<void> {
-    const userInfo: UserInfo | null = await TokenStore.getUserInfo();
-    if (userInfo) {
-      this.nickname = userInfo.nickname;
-    }
-    // spec 10.18：modeRef 通过 connectModeRef() 持有共享实例，无需手动 getMode（EntryAbility.initMode 已初始化）
     Logger.info(AppConstants.SCENE_FARMER, { action: 'home_page_appear', mode: this.modeRef.value });
+    await this.loadData();
   }
 
-  /** 是否老年大字模式（spec 10.18：读取 modeRef.value，@Trace 变更自动触发 build() 刷新） */
+  /** 加载数据 */
+  private async loadData(): Promise<void> {
+    try {
+      this.profile = await FarmerRepository.getMyProfile(MOCK_FARMER_ID);
+      this.revenueData = await RevenueRepository.getRevenueSummary(MOCK_FARMER_ID, this.revenueRange);
+      this.productList = getMockHomeProducts();
+    } catch (err) {
+      Logger.error(AppConstants.SCENE_FARMER, { action: 'home_load_fail', error: (err as Error).message });
+      // 兜底 Mock
+      this.productList = getMockHomeProducts();
+    }
+  }
+
+  /** 是否老年大字模式（spec 10.18） */
   private isElderMode(): boolean {
     return this.modeRef.value === AppConstants.MODE_ELDER;
   }
 
-  /** 切换模式（标准 ↔ 老年大字）spec 3.2.3.2：仅卖家端生效；spec 10.18：setMode 已通过共享 ref 自动同步，无需手动赋值 */
+  /** 切换模式 spec 3.2.3.2 */
   private async toggleMode(): Promise<void> {
     const prev: string = this.modeRef.value;
     await ModeStore.toggleMode();
     Logger.info(AppConstants.SCENE_FARMER, { action: 'mode_toggle', from: prev, to: this.modeRef.value });
   }
 
-  /** 切换营收时间范围（点击标题区循环切换）spec 3.2.3.1 */
-  private cycleRevenueRange(): void {
-    const ranges: RevenueRange[] = ['today', 'month', 'year', 'total'];
-    const idx: number = ranges.indexOf(this.revenueRange);
-    this.revenueRange = ranges[(idx + 1) % ranges.length];
-    // Mock：根据时间范围切换数据
-    this.updateRevenueMock();
-    Logger.info(AppConstants.SCENE_FARMER, { action: 'revenue_range_change', range: this.revenueRange });
-  }
-
-  /** 根据时间范围更新 Mock 营收数据 */
-  private updateRevenueMock(): void {
-    switch (this.revenueRange) {
-      case 'today':
-        this.revenueData = { amount: 1286.50, orderCount: 23, productCount: 8, conversionRate: 12.5 };
-        break;
-      case 'month':
-        this.revenueData = { amount: 38560.20, orderCount: 612, productCount: 8, conversionRate: 15.8 };
-        break;
-      case 'year':
-        this.revenueData = { amount: 458920.80, orderCount: 7823, productCount: 8, conversionRate: 14.2 };
-        break;
-      case 'total':
-        this.revenueData = { amount: 1286530.60, orderCount: 21568, productCount: 8, conversionRate: 13.6 };
-        break;
-      default:
-        break;
+  /** 切换营收时间范围 */
+  private async onRangeChange(r: RevenueRange): Promise<void> {
+    this.revenueRange = r;
+    try {
+      this.revenueData = await RevenueRepository.getRevenueSummary(MOCK_FARMER_ID, r);
+    } catch (err) {
+      this.revenueData = getMockRevenueSummary(r);
     }
+    Logger.info(AppConstants.SCENE_FARMER, { action: 'revenue_range_change', range: r });
   }
 
   /** 获取营收范围文案 */
@@ -136,35 +117,42 @@ export struct FarmerHomePage {
     }
   }
 
-  /** 获取营收金额展示文案 */
-  private getRevenueAmountText(): string {
-    return `¥${this.revenueData.amount.toFixed(2)}`;
+  /** 格式化金额（千分位） */
+  private formatAmount(amount: number): string {
+    const parts: string[] = amount.toFixed(2).split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return parts.join('.');
   }
 
   build() {
     NavDestination() {
       Column() {
-        // 顶部全局固定导航栏（spec 3.2.1：56vp，4入口 商城/直播/智能体/搜索）
+        // 1. 顶部 4 入口导航栏（白底圆角浮卡）
         this.TopNavBar()
 
-        // 内容区（根据 currentTab 切换）
-        Column() {
-          if (this.currentTab === 0) {
-            this.HomeTabContent()
-          } else if (this.currentTab === 1) {
-            this.PlaceholderTabContent('社区')
-          } else if (this.currentTab === 2) {
-            this.PlaceholderTabContent('直播（一键开播）')
-          } else if (this.currentTab === 3) {
-            this.PlaceholderTabContent('消息')
-          } else {
-            this.PlaceholderTabContent('个人中心')
+        // 2. 内容区
+        Scroll() {
+          Column({ space: 16 }) {
+            // a) 营收异形面板（深黑底）
+            this.RevenuePanel()
+
+            // b) 我的商品标题区
+            this.ProductSectionHead()
+
+            // c) 横向滚动商品卡片
+            this.ProductScroll()
+
+            // d) 查看营收明细按钮（黄色胶囊）
+            this.ViewRevenueButton()
           }
+          .width('100%')
+          .padding({ left: 16, right: 16, top: 8, bottom: 24 })
         }
         .width('100%')
         .layoutWeight(1)
+        .scrollBar(BarState.Off)
 
-        // 底部 5 Tab 导航（spec 3.2.4：首页/社区/直播/消息/个人）
+        // 3. 底部 5 Tab 导航
         this.BottomTabBar()
       }
       .width('100%')
@@ -174,295 +162,285 @@ export struct FarmerHomePage {
     .hideTitleBar(true)
   }
 
-  /** 顶部全局固定导航栏（spec 3.2.1） */
+  /** 顶部 4 入口导航栏（对齐设计稿 qn-topnav：白底圆角18浮卡 56vp） */
   @Builder
   TopNavBar() {
-    Row({ space: 0 }) {
-      this.NavItem('商城', 0)
-      this.NavItem('直播', 1)
-      this.NavItem('智能体', 2)
-      this.NavItem('搜索', 3)
+    Row() {
+      this.NavItem('商城', '🛍', 0, RouteName.FARMER_SELLER_MALL)
+      this.NavItem('直播', '📹', 1, RouteName.FARMER_LIVE_BROWSE)
+      this.NavItem('智能体', '✨', 2, RouteName.FARMER_AGENT_PAGE)
+      this.NavItem('搜索', '🔍', 3, RouteName.FARMER_SEARCH_PAGE)
     }
     .width('100%')
     .height(56)
     .backgroundColor($r('app.color.color_bg_card'))
+    .borderRadius(AppConstants.RADIUS_LG)
+    .shadow(AppConstants.SHADOW_CARD)
     .padding({ left: 8, right: 8 })
+    .margin({ left: 16, right: 16, top: 12, bottom: 4 })
   }
 
-  /** 顶部导航项 */
+  /** 顶部导航项（对齐设计稿 qn-topnav-item：纵向图标+文字） */
   @Builder
-  NavItem(label: string, index: number) {
-    Column() {
+  NavItem(label: string, icon: string, _index: number, route: string) {
+    Column({ space: 3 }) {
+      Text(icon)
+        .fontSize(this.isElderMode() ? 24 : 22)
       Text(label)
-        .fontSize(this.isElderMode() ? 18 : 15)
-        .fontColor(this.currentNav === index ? $r('app.color.color_secondary') : $r('app.color.color_text_secondary'))
-        .fontWeight(this.currentNav === index ? FontWeight.Bold : FontWeight.Normal)
-      // 选中下划线
-      Divider()
-        .strokeWidth(2)
-        .color($r('app.color.color_secondary'))
-        .width(this.currentNav === index ? 24 : 0)
-        .margin({ top: 4 })
+        .fontSize(this.isElderMode() ? 13 : 11)
+        .fontColor($r('app.color.color_ink_2'))
+        .fontWeight(FontWeight.Medium)
     }
     .layoutWeight(1)
     .height(56)
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
     .onClick(() => {
-      this.currentNav = index;
-      const routes: string[] = [
-        RouteName.FARMER_SELLER_MALL,
-        RouteName.FARMER_LIVE_BROWSE,
-        RouteName.FARMER_AGENT_PAGE,
-        RouteName.FARMER_SEARCH_PAGE
-      ];
-      const route: string = routes[index];
-      Logger.info(AppConstants.SCENE_FARMER, { action: 'top_nav_click', nav: label, route });
+      Logger.info(AppConstants.SCENE_FARMER, { action: 'top_nav_click', nav: label });
       NavigationHelper.push(route);
     })
   }
 
-  /** 首页 Tab 内容 = 营收异形面板 + 横滑商品卡片 + 营收明细入口 */
-  @Builder
-  HomeTabContent() {
-    Scroll() {
-      Column({ space: 16 }) {
-        // 营收异形面板（spec 3.2.3.1）
-        this.RevenuePanel()
-
-        // 横向滚动商品卡片（spec 3.2.3.1：展示该卖家全部上架商品）
-        this.ProductCardSection()
-
-        // 营收明细入口（spec 3.2.3.3）
-        Button('查看营收明细')
-          .width('100%')
-          .height(44)
-          .borderRadius(22)
-          .backgroundColor($r('app.color.color_bg_card'))
-          .fontColor($r('app.color.color_text_primary'))
-          .fontSize(this.isElderMode() ? 18 : 14)
-          .margin({ top: 8 })
-          .onClick(() => {
-            Logger.info(AppConstants.SCENE_FARMER, { action: 'goto_revenue_detail' });
-            NavigationHelper.push(RouteName.FARMER_REVENUE_DETAIL);
-          })
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 16, bottom: 24 })
-    }
-    .width('100%')
-    .height('100%')
-    .align(Alignment.Top)
-    .scrollBar(BarState.Off)
-  }
-
-  /** 营收异形面板（spec 3.2.3.1） */
+  /** 营收异形面板（对齐设计稿 qn-rev-panel：深黑底 + 右上角光晕 + 时间胶囊组 + 模式开关 + 金额大字 + 3等分数据 + 金线 + 卖家行） */
   @Builder
   RevenuePanel() {
     Stack({ alignContent: Alignment.TopEnd }) {
-      Column({ space: 12 }) {
-        // 顶部行：标题（可点击切换时间范围）+ 模式开关
+      // 右上角径向光晕装饰（对齐 qn-rev-panel::after）
+      Column()
+        .width(132)
+        .height(132)
+        .borderRadius(66)
+        .linearGradient({
+          angle: 0,
+          colors: [['rgba(255,217,61,0.22)', 0], ['rgba(255,217,61,0)', 0.7]]
+        })
+        .position({ right: -44, top: -44 })
+        .hitTestBehavior(HitTestMode.Transparent)
+
+      // 主内容
+      Column() {
+        // 顶部行：标题 + 时间胶囊组 | 模式开关
         Row() {
-          // 营收标题（点击切换时间范围：今日/本月/本年/累计）
-          Column({ space: 4 }) {
-            Row({ space: 6 }) {
-              Text(this.getRevenueRangeLabel())
-                .fontSize(this.isElderMode() ? 20 : 16)
-                .fontColor(Color.White)
-                .fontWeight(FontWeight.Medium)
-              Text('›')
-                .fontSize(this.isElderMode() ? 20 : 16)
-                .fontColor($r('app.color.color_text_on_dark'))
+          // 左侧：标题 + 时间范围胶囊组
+          Column({ space: 8 }) {
+            Text(this.getRevenueRangeLabel())
+              .fontSize(this.isElderMode() ? 20 : 16)
+              .fontColor(Color.White)
+              .fontWeight(FontWeight.Bold)
+            // 时间范围胶囊组（对齐 qn-rev-seg）
+            Row({ space: 3 }) {
+              ForEach(this.rangeOptions, (opt: RevenueRangeOption) => {
+                Text(opt.label)
+                  .fontSize(this.isElderMode() ? 13 : 11)
+                  .fontColor(this.revenueRange === opt.value ? Color.White : 'rgba(255,255,255,0.65)')
+                  .fontWeight(this.revenueRange === opt.value ? FontWeight.Bold : FontWeight.Normal)
+                  .backgroundColor(this.revenueRange === opt.value ? 'rgba(255,255,255,0.18)' : Color.Transparent)
+                  .padding({ left: 10, right: 10, top: 3, bottom: 3 })
+                  .borderRadius(AppConstants.RADIUS_PILL)
+                  .onClick(() => { this.onRangeChange(opt.value); })
+              }, (opt: RevenueRangeOption) => opt.value)
             }
-            .onClick(() => {
-              this.cycleRevenueRange();
-            })
-            Text('tap 切换时间范围')
-              .fontSize(10)
-              .fontColor('rgba(255,255,255,0.5)')
+            .padding({ left: 3, right: 3, top: 3, bottom: 3 })
+            .borderRadius(AppConstants.RADIUS_PILL)
+            .backgroundColor('rgba(255,255,255,0.08)')
           }
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
 
-          // 右上角圆形模式开关（spec 3.2.3.2：48vp×48vp）
+          // 右侧：圆形模式开关（对齐 qn-mode-switch 48×48）
           this.ModeToggle()
         }
         .width('100%')
         .alignItems(VerticalAlign.Top)
 
-        // 营收数据大字展示（28fp，浅绿色 #81C784）spec 3.2.3.1
-        Text(this.getRevenueAmountText())
-          .fontSize(this.isElderMode() ? 40 : 28)
-          .fontColor($r('app.color.color_text_on_dark'))
-          .fontWeight(FontWeight.Bold)
-          .margin({ top: 8 })
-          .onClick(() => {
-            this.cycleRevenueRange();
-          })
-
-        // 辅助数据展示（订单数 / 商品数 / 转化率）spec 3.2.3.1
+        // 营收金额大字（对齐 qn-rev-amount：浅绿 #81C784）
         Row() {
-          this.RevenueSubStat('订单数', `${this.revenueData.orderCount}`)
-          this.RevenueSubStat('商品数', `${this.revenueData.productCount}`)
-          this.RevenueSubStat('转化率', `${this.revenueData.conversionRate}%`)
+          Text('¥')
+            .fontSize(this.isElderMode() ? 22 : 18)
+            .fontColor($r('app.color.color_green_mint'))
+            .fontWeight(FontWeight.Bold)
+            .margin({ right: 2 })
+          Text(this.formatAmount(this.revenueData.amount))
+            .fontSize(this.isElderMode() ? 36 : 28)
+            .fontColor($r('app.color.color_green_mint'))
+            .fontWeight(FontWeight.Bold)
+        }
+        .margin({ top: 18 })
+
+        // 辅助数据 3 等分（对齐 qn-rev-stats：订单数/商品数/转化率）
+        Row() {
+          this.RevenueCell(`${this.revenueData.orderCount}`, '笔', '订单数')
+          this.RevenueCell(`${this.revenueData.productCount}`, '件', '商品数')
+          this.RevenueCell(`${this.revenueData.conversionRate}`, '%', '转化率')
         }
         .width('100%')
-        .justifyContent(FlexAlign.SpaceAround)
         .margin({ top: 16 })
 
-        // 装饰：金色分隔线 + 卖家信息
-        Row({ space: 8 }) {
-          Divider()
-            .strokeWidth(1)
-            .color($r('app.color.color_accent_gold'))
+        // 金色分隔线（对齐 qn-rev-gold-line）
+        Divider()
+          .strokeWidth(1)
+          .color('rgba(255,215,0,0.3)')
+          .margin({ top: 16, bottom: 16 })
+
+        // 卖家名称行（对齐 qn-rev-seller：头像 + 店铺名 + V徽章）
+        Row({ space: 10 }) {
+          Image($r('app.media.avatar_farmer'))
+            .width(32)
+            .height(32)
+            .borderRadius(16)
+            .objectFit(ImageFit.Cover)
+            .border({ width: 2, color: 'rgba(255,217,61,0.4)' })
+          Text(this.profile?.shopName ?? '助农卖家')
+            .fontSize(this.isElderMode() ? 15 : 13)
+            .fontColor(Color.White)
+            .fontWeight(FontWeight.Bold)
             .layoutWeight(1)
-          Text(`卖家：${this.nickname}`)
-            .fontSize(this.isElderMode() ? 14 : 12)
-            .fontColor('rgba(255,213,79,0.9)')
-          Divider()
-            .strokeWidth(1)
-            .color($r('app.color.color_accent_gold'))
-            .layoutWeight(1)
+          // V 认证徽章（对齐 qn-v-badge：16×16 黄底圆 + V字）
+          Text('V')
+            .fontSize(11)
+            .fontColor($r('app.color.color_ink'))
+            .fontWeight(FontWeight.Bold)
+            .width(16)
+            .height(16)
+            .borderRadius(8)
+            .backgroundColor($r('app.color.color_yellow'))
+            .textAlign(TextAlign.Center)
         }
         .width('100%')
-        .margin({ top: 16 })
+        .alignItems(VerticalAlign.Center)
       }
       .width('100%')
       .padding(20)
     }
     .width('100%')
-    .height(280)
-    .borderRadius(24)
-    .backgroundColor($r('app.color.color_bg_panel_dark'))
-    .border({ width: 1, color: 'rgba(255,213,79,0.3)' })
+    .borderRadius(AppConstants.RADIUS_XL)
+    .backgroundColor($r('app.color.color_dark_panel'))
+    .shadow({ radius: 24, color: 'rgba(26,26,26,0.18)', offsetX: 0, offsetY: 8 })
   }
 
-  /** 右上角圆形模式开关（spec 3.2.3.2：48vp×48vp 圆形滑动开关） */
+  /** 右上角圆形模式开关（对齐 qn-mode-switch：48×48 深灰底 + 太阳图标） */
   @Builder
   ModeToggle() {
-    Row() {
-      // 圆形滑动开关：48x48 圆形容器 + 内部圆点滑动
-      Stack() {
-        // 滑动圆点
-        Row() {
-          Text(this.isElderMode() ? '老' : '标')
-            .fontSize(11)
-            .fontColor(Color.White)
-            .fontWeight(FontWeight.Bold)
-        }
-        .width(32)
-        .height(32)
-        .borderRadius(16)
-        .backgroundColor(this.isElderMode() ? $r('app.color.color_primary') : $r('app.color.color_medal_silver'))
-        .justifyContent(FlexAlign.Center)
-        .alignItems(VerticalAlign.Center)
-        // 标准模式：圆点偏左；老年模式：圆点偏右
-        .offset({ x: this.isElderMode() ? 8 : -8 })
-        .animation({ duration: 300, curve: Curve.EaseInOut })
-      }
-      .width(48)
-      .height(48)
-      .borderRadius(24)
-      .backgroundColor(this.isElderMode() ? 'rgba(139,195,74,0.3)' : 'rgba(158,158,158,0.3)')
-      .border({ width: 1.5, color: this.isElderMode() ? $r('app.color.color_primary') : $r('app.color.color_medal_silver') })
-      .onClick(() => {
-        this.toggleMode();
-      })
+    Column() {
+      Text(this.isElderMode() ? '☀' : '☾')
+        .fontSize(22)
+        .fontColor($r('app.color.color_yellow_deep'))
     }
     .width(48)
     .height(48)
-  }
-
-  /** 营收辅助数据项 */
-  @Builder
-  RevenueSubStat(label: string, value: string) {
-    Column({ space: 4 }) {
-      Text(value)
-        .fontSize(this.isElderMode() ? 18 : 14)
-        .fontColor($r('app.color.color_text_on_dark'))
-        .fontWeight(FontWeight.Medium)
-      Text(label)
-        .fontSize(this.isElderMode() ? 12 : 10)
-        .fontColor('rgba(255,255,255,0.6)')
-    }
+    .borderRadius(24)
+    .backgroundColor($r('app.color.color_dark_soft'))
+    .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
+    .onClick(() => { this.toggleMode(); })
   }
 
-  /** 横向滚动商品卡片（spec 3.2.3.1） */
+  /** 营收辅助数据项（对齐 qn-rev-cell：数字+单位 / 标签） */
   @Builder
-  ProductCardSection() {
-    Column({ space: 12 }) {
+  RevenueCell(num: string, unit: string, label: string) {
+    Column({ space: 5 }) {
       Row() {
-        Text('我的商品')
-          .fontSize(this.isElderMode() ? 20 : 16)
-          .fontColor($r('app.color.color_text_primary'))
+        Text(num)
+          .fontSize(this.isElderMode() ? 17 : 14)
+          .fontColor(Color.White)
           .fontWeight(FontWeight.Bold)
-        Blank()
-        Text('编辑')
-          .fontSize(this.isElderMode() ? 14 : 12)
-          .fontColor($r('app.color.color_secondary'))
-          .onClick(() => {
-            Logger.info(AppConstants.SCENE_FARMER, { action: 'goto_product_manage' });
-            NavigationHelper.push(RouteName.FARMER_PRODUCT_MANAGE);
-          })
+        Text(unit)
+          .fontSize(11)
+          .fontColor(Color.White)
+          .fontWeight(FontWeight.Medium)
+          .margin({ left: 1 })
       }
-      .width('100%')
+      Text(label)
+        .fontSize(this.isElderMode() ? 13 : 11)
+        .fontColor('rgba(255,255,255,0.62)')
+    }
+    .layoutWeight(1)
+    .alignItems(HorizontalAlign.Start)
+    .border({ width: { left: 0 }, color: Color.Transparent })
+  }
 
-      // 横向滚动商品卡片
-      Scroll() {
-        Row({ space: 12 }) {
-          ForEach(this.productList, (product: ProductCardInfo, _index: number) => {
-            this.ProductCard(product)
-          }, (product: ProductCardInfo) => product.productId)
-        }
-        .padding({ right: 16 })
+  /** 我的商品标题区（对齐 qn-section-head：标题 + 查看全部›） */
+  @Builder
+  ProductSectionHead() {
+    Row() {
+      Text('我的商品')
+        .fontSize(this.isElderMode() ? 20 : 16)
+        .fontColor($r('app.color.color_ink'))
+        .fontWeight(FontWeight.Bold)
+      Blank()
+      Row() {
+        Text('查看全部')
+          .fontSize(this.isElderMode() ? 13 : 12)
+          .fontColor($r('app.color.color_text_3'))
+        Text('›')
+          .fontSize(this.isElderMode() ? 14 : 12)
+          .fontColor($r('app.color.color_text_3'))
       }
-      .scrollable(ScrollDirection.Horizontal)
-      .scrollBar(BarState.Off)
-      .width('100%')
+      .onClick(() => {
+        Logger.info(AppConstants.SCENE_FARMER, { action: 'goto_product_manage' });
+        NavigationHelper.push(RouteName.FARMER_PRODUCT_MANAGE);
+      })
     }
     .width('100%')
-    .margin({ top: 8 })
+    .padding({ left: 2, right: 2, bottom: 8 })
   }
 
-  /** 单个商品卡片（spec 3.2.3.1：商品图+名称+价格+月销量，点击跳转商品编辑页） */
+  /** 横向滚动商品卡片（对齐 qn-prod-scroll：120宽卡片横滑） */
   @Builder
-  ProductCard(product: ProductCardInfo) {
-    Column({ space: 8 }) {
-      // 商品图（占位：丰收橙背景 + 🌾）
-      Stack() {
-        Text('🌾')
-          .fontSize(36)
+  ProductScroll() {
+    Scroll() {
+      Row({ space: 12 }) {
+        ForEach(this.productList, (product: FarmerProductItem) => {
+          this.ProductCard(product)
+        }, (product: FarmerProductItem) => product.productId)
       }
-      .width(120)
-      .height(120)
-      .borderRadius(12)
-      .backgroundColor($r('app.color.color_secondary'))
-      .alignContent(Alignment.Center)
+      .padding({ right: 16 })
+    }
+    .scrollable(ScrollDirection.Horizontal)
+    .scrollBar(BarState.Off)
+    .width('100%')
+  }
 
-      // 商品名称
-      Text(product.name)
-        .fontSize(this.isElderMode() ? 16 : 13)
-        .fontColor($r('app.color.color_text_primary'))
+  /** 单个商品卡片（对齐 qn-prod-card：120×120图 + 名称 + 价格 + 月销） */
+  @Builder
+  ProductCard(product: FarmerProductItem) {
+    Column({ space: 6 }) {
+      // 商品图（120×120 圆角14）
+      Image(ImageUtil.get(product.mainImage))
+        .width(120)
+        .height(120)
+        .borderRadius(AppConstants.RADIUS_MD)
+        .objectFit(ImageFit.Cover)
+        .backgroundColor($r('app.color.color_fill'))
+
+      // 商品名称（单行省略）
+      Text(product.title)
+        .fontSize(this.isElderMode() ? 14 : 12)
+        .fontColor($r('app.color.color_ink_2'))
+        .fontWeight(FontWeight.Medium)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .width(120)
 
-      // 价格
-      Text(`¥${product.price.toFixed(2)}`)
-        .fontSize(this.isElderMode() ? 16 : 14)
-        .fontColor($r('app.color.color_price'))
-        .fontWeight(FontWeight.Bold)
+      // 价格（红色）
+      Row() {
+        Text('¥')
+          .fontSize(11)
+          .fontColor($r('app.color.color_live'))
+          .fontWeight(FontWeight.Bold)
+        Text(product.price.toFixed(1))
+          .fontSize(this.isElderMode() ? 16 : 14)
+          .fontColor($r('app.color.color_live'))
+          .fontWeight(FontWeight.Bold)
+      }
 
       // 月销量
       Text(`月销 ${product.monthlySales}`)
         .fontSize(this.isElderMode() ? 12 : 10)
-        .fontColor($r('app.color.color_text_hint'))
+        .fontColor($r('app.color.color_text_3'))
     }
     .width(120)
-    .padding(8)
-    .borderRadius(12)
-    .backgroundColor($r('app.color.color_bg_card'))
+    .alignItems(HorizontalAlign.Start)
     .onClick(() => {
       Logger.info(AppConstants.SCENE_FARMER, { action: 'product_card_click', productId: product.productId });
       const param: ProductEditParam = { productId: product.productId };
@@ -470,26 +448,33 @@ export struct FarmerHomePage {
     })
   }
 
-  /** 占位 Tab 内容 */
+  /** 查看营收明细按钮（对齐 qn-btn-yellow qn-btn-pill：黄色胶囊全宽） */
   @Builder
-  PlaceholderTabContent(name: string) {
-    Column({ space: 12 }) {
-      Text(`${name} Tab`)
-        .fontSize(this.isElderMode() ? 22 : 20)
-        .fontColor($r('app.color.color_text_primary'))
+  ViewRevenueButton() {
+    Row() {
+      Text('查看营收明细')
+        .fontSize(this.isElderMode() ? 17 : 15)
+        .fontColor($r('app.color.color_ink'))
         .fontWeight(FontWeight.Bold)
-      Text('该模块将在后续阶段实现')
-        .fontSize(this.isElderMode() ? 16 : 14)
-        .fontColor($r('app.color.color_text_secondary'))
+      Text('›')
+        .fontSize(16)
+        .fontColor($r('app.color.color_ink'))
+        .fontWeight(FontWeight.Bold)
+        .margin({ left: 6 })
     }
     .width('100%')
-    .height('100%')
+    .height(46)
+    .borderRadius(AppConstants.RADIUS_PILL)
+    .backgroundColor($r('app.color.color_yellow'))
     .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Center)
-    .backgroundColor($r('app.color.color_bg_page'))
+    .alignItems(VerticalAlign.Center)
+    .onClick(() => {
+      Logger.info(AppConstants.SCENE_FARMER, { action: 'goto_revenue_stats' });
+      NavigationHelper.push(RouteName.FARMER_REVENUE_STATS);
+    })
   }
 
-  /** 底部 5 Tab 导航（spec 3.2.4） */
+  /** 底部 5 Tab 导航（对齐 qn-tabbar：5等分无FAB，选中态黄色图标） */
   @Builder
   BottomTabBar() {
     Row() {
@@ -500,41 +485,38 @@ export struct FarmerHomePage {
       this.BottomTabItem('个人', '👤', 4)
     }
     .width('100%')
-    .height(56)
+    .height(64)
     .backgroundColor($r('app.color.color_bg_card'))
-    .border({ width: { top: 1 }, color: $r('app.color.color_divider') })
+    .shadow(AppConstants.SHADOW_NAV)
+    .padding({ left: 8, right: 8, bottom: 8 })
   }
 
-  /** 底部 Tab 项 */
+  /** 底部 Tab 项（对齐 qn-tab：选中态墨黑文字+黄色图标） */
   @Builder
   BottomTabItem(label: string, icon: string, index: number) {
-    Column({ space: 4 }) {
+    Column({ space: 2 }) {
       Text(icon)
-        .fontSize(this.isElderMode() ? 24 : 20)
+        .fontSize(this.isElderMode() ? 26 : 24)
+        .fontColor(this.currentTab === index ? $r('app.color.color_yellow_deep') : $r('app.color.color_text_3'))
       Text(label)
         .fontSize(this.isElderMode() ? 12 : 10)
-        .fontColor(this.currentTab === index ? $r('app.color.color_secondary') : $r('app.color.color_text_secondary'))
-        .fontWeight(this.currentTab === index ? FontWeight.Bold : FontWeight.Normal)
+        .fontColor(this.currentTab === index ? $r('app.color.color_ink') : $r('app.color.color_text_3'))
+        .fontWeight(this.currentTab === index ? FontWeight.Bold : FontWeight.Medium)
     }
     .layoutWeight(1)
-    .height(56)
+    .height(64)
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
     .onClick(() => {
       this.currentTab = index;
       Logger.info(AppConstants.SCENE_FARMER, { action: 'tab_switch', tab: label });
-      // 首页 Tab 留在当前页，其余 Tab 跳转对应页面 spec 3.2.4
       if (index === 1) {
-        // 社区 Tab → 帖子列表 spec 3.2.4.2
         NavigationHelper.push(RouteName.FARMER_COMMUNITY_LIST);
       } else if (index === 2) {
-        // 直播 Tab = 一键开播入口 spec 3.2.4.3
         NavigationHelper.push(RouteName.FARMER_LIVE_CREATE);
       } else if (index === 3) {
-        // 消息 Tab → 会话列表 spec 3.2.4.4
         NavigationHelper.push(RouteName.FARMER_MESSAGE_LIST);
       } else if (index === 4) {
-        // 个人中心 Tab → 卖家个人中心 spec 3.2.4.5
         NavigationHelper.push(RouteName.FARMER_SELLER_PROFILE);
       }
     })

@@ -1,24 +1,21 @@
 /**
  * message_list - 消息列表页（Tab 内嵌 + 独立路由双用）
- * 遵循 spec 3.1.3.3：
- *  - 仿淘宝聊天会话列表
- *  - 顶部筛选 Tab：全部 / 私信 / 系统通知
- *  - 会话项：头像 + 会话名 + 最新消息预览 + 时间 + 未读数红点
- *  - 置顶会话置顶展示
- *  - 点击进入会话详情页 pages/message/chat_detail?sessionId=xxx
+ * 遵循 spec 3.1.3.3 + 设计稿 message.html 1:1 复刻：
+ *  - 顶栏：白色圆形返回按钮(route模式) / 标题(Tab模式) + 居中标题 + "全部已读"胶囊按钮
+ *  - 快捷入口 4 圆形图标（订单消息/物流通知/直播提醒/系统公告）+ 红色角标
+ *  - 5 Tab 切换栏（全部/系统/订单/互动/客服）+ 黄色下划线
+ *  - 消息列表（白卡分组）：彩色圆形图标 + 分类标签 + 标题 + 未读红点 + 预览 + 时间
  *  - 长按弹出操作菜单（置顶/删除）
- *  - 空状态：插画 + 提示
+ *  - 4 态状态机：loading / error / empty / list
  *
  * spec 10.11.4 Step 2：ForEach → LazyForEach + keyGenerator + cachedCount
- *
- * 导出 MessageContent 供 home_page Tab 内嵌使用
- * 同时作为独立路由（pages/message/message_list）
+ * 导出 MessageContent 供 home_page Tab 内嵌使用，同时作为独立路由 pages/message/message_list
  */
 
-import { Logger, AppConstants, UserRoutes, ToastUtil, RouteName, NavigationHelper, ListStateView } from 'common';
-import { ChatSession, SessionType } from '../../model/MessageModels';
-import { toggleMockSessionPinned, deleteMockSession } from '../../mock/MessageMock';
-import { MessageListDataSource, MessageFilterTab } from '../../viewmodel/MessageListDataSource';
+import { Logger, AppConstants, ToastUtil, RouteName, NavigationHelper, ListStateView } from 'common';
+import { ChatSession, MessageFilterTab, MessageTagTheme } from '../../model/MessageModels';
+import { toggleMockSessionPinned, deleteMockSession, markAllSessionsRead, MOCK_QUICK_ENTRIES, QuickEntry } from '../../mock/MessageMock';
+import { MessageListDataSource } from '../../viewmodel/MessageListDataSource';
 import { ImageUtil } from '../../utils/ImageUtil';
 import { WsClient } from '../../utils/WsClient';
 
@@ -27,22 +24,26 @@ interface ChatDetailParam {
   sessionId: string;
 }
 
-/** 筛选 Tab 配置项 */
+/** 筛选 Tab 配置项（对齐设计稿 qn-msg-tab 5 项） */
 interface FilterTabItem {
   key: MessageFilterTab;
   label: string;
 }
 
-/** 筛选 Tab 列表 */
+/** 筛选 Tab 列表（对齐设计稿 message.html: 全部/系统/订单/互动/客服） */
 const FILTER_TABS: FilterTabItem[] = [
   { key: 'all', label: '全部' },
-  { key: 'private', label: '私信' },
-  { key: 'system', label: '系统通知' }
+  { key: 'system', label: '系统' },
+  { key: 'order', label: '订单' },
+  { key: 'interact', label: '互动' },
+  { key: 'service', label: '客服' }
 ];
 
 /** 消息内容组件（可复用于 Tab 与独立页） */
 @ComponentV2
 export struct MessageContent {
+  /** 是否显示返回按钮（route 模式 true / Tab 模式 false） */
+  @Param showBack: boolean = false;
   /** 当前筛选 Tab */
   @Local currentFilter: MessageFilterTab = 'all';
   /** 列表是否为空（驱动空状态切换） */
@@ -56,8 +57,7 @@ export struct MessageContent {
 
   async aboutToAppear(): Promise<void> {
     await this.refreshSessions();
-    // 触发 WebSocket 长连接（spec 10.3：消息 Tab 进入时确保 WsClient 已连接，
-    // 已实现"真实连接失败自动切 Mock"兜底，后端未部署时不影响体验）
+    // 触发 WebSocket 长连接（spec 10.3：消息 Tab 进入时确保 WsClient 已连接）
     WsClient.connect();
     Logger.info(AppConstants.SCENE_USER, { action: 'message_list_appear', total: this.dataSource.totalCount() });
   }
@@ -79,10 +79,41 @@ export struct MessageContent {
     Logger.info(AppConstants.SCENE_USER, { action: 'message_filter_change', filter: tab });
   }
 
-  /** 点击会话进入详情 */
-  private gotoChatDetail(sessionId: string): void {
-    const param: ChatDetailParam = { sessionId: sessionId };
-    NavigationHelper.push(RouteName.USER_CHAT_DETAIL, param);
+  /** 点击快捷入口切换到对应分类 Tab */
+  private async onQuickEntryClick(entry: QuickEntry): Promise<void> {
+    // 映射快捷入口分类到筛选 Tab
+    let targetTab: MessageFilterTab = 'all';
+    if (entry.category === 'order' || entry.category === 'logistics') {
+      targetTab = 'order';
+    } else if (entry.category === 'live' || entry.category === 'coupon' || entry.category === 'interact') {
+      targetTab = 'interact';
+    } else if (entry.category === 'system') {
+      targetTab = 'system';
+    } else if (entry.category === 'service') {
+      targetTab = 'service';
+    }
+    await this.onFilterChange(targetTab);
+    Logger.info(AppConstants.SCENE_USER, { action: 'message_quick_entry', category: entry.category, filter: targetTab });
+  }
+
+  /** 全部已读 */
+  private async onMarkAllRead(): Promise<void> {
+    markAllSessionsRead();
+    ToastUtil.success('全部已标为已读');
+    await this.refreshSessions();
+    Logger.info(AppConstants.SCENE_USER, { action: 'message_mark_all_read' });
+  }
+
+  /** 点击会话进入详情（hasChat=true 才跳转） */
+  private onSessionClick(session: ChatSession): void {
+    if (session.hasChat) {
+      const param: ChatDetailParam = { sessionId: session.sessionId };
+      NavigationHelper.push(RouteName.USER_CHAT_DETAIL, param);
+    } else {
+      // 通知类消息，提示用户
+      ToastUtil.info('暂无聊天记录');
+    }
+    Logger.info(AppConstants.SCENE_USER, { action: 'message_item_click', sessionId: session.sessionId, hasChat: session.hasChat });
   }
 
   /** 长按会话弹出操作菜单 */
@@ -128,8 +159,12 @@ export struct MessageContent {
   build() {
     Stack({ alignContent: Alignment.Bottom }) {
       Column() {
-        // 顶部筛选 Tab
-        this.FilterBar()
+        // 顶部栏（对齐设计稿 qn-topbar）
+        this.TopBar()
+        // 快捷入口
+        this.QuickGrid()
+        // 筛选 Tab
+        this.TabBar()
         // 会话列表（spec 10.11.4 Step 4：4 态状态机 error / loading / empty / list）
         if (this.dataSource.getLoadFailed()) {
           ListStateView({ state: 'error', onRefresh: () => this.refreshSessions() })
@@ -144,7 +179,7 @@ export struct MessageContent {
       .width('100%')
       .height('100%')
 
-      // 底部操作菜单（bindSheet 模式）
+      // 底部操作菜单
       if (this.showActionSheet && this.actionSession) {
         this.ActionSheet()
       }
@@ -154,133 +189,276 @@ export struct MessageContent {
     .backgroundColor($r('app.color.color_bg_page'))
   }
 
-  /** 顶部筛选 Tab 栏 */
+  /** 顶部栏（对齐设计稿 qn-topbar: 返回/标题/全部已读） */
   @Builder
-  FilterBar() {
-    Row({ space: 0 }) {
-      ForEach(FILTER_TABS, (tab: FilterTabItem) => {
-        Column({ space: 4 }) {
-          Text(tab.label)
-            .fontSize(14)
-            .fontColor(this.currentFilter === tab.key ? $r('app.color.color_primary') : $r('app.color.color_text_secondary'))
-            .fontWeight(this.currentFilter === tab.key ? FontWeight.Bold : FontWeight.Normal)
-          // 选中下划线
-          Divider()
-            .strokeWidth(this.currentFilter === tab.key ? 2 : 0)
-            .color($r('app.color.color_primary'))
-            .width(this.currentFilter === tab.key ? 24 : 0)
+  TopBar() {
+    Row() {
+      // 左侧：返回按钮（route 模式）或标题（Tab 模式）
+      if (this.showBack) {
+        Row() {
+          Text('‹').fontSize(22).fontColor($r('app.color.color_ink')).fontWeight(FontWeight.Bold)
         }
-        .padding({ top: 12, bottom: 8 })
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Center)
-        .onClick(() => {
-          this.onFilterChange(tab.key);
-        })
-      }, (tab: FilterTabItem) => tab.key)
+        .width(32)
+        .height(32)
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .backgroundColor($r('app.color.color_bg_card'))
+        .shadow(AppConstants.SHADOW_CARD)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+        .onClick(() => { NavigationHelper.pop(); })
+
+        // 居中标题
+        Text('消息')
+          .fontSize(17)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+          .layoutWeight(1)
+          .textAlign(TextAlign.Center)
+      } else {
+        // Tab 模式：左对齐标题
+        Text('消息')
+          .fontSize(18)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+          .layoutWeight(1)
+      }
+
+      // 右侧：全部已读胶囊按钮（对齐设计稿 qn-msg-readall）
+      Row({ space: 4 }) {
+        Text('✓')
+          .fontSize(12)
+          .fontColor($r('app.color.color_green_deep'))
+          .fontWeight(FontWeight.Bold)
+        Text('全部已读')
+          .fontSize(12)
+          .fontColor($r('app.color.color_text_2'))
+          .fontWeight(FontWeight.Bold)
+      }
+      .height(30)
+      .padding({ left: 12, right: 12 })
+      .borderRadius(AppConstants.RADIUS_PILL)
+      .backgroundColor($r('app.color.color_bg_card'))
+      .shadow(AppConstants.SHADOW_CARD)
+      .alignItems(VerticalAlign.Center)
+      .onClick(() => { this.onMarkAllRead(); })
     }
     .width('100%')
-    .backgroundColor($r('app.color.color_bg_card'))
-    .border({ width: { bottom: 0.5 }, color: $r('app.color.color_divider') })
+    .padding({ left: 16, right: 16, top: 4, bottom: 10 })
+    .alignItems(VerticalAlign.Center)
   }
 
-  /** 会话列表 */
+  /** 快捷入口 4 圆形图标（对齐设计稿 qn-quick-grid） */
+  @Builder
+  QuickGrid() {
+    Row() {
+      Column({ space: 0 }) {
+        Row() {
+          ForEach(MOCK_QUICK_ENTRIES, (entry: QuickEntry) => {
+            Column({ space: 7 }) {
+              // 圆形图标 + 角标
+              Stack({ alignContent: Alignment.TopEnd }) {
+                Row() {
+                  Text(entry.icon)
+                    .fontSize(22)
+                    .fontColor(this.getThemeTextColor(entry.iconTheme))
+                }
+                .width(48)
+                .height(48)
+                .borderRadius(AppConstants.RADIUS_PILL)
+                .backgroundColor(this.getThemeBgColor(entry.iconTheme))
+                .justifyContent(FlexAlign.Center)
+                .alignItems(VerticalAlign.Center)
+
+                // 红色角标（对齐设计稿 qn-quick-badge）
+                if (entry.badge > 0) {
+                  Text(entry.badge > 99 ? '99+' : `${entry.badge}`)
+                    .fontSize(10)
+                    .fontColor(Color.White)
+                    .fontWeight(FontWeight.Bold)
+                    .height(18)
+                    .padding({ left: 5, right: 5 })
+                    .borderRadius(AppConstants.RADIUS_PILL)
+                    .backgroundColor($r('app.color.color_live'))
+                    .border({ width: 2, color: $r('app.color.color_bg_card') })
+                    .textAlign(TextAlign.Center)
+                    .offset({ x: 5, y: -5 })
+                }
+              }
+              .width(48)
+              .height(48)
+
+              // 标签
+              Text(entry.label)
+                .fontSize(11)
+                .fontColor($r('app.color.color_ink_2'))
+                .fontWeight(FontWeight.Medium)
+            }
+            .alignItems(HorizontalAlign.Center)
+            .layoutWeight(1)
+            .onClick(() => { this.onQuickEntryClick(entry); })
+          }, (entry: QuickEntry) => entry.category)
+        }
+        .width('100%')
+        .padding({ left: 6, right: 6, top: 14, bottom: 12 })
+      }
+      .width('100%')
+      .backgroundColor($r('app.color.color_bg_card'))
+      .borderRadius(AppConstants.RADIUS_LG)
+      .shadow(AppConstants.SHADOW_CARD)
+    }
+    .width('100%')
+    .padding({ left: 16, right: 16 })
+  }
+
+  /** 顶部 Tab 切换栏（对齐设计稿 qn-msg-tabs 5 项 + 黄色下划线） */
+  @Builder
+  TabBar() {
+    Scroll() {
+      Row({ space: 20 }) {
+        ForEach(FILTER_TABS, (tab: FilterTabItem) => {
+          Column({ space: 0 }) {
+            Text(tab.label)
+              .fontSize(this.currentFilter === tab.key ? 15 : 14)
+              .fontColor(this.currentFilter === tab.key ? $r('app.color.color_ink') : $r('app.color.color_text_3'))
+              .fontWeight(this.currentFilter === tab.key ? FontWeight.Bold : FontWeight.Medium)
+              .padding({ top: 10, bottom: 12 })
+
+            // 选中下划线（对齐设计稿 qn-msg-tab.is-active::after）
+            Row()
+              .width(this.currentFilter === tab.key ? 22 : 0)
+              .height(3)
+              .borderRadius(AppConstants.RADIUS_PILL)
+              .backgroundColor($r('app.color.color_yellow_deep'))
+          }
+          .alignItems(HorizontalAlign.Center)
+          .onClick(() => { this.onFilterChange(tab.key); })
+        }, (tab: FilterTabItem) => tab.key)
+      }
+      .padding({ left: 16, right: 16 })
+    }
+    .scrollable(ScrollDirection.Horizontal)
+    .scrollBar(BarState.Off)
+    .width('100%')
+    .margin({ top: 14 })
+  }
+
+  /** 会话列表（对齐设计稿 qn-msg-card 白卡分组） */
   @Builder
   SessionListView() {
-    List({ space: 0 }) {
-      LazyForEach(this.dataSource, (session: ChatSession) => {
-        ListItem() {
-          this.SessionItem(session)
+    Scroll() {
+      Column() {
+        // 白卡分组
+        Column({ space: 0 }) {
+          LazyForEach(this.dataSource, (session: ChatSession) => {
+            Column() {
+              this.SessionItem(session)
+              // 行间分割线（对齐设计稿 qn-msg-row + .qn-msg-row）
+              Divider()
+                .color($r('app.color.color_line'))
+                .strokeWidth(1)
+            }
+          }, (session: ChatSession) => session.sessionId + `_${session.unreadCount}_${session.lastMessageAt}`)
         }
-      }, (session: ChatSession) => session.sessionId + `_${session.unreadCount}_${session.lastMessageAt}_${session.isPinned}`)
+        .width('100%')
+        .backgroundColor($r('app.color.color_bg_card'))
+        .borderRadius(AppConstants.RADIUS_LG)
+        .shadow(AppConstants.SHADOW_CARD)
+        .padding({ left: 16, right: 16 })
+
+        // 列表底部提示（对齐设计稿 qn-msg-foot）
+        Text('没有更多消息了')
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_4'))
+          .margin({ top: 14, bottom: 4 })
+          .textAlign(TextAlign.Center)
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 6 })
     }
+    .layoutWeight(1)
     .width('100%')
-    .height('100%')
     .scrollBar(BarState.Off)
-    .cachedCount(AppConstants.LIST_CACHED_COUNT)
   }
 
-  /** 单个会话项 */
+  /** 单个会话项（对齐设计稿 qn-msg-row） */
   @Builder
   SessionItem(session: ChatSession) {
     Row({ space: 12 }) {
-      // 头像 + 未读红点
-      Stack({ alignContent: Alignment.TopEnd }) {
-        Image(ImageUtil.get(session.peerAvatar))
-          .width(48)
-          .height(48)
-          .borderRadius(24)
-          .objectFit(ImageFit.Cover)
-
-        if (session.unreadCount > 0) {
-          Text(session.unreadCount > 99 ? '99+' : `${session.unreadCount}`)
-            .fontSize(10)
-            .fontColor(Color.White)
-            .backgroundColor($r('app.color.color_error'))
-            .borderRadius(9)
-            .constraintSize({ minWidth: 18 })
-            .height(18)
-            .padding({ left: 4, right: 4 })
-            .textAlign(TextAlign.Center)
-            .offset({ x: -2, y: -2 })
-        }
+      // 彩色圆形图标（对齐设计稿 qn-msg-ico 44×44）
+      Row() {
+        Text(session.icon)
+          .fontSize(22)
+          .fontColor(this.getThemeTextColor(session.iconTheme))
       }
-      .width(48)
-      .height(48)
+      .width(44)
+      .height(44)
+      .borderRadius(AppConstants.RADIUS_PILL)
+      .backgroundColor(this.getThemeBgColor(session.iconTheme))
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
 
-      // 中间：昵称 + 最新消息
-      Column({ space: 4 }) {
+      // 中间：标签 + 标题 + 预览
+      Column({ space: 5 }) {
+        // 顶行：标签 + 标题 + 未读红点
         Row() {
-          Text(session.peerNickname)
+          // 分类标签（对齐设计稿 qn-msg-tag）
+          Text(session.tagLabel)
+            .fontSize(10)
+            .fontColor(this.getThemeTextColor(session.tagTheme))
+            .fontWeight(FontWeight.Bold)
+            .padding({ left: 6, right: 6, top: 1, bottom: 1 })
+            .borderRadius(AppConstants.RADIUS_XS)
+            .backgroundColor(this.getThemeBgColor(session.tagTheme))
+
+          // 标题
+          Text(session.title)
             .fontSize(15)
-            .fontColor($r('app.color.color_text_primary'))
-            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.color_ink'))
+            .fontWeight(FontWeight.Bold)
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .layoutWeight(1)
-          // 系统通知子类型标签
-          if (session.type === 'system' && session.noticeType) {
-            Text(this.getNoticeTypeLabel(session.noticeType))
-              .fontSize(10)
-              .fontColor($r('app.color.color_primary'))
-              .backgroundColor($r('app.color.color_bg_page'))
-              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-              .borderRadius(8)
-              .margin({ left: 6 })
+            .margin({ left: 6 })
+
+          // 未读红点（对齐设计稿 qn-msg-dot 8×8）
+          if (session.unreadCount > 0) {
+            Column()
+              .width(8)
+              .height(8)
+              .borderRadius(4)
+              .backgroundColor($r('app.color.color_live'))
+              .margin({ left: 4, top: 7 })
           }
-          // 置顶标记
-          if (session.isPinned) {
-            Text('📌')
-              .fontSize(11)
-              .margin({ left: 4 })
-          }
-          Text(this.formatTime(session.lastMessageAt))
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Top)
+
+        // 底行：预览 + 时间
+        Row({ space: 10 }) {
+          Text(session.lastMessage)
+            .fontSize(13)
+            .fontColor($r('app.color.color_text_3'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .layoutWeight(1)
+
+          Text(this.formatRelativeTime(session.lastMessageAt))
             .fontSize(11)
-            .fontColor($r('app.color.color_text_hint'))
+            .fontColor($r('app.color.color_text_3'))
         }
         .width('100%')
         .alignItems(VerticalAlign.Center)
-
-        Text(this.formatLastMessage(session))
-          .fontSize(13)
-          .fontColor($r('app.color.color_text_secondary'))
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
     }
     .width('100%')
-    .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-    .backgroundColor($r('app.color.color_bg_card'))
-    .alignItems(VerticalAlign.Center)
-    .onClick(() => {
-      this.gotoChatDetail(session.sessionId);
-    })
+    .padding({ top: 13, bottom: 13 })
+    .alignItems(VerticalAlign.Top)
+    .onClick(() => { this.onSessionClick(session); })
     .gesture(
       LongPressGesture({ repeat: false, duration: 500 })
-        .onAction(() => {
-          this.onSessionLongPress(session);
-        })
+        .onAction(() => { this.onSessionLongPress(session); })
     )
   }
 
@@ -295,7 +473,7 @@ export struct MessageContent {
       })
     }
     .width('100%')
-    .height('100%')
+    .layoutWeight(1)
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
   }
@@ -308,118 +486,112 @@ export struct MessageContent {
       Column()
         .width('100%')
         .height('100%')
-        .backgroundColor('rgba(0,0,0,0.4)')
-        .onClick(() => {
-          this.onCancelAction();
-        })
+        .backgroundColor('rgba(26,26,26,0.45)')
+        .onClick(() => { this.onCancelAction(); })
 
       // 操作菜单
       Column({ space: 0 }) {
-        // 标题
-        Text(this.actionSession ? this.actionSession.peerNickname : '')
+        Text(this.actionSession ? this.actionSession.title : '')
           .fontSize(13)
-          .fontColor($r('app.color.color_text_hint'))
+          .fontColor($r('app.color.color_text_3'))
           .padding({ top: 14, bottom: 14 })
 
         Divider()
-          .color($r('app.color.color_divider'))
-          .strokeWidth(0.5)
+          .color($r('app.color.color_line'))
+          .strokeWidth(1)
 
-        // 置顶 / 取消置顶
         Text(this.actionSession && this.actionSession.isPinned ? '取消置顶' : '置顶会话')
           .fontSize(16)
-          .fontColor($r('app.color.color_text_primary'))
+          .fontColor($r('app.color.color_ink'))
           .width('100%')
           .height(50)
           .textAlign(TextAlign.Center)
-          .onClick(() => {
-            this.onTogglePinned();
-          })
+          .onClick(() => { this.onTogglePinned(); })
 
         Divider()
-          .color($r('app.color.color_divider'))
-          .strokeWidth(0.5)
+          .color($r('app.color.color_line'))
+          .strokeWidth(1)
 
-        // 删除
         Text('删除会话')
           .fontSize(16)
-          .fontColor($r('app.color.color_error'))
+          .fontColor($r('app.color.color_live'))
           .width('100%')
           .height(50)
           .textAlign(TextAlign.Center)
-          .onClick(() => {
-            this.onDeleteSession();
-          })
+          .onClick(() => { this.onDeleteSession(); })
 
         Divider()
           .color($r('app.color.color_bg_page'))
           .strokeWidth(6)
 
-        // 取消
         Text('取消')
           .fontSize(16)
-          .fontColor($r('app.color.color_text_primary'))
+          .fontColor($r('app.color.color_ink'))
           .width('100%')
           .height(50)
           .textAlign(TextAlign.Center)
-          .onClick(() => {
-            this.onCancelAction();
-          })
+          .onClick(() => { this.onCancelAction(); })
       }
       .width('100%')
       .backgroundColor($r('app.color.color_bg_card'))
-      .borderRadius({ topLeft: 12, topRight: 12 })
+      .borderRadius({ topLeft: AppConstants.RADIUS_XL, topRight: AppConstants.RADIUS_XL })
     }
     .width('100%')
     .height('100%')
     .justifyContent(FlexAlign.End)
   }
 
-  /** 格式化最新消息预览（图片/表情特殊处理） */
-  private formatLastMessage(session: ChatSession): string {
-    // 系统通知直接返回 lastMessage（已是文本）
-    if (session.type === 'system') {
-      return session.lastMessage;
-    }
-    // 私信会话：检查是否为图片/表情 key（Mock 中图片消息的 content 是 prod_xxx key）
-    if (session.lastMessage.startsWith('prod_')) {
-      return '[图片]';
-    }
-    return session.lastMessage;
-  }
-
-  /** 获取系统通知子类型标签 */
-  private getNoticeTypeLabel(noticeType: string): string {
-    switch (noticeType) {
-      case 'order': return '订单';
-      case 'logistics': return '物流';
-      case 'activity': return '活动';
-      case 'review': return '评价';
-      default: return '通知';
+  /** 获取主题背景色（对齐设计稿 qn-msg-ico.c-* / qn-msg-tag.t-*） */
+  private getThemeBgColor(theme: MessageTagTheme): ResourceColor {
+    switch (theme) {
+      case 'yellow': return $r('app.color.color_yellow_soft');
+      case 'green': return $r('app.color.color_green_soft');
+      case 'red': return $r('app.color.color_live_soft');
+      case 'blue': return $r('app.color.color_info_soft');
+      case 'gray': return $r('app.color.color_fill');
+      default: return $r('app.color.color_fill');
     }
   }
 
-  /** 格式化时间（今日显示 HH:mm，昨日显示"昨日"，更早显示 MM/DD） */
-  private formatTime(timestamp: number): string {
-    const now: Date = new Date();
-    const msg: Date = new Date(timestamp);
-    const isSameDay: boolean = now.getFullYear() === msg.getFullYear()
-      && now.getMonth() === msg.getMonth()
-      && now.getDate() === msg.getDate();
-    if (isSameDay) {
-      const h: string = msg.getHours() < 10 ? `0${msg.getHours()}` : `${msg.getHours()}`;
-      const m: string = msg.getMinutes() < 10 ? `0${msg.getMinutes()}` : `${msg.getMinutes()}`;
-      return `${h}:${m}`;
+  /** 获取主题文字色（对齐设计稿 qn-msg-ico.c-* / qn-msg-tag.t-*） */
+  private getThemeTextColor(theme: MessageTagTheme): ResourceColor {
+    switch (theme) {
+      case 'yellow': return $r('app.color.color_yellow_text');
+      case 'green': return $r('app.color.color_green_deep');
+      case 'red': return $r('app.color.color_live');
+      case 'blue': return $r('app.color.color_info');
+      case 'gray': return $r('app.color.color_text_2');
+      default: return $r('app.color.color_text_2');
+    }
+  }
+
+  /** 格式化相对时间（对齐设计稿: 10分钟前/25分钟前/1小时前/2小时前/昨天） */
+  private formatRelativeTime(timestamp: number): string {
+    const now: number = Date.now();
+    const diff: number = now - timestamp;
+    const minute: number = 60 * 1000;
+    const hour: number = 60 * minute;
+    const day: number = 24 * hour;
+
+    if (diff < minute) {
+      return '刚刚';
+    }
+    if (diff < hour) {
+      return `${Math.floor(diff / minute)}分钟前`;
+    }
+    if (diff < day) {
+      return `${Math.floor(diff / hour)}小时前`;
     }
     // 判断昨日
-    const yesterday: Date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-    const isYesterday: boolean = yesterday.getFullYear() === msg.getFullYear()
-      && yesterday.getMonth() === msg.getMonth()
-      && yesterday.getDate() === msg.getDate();
-    if (isYesterday) {
-      return '昨日';
+    const msgDate: Date = new Date(timestamp);
+    const nowDate: Date = new Date(now);
+    const yesterday: Date = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate() - 1);
+    if (yesterday.getFullYear() === msgDate.getFullYear()
+      && yesterday.getMonth() === msgDate.getMonth()
+      && yesterday.getDate() === msgDate.getDate()) {
+      return '昨天';
     }
-    return `${msg.getMonth() + 1}/${msg.getDate()}`;
+    return `${msgDate.getMonth() + 1}/${msgDate.getDate()}`;
   }
 }
 
@@ -428,36 +600,7 @@ export struct MessageContent {
 export struct MessageList {
   build() {
     NavDestination() {
-      Column() {
-        // 顶部栏
-        Row() {
-          Text('‹')
-            .fontSize(28)
-            .fontColor($r('app.color.color_text_primary'))
-            .onClick(() => {
-              NavigationHelper.pop();
-            })
-          Text('消息')
-            .fontSize(18)
-            .fontColor($r('app.color.color_text_primary'))
-            .fontWeight(FontWeight.Medium)
-            .layoutWeight(1)
-            .textAlign(TextAlign.Center)
-          Text('')
-            .width(28)
-        }
-        .width('100%')
-        .height(56)
-        .padding({ left: 16, right: 16 })
-        .backgroundColor($r('app.color.color_bg_card'))
-        .alignItems(VerticalAlign.Center)
-
-        // 消息内容
-        MessageContent()
-      }
-      .width('100%')
-      .height('100%')
-      .backgroundColor($r('app.color.color_bg_page'))
+      MessageContent({ showBack: true })
     }
     .hideTitleBar(true)
   }

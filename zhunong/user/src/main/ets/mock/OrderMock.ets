@@ -155,10 +155,18 @@ export function getMockOrderById(orderId: string): Order | null {
   return found ?? null;
 }
 
-/** 按状态查询订单列表（all = 全部） */
+/** 按状态查询订单列表（all = 全部；completed 合并 pending_review + completed，对齐设计稿 order.html） */
 export function getMockOrderList(status: string): OrderListItem[] {
   let filtered: Order[] = MOCK_ORDERS.slice();
-  if (status !== 'all') {
+  if (status === 'completed') {
+    // 设计稿"已完成" Tab 包含待评价 + 已完成
+    filtered = filtered.filter((o: Order) => o.status === 'pending_review' || o.status === 'completed');
+  } else if (status === 'all') {
+    // 全部 Tab 排除已取消/退款（仅展示活跃订单，对齐设计稿计数）
+    filtered = filtered.filter((o: Order) =>
+      o.status !== 'cancelled' && o.status !== 'refunded'
+    );
+  } else {
     filtered = filtered.filter((o: Order) => o.status === status);
   }
   // 按创建时间倒序
@@ -167,6 +175,7 @@ export function getMockOrderList(status: string): OrderListItem[] {
     let itemCount: number = 0;
     let mainImage: string = 'prod_vegetable_1';
     let firstImage: boolean = true;
+    const allItems: OrderItem[] = [];
     o.subOrders.forEach((so: SubOrder) => {
       so.items.forEach((item: OrderItem) => {
         itemCount += item.quantity;
@@ -174,8 +183,12 @@ export function getMockOrderList(status: string): OrderListItem[] {
           mainImage = item.image;
           firstImage = false;
         }
+        allItems.push(item);
       });
     });
+    const farmerName: string = o.subOrders.length === 1
+      ? o.subOrders[0].farmerName
+      : o.subOrders[0].farmerName;
     const sellerDisplay: string = o.subOrders.length === 1
       ? o.subOrders[0].farmerName
       : `${o.subOrders.length}个店铺`;
@@ -186,23 +199,35 @@ export function getMockOrderList(status: string): OrderListItem[] {
       itemCount: itemCount,
       totalAmount: o.totalAmount,
       sellerDisplay: sellerDisplay,
+      farmerName: farmerName,
+      items: allItems,
       createdAt: o.createdAt
     };
   });
 }
 
-/** 统计各状态订单数（用于个人中心 Tab 角标） */
+/** 统计各状态订单数（用于个人中心 Tab 角标，对齐设计稿 5 Tab 计数） */
 export function getMockOrderCountByStatus(): Record<string, number> {
   const counts: Record<string, number> = {
-    'all': MOCK_ORDERS.length,
+    'all': 0,
     'pending_payment': 0,
     'pending_shipment': 0,
     'pending_receipt': 0,
-    'pending_review': 0
+    'completed': 0
   };
   MOCK_ORDERS.forEach((o: Order) => {
-    if (counts[o.status] !== undefined) {
-      counts[o.status]++;
+    if (o.status === 'cancelled' || o.status === 'refunded') {
+      return;
+    }
+    counts['all']++;
+    if (o.status === 'pending_payment') {
+      counts['pending_payment']++;
+    } else if (o.status === 'pending_shipment') {
+      counts['pending_shipment']++;
+    } else if (o.status === 'pending_receipt') {
+      counts['pending_receipt']++;
+    } else if (o.status === 'pending_review' || o.status === 'completed') {
+      counts['completed']++;
     }
   });
   return counts;

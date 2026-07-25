@@ -1,9 +1,11 @@
 /**
- * rate_limit - 限流配置（spec 3.3.2 / 10.8.3.2）
+ * rate_limit - 限流配置（spec 3.3.2 / 10.8.3.2，对齐 rate-limit.html 设计稿）
  *
- * - 顶部显示当前 API 路径与方法
- * - 表单：QPS 阈值输入框（数字键盘）+ 并发数限制 + 熔断阈值
- * - 保存按钮 → 调 `ApiRepository.updateRateLimit()`
+ * - 顶栏：圆形返回键 + 居中标题"限流配置"
+ * - API 信息卡：方法 pill + 路径 + 描述 + "当前峰值 N QPS"
+ * - 配置表单卡：QPS阈值 / 并发数限制 / 熔断阈值 / 恢复时间（label 左 + 输入框右 + tip）
+ * - 当前状态卡：浅绿底 + 绿色对勾 + "当前状态：正常运行"
+ * - 底部固定保存按钮（黑底"保存配置"）
  *
  * 越权防御（spec 10.8.8）：aboutToAppear 校验 super_admin / api_admin
  */
@@ -33,6 +35,8 @@ export struct RateLimit {
   @Local concurrentLimit: string = '';
   /** 表单：熔断阈值（百分比，0~100） */
   @Local circuitBreakThreshold: string = '';
+  /** 表单：恢复时间（秒） */
+  @Local recoveryTime: string = '';
   /** 是否正在加载 */
   @Local isLoading: boolean = false;
   /** 是否正在保存 */
@@ -83,11 +87,13 @@ export struct RateLimit {
         this.qpsLimit = `${cfg.qpsLimit}`;
         this.concurrentLimit = `${cfg.concurrentLimit}`;
         this.circuitBreakThreshold = `${(cfg.circuitBreakThreshold * 100).toFixed(1)}`;
+        this.recoveryTime = `${cfg.recoveryTime}`;
       } else {
         // 兜底默认值
-        this.qpsLimit = '100';
+        this.qpsLimit = '200';
         this.concurrentLimit = '50';
         this.circuitBreakThreshold = '5.0';
+        this.recoveryTime = '30';
       }
     } catch (err) {
       this.loadFailed = true;
@@ -122,6 +128,11 @@ export struct RateLimit {
       ToastUtil.warning('熔断阈值需在 0~100 之间');
       return false;
     }
+    const recovery: number = parseInt(this.recoveryTime, 10);
+    if (isNaN(recovery) || recovery <= 0) {
+      ToastUtil.warning('恢复时间需为正整数');
+      return false;
+    }
     return true;
   }
 
@@ -135,15 +146,17 @@ export struct RateLimit {
       const qps: number = parseInt(this.qpsLimit, 10);
       const concurrent: number = parseInt(this.concurrentLimit, 10);
       const threshold: number = parseFloat(this.circuitBreakThreshold) / 100;
+      const recovery: number = parseInt(this.recoveryTime, 10);
       const req: RateLimitUpdateRequest = {
         apiId: this.apiId,
         qpsLimit: qps,
         concurrentLimit: concurrent,
-        circuitBreakThreshold: threshold
+        circuitBreakThreshold: threshold,
+        recoveryTime: recovery
       };
       await ApiRepository.updateRateLimit(req);
       ToastUtil.success('保存成功');
-      Logger.info(AppConstants.SCENE_ADMIN, { action: 'rate_limit_save', apiId: this.apiId, qps, concurrent, threshold });
+      Logger.info(AppConstants.SCENE_ADMIN, { action: 'rate_limit_save', apiId: this.apiId, qps, concurrent, threshold, recovery });
       NavigationHelper.pop();
     } catch (err) {
       Logger.error(AppConstants.SCENE_ADMIN, { action: 'rate_limit_save_fail', error: (err as Error).message });
@@ -154,27 +167,27 @@ export struct RateLimit {
   }
 
   /** 方法 Tag 背景色 */
-  private methodBg(method: HttpMethod): string {
+  private methodBg(method: HttpMethod): Resource {
     if (method === 'GET') {
-      return 'rgba(76,175,80,0.15)';
+      return $r('app.color.color_green_soft');
     } else if (method === 'POST') {
-      return 'rgba(33,150,243,0.15)';
+      return $r('app.color.color_info_soft');
     } else if (method === 'PUT') {
-      return 'rgba(255,152,0,0.15)';
+      return $r('app.color.color_warn_soft');
     }
-    return 'rgba(244,67,54,0.15)';
+    return $r('app.color.color_live_soft');
   }
 
   /** 方法 Tag 文字色 */
-  private methodColor(method: HttpMethod): string {
+  private methodColor(method: HttpMethod): Resource {
     if (method === 'GET') {
-      return '#4CAF50';
+      return $r('app.color.color_green_deep');
     } else if (method === 'POST') {
-      return '#2196F3';
+      return $r('app.color.color_info_deep');
     } else if (method === 'PUT') {
-      return '#FF9800';
+      return $r('app.color.color_warn_deep');
     }
-    return '#F44336';
+    return $r('app.color.color_live');
   }
 
   build() {
@@ -187,171 +200,252 @@ export struct RateLimit {
           ListStateView({ state: 'loading' })
         } else {
           Scroll() {
-            Column({ space: 16 }) {
-              this.ApiHeaderCard()
+            Column({ space: 12 }) {
+              this.ApiInfoCard()
               this.ConfigFormCard()
-              this.SaveButton()
+              this.StatusCard()
+              // 底部留白，避免被固定按钮遮挡
+              Column().height(88)
             }
             .width('100%')
-            .padding({ left: 16, right: 16, top: 16, bottom: 24 })
+            .padding({ left: 16, right: 16, top: 4, bottom: 16 })
           }
           .layoutWeight(1)
           .scrollBar(BarState.Off)
+
+          // 底部固定保存按钮
+          this.SaveBar()
         }
       }
       .width('100%')
       .height('100%')
-      .backgroundColor($r('app.color.color_bg_page'))
+      .backgroundColor($r('app.color.color_cream'))
     }
     .hideTitleBar(true)
   }
 
-  /** 顶部导航 */
+  /** 顶部导航：圆形返回键 + 居中标题 */
   @Builder
   TopBar() {
-    Row({ space: 12 }) {
-      Text('‹')
-        .fontSize(28)
-        .fontColor($r('app.color.color_text_primary'))
-        .onClick(() => NavigationHelper.pop())
+    Row() {
+      Stack() {
+        Text('‹')
+          .fontSize(22)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+      }
+      .width(32)
+      .height(32)
+      .borderRadius(AppConstants.RADIUS_PILL)
+      .backgroundColor($r('app.color.color_bg_card'))
+      .shadow(AppConstants.SHADOW_CARD)
+      .onClick(() => NavigationHelper.pop())
+
       Text('限流配置')
-        .fontSize(18)
-        .fontColor($r('app.color.color_text_primary'))
-        .fontWeight(FontWeight.Medium)
+        .fontSize(17)
+        .fontColor($r('app.color.color_ink'))
+        .fontWeight(FontWeight.Bold)
         .layoutWeight(1)
+        .textAlign(TextAlign.Center)
+
+      // 占位保持标题居中
+      Column().width(32).height(32)
     }
     .width('100%')
-    .height(56)
-    .padding({ left: 16, right: 16 })
-    .backgroundColor($r('app.color.color_bg_card'))
+    .height(48)
+    .padding({ left: 16, right: 16, top: 4, bottom: 10 })
     .alignItems(VerticalAlign.Center)
   }
 
-  /** API 信息卡（顶部展示路径与方法） */
+  /** API 信息卡（方法 pill + 路径 + 描述 + 当前峰值 QPS） */
   @Builder
-  ApiHeaderCard() {
-    Column({ space: 8 }) {
-      Row({ space: 8 }) {
+  ApiInfoCard() {
+    Column({ space: 6 }) {
+      // 方法 pill + 路径
+      Row({ space: 10 }) {
         Text(this.apiInfo!.method)
-          .fontSize(11)
+          .fontSize(12)
           .fontColor(this.methodColor(this.apiInfo!.method))
           .backgroundColor(this.methodBg(this.apiInfo!.method))
-          .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-          .borderRadius(4)
+          .padding({ left: 12, right: 12, top: 4, bottom: 4 })
+          .borderRadius(AppConstants.RADIUS_PILL)
           .fontWeight(FontWeight.Bold)
+
         Text(this.apiInfo!.path)
           .fontSize(14)
-          .fontColor($r('app.color.color_text_primary'))
-          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
           .layoutWeight(1)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
       .width('100%')
+      .alignItems(VerticalAlign.Center)
+
+      // 描述
       Text(this.apiInfo!.description)
-        .fontSize(12)
-        .fontColor($r('app.color.color_text_secondary'))
+        .fontSize(13)
+        .fontColor($r('app.color.color_text_3'))
         .width('100%')
+
+      // 当前峰值 QPS
       if (this.config) {
-        Text(`当前配置 ID：${this.config.configId}`)
+        Text(`当前峰值 ${this.config.currentQps} QPS`)
+          .fontSize(12)
+          .fontColor($r('app.color.color_text_3'))
+          .margin({ top: 6 })
+      }
+    }
+    .width('100%')
+    .padding(16)
+    .borderRadius(AppConstants.RADIUS_LG)
+    .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  /** 配置表单卡（对齐设计稿：label 左 + 输入框右 + tip） */
+  @Builder
+  ConfigFormCard() {
+    Column() {
+      Text('限流配置')
+        .fontSize(16)
+        .fontColor($r('app.color.color_ink'))
+        .fontWeight(FontWeight.Bold)
+        .margin({ bottom: 14 })
+
+      // QPS 阈值
+      this.FormField('QPS阈值', this.qpsLimit, '次/秒', '建议设为峰值的1.5倍', (v: string) => { this.qpsLimit = v; })
+
+      Divider().color($r('app.color.color_line')).strokeWidth(1)
+
+      // 并发数限制
+      this.FormField('并发数限制', this.concurrentLimit, '', '同时处理的请求数', (v: string) => { this.concurrentLimit = v; })
+
+      Divider().color($r('app.color.color_line')).strokeWidth(1)
+
+      // 熔断阈值
+      this.FormField('熔断阈值', this.circuitBreakThreshold, '%', '错误率超阈值自动熔断保护', (v: string) => { this.circuitBreakThreshold = v; })
+
+      Divider().color($r('app.color.color_line')).strokeWidth(1)
+
+      // 恢复时间
+      this.FormField('恢复时间', this.recoveryTime, '秒', '', (v: string) => { this.recoveryTime = v; })
+    }
+    .width('100%')
+    .padding(16)
+    .borderRadius(AppConstants.RADIUS_LG)
+    .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  /** 表单字段（label 左 + 输入框右 + tip 下） */
+  @Builder
+  FormField(label: string, value: string, unit: string, tip: string, onChange: (v: string) => void) {
+    Column() {
+      Row() {
+        Text(label)
+          .fontSize(15)
+          .fontColor($r('app.color.color_ink_2'))
+          .fontWeight(FontWeight.Medium)
+
+        Blank()
+
+        // 输入框（灰底，右对齐数字 + 单位）
+        Row({ space: 4 }) {
+          TextInput({ text: value })
+            .width(64)
+            .height(38)
+            .backgroundColor(Color.Transparent)
+            .textAlign(TextAlign.End)
+            .fontSize(15)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.color_ink'))
+            .type(InputType.Number)
+            .padding({ top: 0, bottom: 0 })
+            .onChange((v: string) => { onChange(v); })
+
+          if (unit.length > 0) {
+            Text(unit)
+              .fontSize(12)
+              .fontColor($r('app.color.color_text_3'))
+          }
+        }
+        .height(38)
+        .padding({ left: 12, right: 12 })
+        .borderRadius(AppConstants.RADIUS_SM)
+        .backgroundColor($r('app.color.color_fill'))
+        .alignItems(VerticalAlign.Center)
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+
+      if (tip.length > 0) {
+        Text(tip)
           .fontSize(11)
-          .fontColor($r('app.color.color_text_hint'))
+          .fontColor($r('app.color.color_text_3'))
+          .margin({ top: 7 })
           .width('100%')
       }
     }
     .width('100%')
-    .padding(12)
-    .borderRadius(12)
-    .backgroundColor($r('app.color.color_bg_card'))
+    .padding({ top: 12, bottom: 12 })
+    .alignItems(HorizontalAlign.Start)
   }
 
-  /** 配置表单卡 */
+  /** 当前状态卡（浅绿底 + 绿色对勾 + 状态文案） */
   @Builder
-  ConfigFormCard() {
-    Column({ space: 12 }) {
-      Text('限流参数')
-        .fontSize(14)
-        .fontColor($r('app.color.color_text_secondary'))
-        .alignSelf(ItemAlign.Start)
-
-      // QPS 阈值
-      Column({ space: 6 }) {
-        Text('* QPS 阈值（每秒请求数）')
-          .fontSize(13)
-          .fontColor($r('app.color.color_text_primary'))
-          .alignSelf(ItemAlign.Start)
-        TextInput({ text: this.qpsLimit, placeholder: '请输入 QPS 阈值（1~100000）' })
-          .height(44)
-          .borderRadius(8)
-          .backgroundColor($r('app.color.color_bg_page'))
-          .padding({ left: 12, right: 12 })
-          .fontSize(14)
-          .type(InputType.Number)
-          .onChange((v: string) => { this.qpsLimit = v; })
-        Text('建议值：100 ~ 10000，登录类接口可设为 5000，订单类接口建议 500')
-          .fontSize(10)
-          .fontColor($r('app.color.color_text_hint'))
+  StatusCard() {
+    Row({ space: 12 }) {
+      // 绿色圆形对勾图标
+      Stack() {
+        Text('✓')
+          .fontSize(20)
+          .fontColor(Color.White)
+          .fontWeight(FontWeight.Bold)
       }
-      .width('100%')
+      .width(36)
+      .height(36)
+      .borderRadius(AppConstants.RADIUS_PILL)
+      .backgroundColor($r('app.color.color_secondary'))
 
-      // 并发数限制
-      Column({ space: 6 }) {
-        Text('* 并发数限制')
-          .fontSize(13)
-          .fontColor($r('app.color.color_text_primary'))
-          .alignSelf(ItemAlign.Start)
-        TextInput({ text: this.concurrentLimit, placeholder: '请输入并发数限制（1~10000）' })
-          .height(44)
-          .borderRadius(8)
-          .backgroundColor($r('app.color.color_bg_page'))
-          .padding({ left: 12, right: 12 })
-          .fontSize(14)
-          .type(InputType.Number)
-          .onChange((v: string) => { this.concurrentLimit = v; })
-        Text('同时处理的最大请求数，超过则排队等待')
-          .fontSize(10)
-          .fontColor($r('app.color.color_text_hint'))
+      Column({ space: 2 }) {
+        Text('当前状态：正常运行')
+          .fontSize(15)
+          .fontColor($r('app.color.color_green_deep'))
+          .fontWeight(FontWeight.Bold)
+        Text('限流规则已生效')
+          .fontSize(12)
+          .fontColor('#5B8A2E')
       }
-      .width('100%')
-
-      // 熔断阈值
-      Column({ space: 6 }) {
-        Text('* 熔断阈值（百分比）')
-          .fontSize(13)
-          .fontColor($r('app.color.color_text_primary'))
-          .alignSelf(ItemAlign.Start)
-        TextInput({ text: this.circuitBreakThreshold, placeholder: '请输入熔断阈值（0~100）' })
-          .height(44)
-          .borderRadius(8)
-          .backgroundColor($r('app.color.color_bg_page'))
-          .padding({ left: 12, right: 12 })
-          .fontSize(14)
-          .type(InputType.Number)
-          .onChange((v: string) => { this.circuitBreakThreshold = v; })
-        Text('错误率超过该阈值时触发熔断，建议 5.0% ~ 20.0%')
-          .fontSize(10)
-          .fontColor($r('app.color.color_text_hint'))
-      }
-      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
     }
     .width('100%')
-    .padding(16)
-    .borderRadius(12)
-    .backgroundColor($r('app.color.color_bg_card'))
+    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+    .borderRadius(AppConstants.RADIUS_MD)
+    .backgroundColor($r('app.color.color_green_soft'))
+    .alignItems(VerticalAlign.Center)
   }
 
-  /** 保存按钮 */
+  /** 底部固定保存按钮栏 */
   @Builder
-  SaveButton() {
-    Button(this.isSaving ? '保存中...' : '保存配置')
-      .width('100%')
-      .height(48)
-      .borderRadius(24)
-      .backgroundColor(this.isSaving ? $r('app.color.color_button_disabled') : $r('app.color.color_primary'))
-      .fontColor(Color.White)
-      .fontSize(16)
-      .fontWeight(FontWeight.Medium)
-      .enabled(!this.isSaving)
-      .onClick(() => { this.saveConfig(); })
+  SaveBar() {
+    Column() {
+      Button(this.isSaving ? '保存中...' : '保存配置')
+        .width('100%')
+        .height(46)
+        .borderRadius(AppConstants.RADIUS_MD)
+        .backgroundColor(this.isSaving ? $r('app.color.color_text_4') : $r('app.color.color_ink'))
+        .fontColor(Color.White)
+        .fontSize(15)
+        .fontWeight(FontWeight.Bold)
+        .enabled(!this.isSaving)
+        .onClick(() => { this.saveConfig(); })
+    }
+    .width('100%')
+    .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+    .backgroundColor($r('app.color.color_cream'))
   }
 }

@@ -1,16 +1,21 @@
 /**
  * order_confirm - 确认订单页
- * 遵循 spec 3.1.4.1：
- *  - 收货地址 + 商品列表 + 优惠券选择 + 留言 + 合计
+ * 遵循 spec 3.1.4.1 + UI 复刻 order-confirm.html：
+ *  - 收货地址卡（白底 + 黄色圆形定位图标）
+ *  - 卖家分组卡（店铺头 + V 认证标 + 商品行 + 运费行）
+ *  - 优惠券单行卡（绿值 + 箭头）
+ *  - 支付方式卡（微信/支付宝/余额 + 单选）
+ *  - 备注单行卡（行内输入）
+ *  - 金额汇总卡（商品金额/运费/优惠 + 合计）
+ *  - 底部固定提交栏（合计 + 提交订单墨黑按钮）
  *  - 提交订单 → Mock 支付 → 订单状态变为"待发货"
  *  - 支持两种入口：购物车结算（多商品）/ 立即购买（单品）
  */
 
-import { UserRoutes, RouteName, NavigationHelper, Logger, AppConstants, ToastUtil } from 'common';
-import { Order, SubOrder, OrderItem, OrderItemSpec } from '../../model/OrderModels';
-import { createMockOrder, updateMockOrderStatus, CreateOrderItem } from '../../mock/OrderMock';
+import { RouteName, NavigationHelper, Logger, AppConstants, ToastUtil } from 'common';
+import { Order, OrderItem, OrderItemSpec } from '../../model/OrderModels';
+import { createMockOrder, CreateOrderItem } from '../../mock/OrderMock';
 import { getMockCartGroups } from '../../mock/CartMock';
-import { clearSelectedCartItems } from '../../mock/CartMock';
 import { getMockDefaultAddress, MOCK_COUPONS } from '../../mock/ProfileMock';
 import { Address, Coupon } from '../../model/ProfileModels';
 import { getMockProductById, MOCK_FARMER_NAMES } from '../../mock/ProductMock';
@@ -35,6 +40,32 @@ interface AddressListNavParam {
 /** 跳转订单详情的路由参数 */
 interface OrderDetailParam {
   orderId: string;
+}
+
+/** 跳转收银台（支付页）的路由参数 */
+interface PaymentNavParam {
+  orderId: string;
+  buyNow: string;
+}
+
+/** 进入确认订单页的路由参数（立即购买 / 购物车结算） */
+interface OrderConfirmNavParam {
+  buyNow?: string;
+  productId?: string;
+  skuId?: string;
+  quantity?: string;
+}
+
+/** 支付方式枚举 */
+type PayMethod = 'wechat' | 'alipay' | 'balance';
+
+/** 支付方式选项 */
+interface PayMethodOption {
+  method: PayMethod;
+  name: string;
+  desc?: string;
+  iconBg: ResourceColor;
+  iconText: string;
 }
 
 @ComponentV2
@@ -69,9 +100,17 @@ export struct OrderConfirm {
   @Local payable: number = 0;
   /** 是否正在提交 */
   @Local isSubmitting: boolean = false;
+  /** 选中的支付方式 */
+  @Local payMethod: PayMethod = 'wechat';
+  /** 支付方式选项列表 */
+  @Local payOptions: PayMethodOption[] = [
+    { method: 'wechat', name: '微信支付', desc: '推荐使用', iconBg: $r('app.color.color_green'), iconText: '微' },
+    { method: 'alipay', name: '支付宝', iconBg: $r('app.color.color_info'), iconText: '付' },
+    { method: 'balance', name: '余额支付', desc: '可用余额 ¥0.00', iconBg: $r('app.color.color_ink'), iconText: '余' }
+  ];
 
   aboutToAppear(): void {
-    const params: Record<string, string> = NavigationHelper.getParam<Record<string, string>>() as Record<string, string>;
+    const params = NavigationHelper.getParam<OrderConfirmNavParam>();
     if (params) {
       this.buyNow = params.buyNow === '1';
       this.buyProductId = params.productId ?? '';
@@ -215,8 +254,8 @@ export struct OrderConfirm {
         orderId: order.orderId,
         amount: order.totalAmount
       }));
-      // Mock 支付（弹窗选择支付方式）
-      this.showMockPayment(order.orderId);
+      // 跳转收银台（支付页）
+      this.gotoPayment(order.orderId);
     } catch (err) {
       Logger.error(AppConstants.SCENE_USER, {
         action: 'order_create_fail',
@@ -228,48 +267,54 @@ export struct OrderConfirm {
     }
   }
 
-  /** Mock 支付（简化：直接支付成功，跳转订单详情） */
-  private showMockPayment(orderId: string): void {
-    // Phase 2 简化：直接模拟支付成功，状态变更为"待发货"
-    updateMockOrderStatus(orderId, 'pending_shipment');
-    // 购物车模式：清空已选中商品
-    if (!this.buyNow) {
-      clearSelectedCartItems();
+  /** 跳转收银台（支付页） */
+  private gotoPayment(orderId: string): void {
+    const param: PaymentNavParam = {
+      orderId: orderId,
+      buyNow: this.buyNow ? 'true' : 'false'
+    };
+    NavigationHelper.push(RouteName.USER_PAYMENT, param);
+  }
+
+  /** 格式化规格 */
+  private formatSpecs(specs?: OrderItemSpec[]): string {
+    if (!specs || specs.length === 0) {
+      return '';
     }
-    ToastUtil.success('支付成功');
-    Logger.info(AppConstants.SCENE_USER, JSON.stringify({
-      action: 'mock_payment_success',
-      orderId: orderId
-    }));
-    // 跳转订单详情
-    setTimeout(() => {
-      const param: OrderDetailParam = { orderId: orderId };
-      NavigationHelper.replace(RouteName.USER_ORDER_DETAIL, param);
-    }, 800);
+    return specs.map((s: OrderItemSpec) => s.value).join(' / ');
+  }
+
+  /** 格式化价格整数部分 */
+  private formatPriceInt(price: number): string {
+    return price.toFixed(2);
   }
 
   build() {
     NavDestination() {
       Column() {
-        // 顶部栏
+        // 顶部栏（对齐设计稿 qn-topbar）
         Row() {
           Text('‹')
             .fontSize(28)
-            .fontColor($r('app.color.color_text_primary'))
+            .fontColor($r('app.color.color_ink'))
+            .width(32)
+            .height(32)
+            .textAlign(TextAlign.Center)
             .onClick(() => {
               NavigationHelper.pop();
             })
           Text('确认订单')
-            .fontSize(18)
-            .fontColor($r('app.color.color_text_primary'))
-            .fontWeight(FontWeight.Medium)
+            .fontSize(17)
+            .fontColor($r('app.color.color_ink'))
+            .fontWeight(FontWeight.Bold)
             .layoutWeight(1)
             .textAlign(TextAlign.Center)
           Text('')
-            .width(28)
+            .width(32)
+            .height(32)
         }
         .width('100%')
-        .height(56)
+        .height(48)
         .padding({ left: 16, right: 16 })
         .backgroundColor($r('app.color.color_bg_card'))
         .alignItems(VerticalAlign.Center)
@@ -277,28 +322,30 @@ export struct OrderConfirm {
         // 内容区
         Scroll() {
           Column({ space: 12 }) {
-            // 收货地址
+            // 收货地址卡
             this.AddressCard()
-            // 商品列表（按卖家分组）
+            // 商品清单（按卖家分组）
             ForEach(this.sellerGroups, (group: SellerGroup, _i: number) => {
               this.SellerGroupCard(group)
             }, (group: SellerGroup) => group.farmerId)
-            // 优惠券
+            // 优惠券单行卡
             this.CouponCard()
-            // 留言
+            // 支付方式卡
+            this.PaymentCard()
+            // 备注单行卡
             this.RemarkCard()
-            // 金额明细
+            // 金额汇总卡
             this.AmountDetail()
           }
           .width('100%')
-          .padding({ bottom: 80 })
+          .padding({ left: 16, right: 16, top: 12, bottom: 100 })
         }
         .layoutWeight(1)
         .width('100%')
         .backgroundColor($r('app.color.color_bg_page'))
         .scrollBar(BarState.Off)
 
-        // 底部提交栏
+        // 底部固定提交栏
         this.BottomSubmitBar()
       }
       .width('100%')
@@ -308,84 +355,238 @@ export struct OrderConfirm {
     .hideTitleBar(true)
   }
 
-  /** 收货地址卡片 */
+  /** 收货地址卡片（对齐设计稿 qn-card + qn-addr-card） */
   @Builder
   AddressCard() {
     Row({ space: 12 }) {
-      Text('📍').fontSize(24)
+      // 黄色圆形定位图标（40×40 圆）
+      Text('📍')
+        .fontSize(20)
+        .width(40)
+        .height(40)
+        .textAlign(TextAlign.Center)
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .backgroundColor($r('app.color.color_primary'))
+
+      // 地址信息
       if (this.address) {
         Column({ space: 4 }) {
-          Row({ space: 8 }) {
-            Text(this.address.receiverName).fontSize(14).fontColor($r('app.color.color_text_primary')).fontWeight(FontWeight.Medium)
-            Text(this.address.phone).fontSize(13).fontColor($r('app.color.color_text_secondary'))
+          // 收货人 + 电话（15px 800 + 13px 600）
+          Row({ space: 10 }) {
+            Text(this.address.receiverName)
+              .fontSize(15)
+              .fontColor($r('app.color.color_ink'))
+              .fontWeight(FontWeight.Bold)
+            Text(this.address.phone)
+              .fontSize(13)
+              .fontColor($r('app.color.color_text_2'))
+              .fontWeight(FontWeight.Medium)
           }
+          .alignItems(VerticalAlign.Bottom)
+
+          // 地址详文（13px text_2）
           Text(`${this.address.province}${this.address.city}${this.address.district} ${this.address.detail}`)
-            .fontSize(12).fontColor($r('app.color.color_text_secondary')).maxLines(2)
+            .fontSize(13)
+            .fontColor($r('app.color.color_text_2'))
+            .maxLines(2)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
         }
-        .alignItems(HorizontalAlign.Start).layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
+        .layoutWeight(1)
       } else {
-        Text('请选择收货地址').fontSize(14).fontColor($r('app.color.color_text_hint')).layoutWeight(1)
+        Text('请选择收货地址')
+          .fontSize(15)
+          .fontColor($r('app.color.color_text_3'))
+          .fontWeight(FontWeight.Bold)
+          .layoutWeight(1)
       }
-      Text('›').fontSize(20).fontColor($r('app.color.color_text_hint'))
+
+      // 右箭头
+      Text('›')
+        .fontSize(20)
+        .fontColor($r('app.color.color_text_3'))
     }
-    .width('100%').padding(16).backgroundColor($r('app.color.color_bg_card')).borderRadius(12)
-    .margin({ left: 12, right: 12, top: 12 })
+    .width('100%')
+    .padding(16)
+    .backgroundColor($r('app.color.color_bg_card'))
+    .borderRadius(AppConstants.RADIUS_LG)
+    .shadow(AppConstants.SHADOW_CARD)
     .alignItems(VerticalAlign.Center)
     .onClick(() => { this.gotoAddressList(); })
   }
 
-  /** 卖家分组卡片 */
+  /** 卖家分组卡片（对齐设计稿 qn-card + qn-confirm-shop） */
   @Builder
   SellerGroupCard(group: SellerGroup) {
-    Column({ space: 10 }) {
-      // 卖家名
-      Row({ space: 4 }) {
-        Text('🏪').fontSize(13)
-        Text(group.farmerName).fontSize(13).fontColor($r('app.color.color_text_primary')).fontWeight(FontWeight.Medium)
+    Column({ space: 0 }) {
+      // 店铺行（对齐设计稿 qn-confirm-shop-head）
+      Row({ space: 10 }) {
+        // 店铺头像（28×28 圆 + 首字母）
+        Text(group.farmerName.charAt(0))
+          .fontSize(13)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+          .width(28)
+          .height(28)
+          .textAlign(TextAlign.Center)
+          .borderRadius(AppConstants.RADIUS_PILL)
+          .backgroundColor($r('app.color.color_fill'))
+
+        // 店铺名 + V 认证标
+        Row({ space: 4 }) {
+          Text(group.farmerName)
+            .fontSize(15)
+            .fontColor($r('app.color.color_ink'))
+            .fontWeight(FontWeight.Bold)
+          // V 认证标（15×15 圆 info 色 + 白色 ✓）
+          Text('✓')
+            .fontSize(9)
+            .fontColor(Color.White)
+            .width(15)
+            .height(15)
+            .textAlign(TextAlign.Center)
+            .borderRadius(AppConstants.RADIUS_PILL)
+            .backgroundColor($r('app.color.color_info'))
+        }
+        .alignItems(VerticalAlign.Center)
+        .layoutWeight(1)
       }
+      .width('100%')
+      .padding({ bottom: 4 })
+      .alignItems(VerticalAlign.Center)
+
       // 商品列表
       ForEach(group.items, (item: OrderItem, _j: number) => {
-        Row({ space: 10 }) {
-          Image(ImageUtil.get(item.image)).width(72).height(72).borderRadius(8).objectFit(ImageFit.Cover)
-          Column({ space: 4 }) {
-            Text(item.title).fontSize(12).fontColor($r('app.color.color_text_primary')).maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
-            Text(this.formatSpecs(item.specs)).fontSize(11).fontColor($r('app.color.color_text_secondary'))
+        Row({ space: 12 }) {
+          // 商品主图（80×80 RADIUS_MD）
+          Image(ImageUtil.get(item.image))
+            .width(80)
+            .height(80)
+            .borderRadius(AppConstants.RADIUS_MD)
+            .objectFit(ImageFit.Cover)
+            .backgroundColor($r('app.color.color_fill'))
+
+          // 商品信息
+          Column({ space: 0 }) {
+            // 商品名（14px 700）
+            Text(item.title)
+              .fontSize(14)
+              .fontColor($r('app.color.color_ink'))
+              .fontWeight(FontWeight.Bold)
+              .maxLines(2)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .lineHeight(19)
+
+            // 规格标签（11px text_3 + 灰底）
+            Text(this.formatSpecs(item.specs))
+              .fontSize(11)
+              .fontColor($r('app.color.color_text_3'))
+              .backgroundColor($r('app.color.color_fill'))
+              .padding({ left: 8, right: 8, top: 2, bottom: 2 })
+              .borderRadius(AppConstants.RADIUS_XS)
+              .margin({ top: 6 })
+
+            // 底部行：价格 + 数量
             Row() {
-              Text(`¥${item.price.toFixed(2)}`).fontSize(13).fontColor($r('app.color.color_price')).fontWeight(FontWeight.Bold)
+              // 价格（¥12px + 数字20px 红 800）
+              Row({ space: 1 }) {
+                Text('¥')
+                  .fontSize(12)
+                  .fontColor($r('app.color.color_live'))
+                  .fontWeight(FontWeight.Bold)
+                Text(this.formatPriceInt(item.price))
+                  .fontSize(20)
+                  .fontColor($r('app.color.color_live'))
+                  .fontWeight(FontWeight.Bold)
+              }
+              .alignItems(VerticalAlign.Bottom)
+
               Blank()
-              Text(`x${item.quantity}`).fontSize(12).fontColor($r('app.color.color_text_secondary'))
-            }.width('100%')
-          }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-        }.width('100%')
+
+              // 数量（13px 600 text_3）
+              Text(`x${item.quantity}`)
+                .fontSize(13)
+                .fontColor($r('app.color.color_text_3'))
+                .fontWeight(FontWeight.Medium)
+            }
+            .width('100%')
+            .margin({ top: 10 })
+            .alignItems(VerticalAlign.Bottom)
+          }
+          .layoutWeight(1)
+          .height(80)
+          .alignItems(HorizontalAlign.Start)
+          .justifyContent(FlexAlign.SpaceBetween)
+        }
+        .width('100%')
+        .padding({ top: 12, bottom: 12 })
+        .alignItems(VerticalAlign.Top)
+        .border({ width: { top: 1 }, color: { top: $r('app.color.color_line') } })
       }, (item: OrderItem) => item.productId + (item.skuId ?? ''))
-      // 运费
+
+      // 运费行
       Row() {
-        Text('运费').fontSize(12).fontColor($r('app.color.color_text_secondary'))
+        Text('运费')
+          .fontSize(13)
+          .fontColor($r('app.color.color_text_2'))
         Blank()
-        Text(group.freight === 0 ? '包邮' : `¥${group.freight.toFixed(2)}`).fontSize(12).fontColor($r('app.color.color_text_primary'))
-      }.width('100%')
+        Text(group.freight === 0 ? '包邮' : `¥${group.freight.toFixed(2)}`)
+          .fontSize(13)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Medium)
+      }
+      .width('100%')
+      .padding({ top: 12 })
+      .border({ width: { top: 1 }, color: { top: $r('app.color.color_line') } })
+      .alignItems(VerticalAlign.Center)
     }
-    .width('100%').padding(16).backgroundColor($r('app.color.color_bg_card')).borderRadius(12).margin({ left: 12, right: 12 })
+    .width('100%')
+    .padding(16)
+    .backgroundColor($r('app.color.color_bg_card'))
+    .borderRadius(AppConstants.RADIUS_LG)
+    .shadow(AppConstants.SHADOW_CARD)
+    .alignItems(HorizontalAlign.Start)
   }
 
-  /** 优惠券卡片 */
+  /** 优惠券单行卡（对齐设计稿 qn-card + qn-row） */
   @Builder
   CouponCard() {
-    Row() {
-      Text('🎟️ 优惠券').fontSize(13).fontColor($r('app.color.color_text_primary'))
+    Row({ space: 10 }) {
+      Text('优惠券')
+        .fontSize(14)
+        .fontColor($r('app.color.color_ink'))
+        .fontWeight(FontWeight.Bold)
+
       Blank()
+
       if (this.selectedCoupon) {
-        Text(`-${this.selectedCoupon.cutAmount ?? 0}元`).fontSize(13).fontColor($r('app.color.color_error'))
+        Text(`-${this.selectedCoupon.cutAmount ?? 0}元`)
+          .fontSize(13)
+          .fontColor($r('app.color.color_green_deep'))
+          .fontWeight(FontWeight.Bold)
       } else if (this.availableCoupons.length > 0) {
-        Text(`${this.availableCoupons.length}张可用`).fontSize(12).fontColor($r('app.color.color_secondary'))
+        Text(`${this.availableCoupons.length}张可用`)
+          .fontSize(13)
+          .fontColor($r('app.color.color_green_deep'))
+          .fontWeight(FontWeight.Bold)
       } else {
-        Text('暂无可用').fontSize(12).fontColor($r('app.color.color_text_hint'))
+        Text('暂无可用')
+          .fontSize(13)
+          .fontColor($r('app.color.color_text_3'))
       }
-      Text(' ›').fontSize(14).fontColor($r('app.color.color_text_hint'))
+
+      Text('›')
+        .fontSize(18)
+        .fontColor($r('app.color.color_text_3'))
     }
-    .width('100%').height(48).padding({ left: 16, right: 16 }).backgroundColor($r('app.color.color_bg_card')).borderRadius(12).margin({ left: 12, right: 12 }).alignItems(VerticalAlign.Center)
+    .width('100%')
+    .height(48)
+    .padding({ left: 16, right: 16 })
+    .backgroundColor($r('app.color.color_bg_card'))
+    .borderRadius(AppConstants.RADIUS_LG)
+    .shadow(AppConstants.SHADOW_CARD)
+    .alignItems(VerticalAlign.Center)
     .onClick(() => {
-      // 简化：循环切换优惠券
       if (this.availableCoupons.length === 0) {
         ToastUtil.show('暂无可用优惠券');
         return;
@@ -399,67 +600,212 @@ export struct OrderConfirm {
     })
   }
 
-  /** 留言卡片 */
+  /** 支付方式卡（对齐设计稿 qn-card + qn-pay） */
+  @Builder
+  PaymentCard() {
+    Column({ space: 0 }) {
+      ForEach(this.payOptions, (opt: PayMethodOption, idx: number) => {
+        Row({ space: 10 }) {
+          // 圆形图标（28×28 + 首字汉字）
+          Text(opt.iconText)
+            .fontSize(13)
+            .fontColor(Color.White)
+            .fontWeight(FontWeight.Bold)
+            .width(28)
+            .height(28)
+            .textAlign(TextAlign.Center)
+            .borderRadius(AppConstants.RADIUS_PILL)
+            .backgroundColor(opt.iconBg)
+
+          // 名称 + 描述
+          Column({ space: 2 }) {
+            Text(opt.name)
+              .fontSize(14)
+              .fontColor($r('app.color.color_ink'))
+              .fontWeight(FontWeight.Medium)
+            if (opt.desc) {
+              Text(opt.desc)
+                .fontSize(11)
+                .fontColor($r('app.color.color_text_3'))
+            }
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
+
+          // 单选圆
+          Text(this.payMethod === opt.method ? '✓' : '')
+            .fontSize(11)
+            .fontColor(Color.White)
+            .width(20)
+            .height(20)
+            .textAlign(TextAlign.Center)
+            .borderRadius(AppConstants.RADIUS_PILL)
+            .backgroundColor(this.payMethod === opt.method ? $r('app.color.color_green') : Color.Transparent)
+            .border({ width: 1.5, color: this.payMethod === opt.method ? $r('app.color.color_green') : $r('app.color.color_text_4') })
+        }
+        .width('100%')
+        .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+        .alignItems(VerticalAlign.Center)
+        .border(idx > 0 ? { width: { top: 1 }, color: { top: $r('app.color.color_line') } } : {})
+        .onClick(() => { this.payMethod = opt.method; })
+      }, (opt: PayMethodOption) => opt.method)
+    }
+    .width('100%')
+    .backgroundColor($r('app.color.color_bg_card'))
+    .borderRadius(AppConstants.RADIUS_LG)
+    .shadow(AppConstants.SHADOW_CARD)
+  }
+
+  /** 备注单行卡（对齐设计稿 qn-card + qn-remark） */
   @Builder
   RemarkCard() {
-    Column({ space: 8 }) {
-      Text('订单留言').fontSize(13).fontColor($r('app.color.color_text_primary'))
-      TextInput({ text: this.remark, placeholder: '选填，给卖家留言（50字内）' })
-        .fontSize(13).maxLength(50).height(40).backgroundColor($r('app.color.color_bg_page')).borderRadius(8)
-        .padding({ left: 12, right: 12 })
+    Row({ space: 10 }) {
+      Text('订单备注')
+        .fontSize(14)
+        .fontColor($r('app.color.color_ink'))
+        .fontWeight(FontWeight.Bold)
+
+      TextInput({ text: this.remark, placeholder: '选填，请输入备注信息' })
+        .fontSize(13)
+        .fontColor($r('app.color.color_ink'))
+        .placeholderFont({ size: 13 })
+        .placeholderColor($r('app.color.color_text_4'))
+        .maxLength(50)
+        .backgroundColor(Color.Transparent)
+        .layoutWeight(1)
         .onChange((v: string) => { this.remark = v; })
     }
-    .width('100%').padding(16).backgroundColor($r('app.color.color_bg_card')).borderRadius(12).margin({ left: 12, right: 12 }).alignItems(HorizontalAlign.Start)
+    .width('100%')
+    .height(48)
+    .padding({ left: 16, right: 16 })
+    .backgroundColor($r('app.color.color_bg_card'))
+    .borderRadius(AppConstants.RADIUS_LG)
+    .shadow(AppConstants.SHADOW_CARD)
+    .alignItems(VerticalAlign.Center)
   }
 
-  /** 金额明细 */
+  /** 金额汇总卡（对齐设计稿 qn-card + qn-sum-card） */
   @Builder
   AmountDetail() {
-    Column({ space: 8 }) {
+    Column({ space: 0 }) {
+      // 商品金额
       Row() {
-        Text('商品金额').fontSize(13).fontColor($r('app.color.color_text_secondary'))
+        Text('商品金额')
+          .fontSize(13)
+          .fontColor($r('app.color.color_text_2'))
         Blank()
-        Text(`¥${this.totalAmount.toFixed(2)}`).fontSize(13).fontColor($r('app.color.color_text_primary'))
-      }.width('100%')
+        Text(`¥${this.totalAmount.toFixed(2)}`)
+          .fontSize(13)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Medium)
+      }
+      .width('100%')
+      .padding({ top: 6, bottom: 6 })
+
+      // 运费
       Row() {
-        Text('运费').fontSize(13).fontColor($r('app.color.color_text_secondary'))
+        Text('运费')
+          .fontSize(13)
+          .fontColor($r('app.color.color_text_2'))
         Blank()
-        Text(`¥${this.totalFreight.toFixed(2)}`).fontSize(13).fontColor($r('app.color.color_text_primary'))
-      }.width('100%')
+        Text(`¥${this.totalFreight.toFixed(2)}`)
+          .fontSize(13)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Medium)
+      }
+      .width('100%')
+      .padding({ top: 6, bottom: 6 })
+
+      // 优惠券
       if (this.discount > 0) {
         Row() {
-          Text('优惠').fontSize(13).fontColor($r('app.color.color_text_secondary'))
+          Text('优惠券')
+            .fontSize(13)
+            .fontColor($r('app.color.color_text_2'))
           Blank()
-          Text(`-¥${this.discount.toFixed(2)}`).fontSize(13).fontColor($r('app.color.color_error'))
-        }.width('100%')
+          Text(`-¥${this.discount.toFixed(2)}`)
+            .fontSize(13)
+            .fontColor($r('app.color.color_green_deep'))
+            .fontWeight(FontWeight.Bold)
+        }
+        .width('100%')
+        .padding({ top: 6, bottom: 6 })
       }
+
+      // 合计行
+      Row() {
+        Text('合计')
+          .fontSize(14)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+        Blank()
+        Row({ space: 1 }) {
+          Text('¥')
+            .fontSize(14)
+            .fontColor($r('app.color.color_live'))
+            .fontWeight(FontWeight.Bold)
+          Text(this.formatPriceInt(this.payable))
+            .fontSize(24)
+            .fontColor($r('app.color.color_live'))
+            .fontWeight(FontWeight.Bold)
+        }
+        .alignItems(VerticalAlign.Bottom)
+      }
+      .width('100%')
+      .padding({ top: 12 })
+      .margin({ top: 6 })
+      .border({ width: { top: 1 }, color: { top: $r('app.color.color_line') } })
+      .alignItems(VerticalAlign.Bottom)
     }
-    .width('100%').padding(16).backgroundColor($r('app.color.color_bg_card')).borderRadius(12).margin({ left: 12, right: 12 })
+    .width('100%')
+    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+    .backgroundColor($r('app.color.color_bg_card'))
+    .borderRadius(AppConstants.RADIUS_LG)
+    .shadow(AppConstants.SHADOW_CARD)
   }
 
-  /** 底部提交栏 */
+  /** 底部固定提交栏（对齐设计稿 qn-submit-bar） */
   @Builder
   BottomSubmitBar() {
-    Row() {
-      Column({ space: 2 }) {
-        Row({ space: 2 }) {
-          Text('应付：').fontSize(12).fontColor($r('app.color.color_text_secondary'))
-          Text(`¥${this.payable.toFixed(2)}`).fontSize(18).fontColor($r('app.color.color_price')).fontWeight(FontWeight.Bold)
+    Row({ space: 12 }) {
+      // 合计金额
+      Column({ space: 0 }) {
+        Text('合计')
+          .fontSize(12)
+          .fontColor($r('app.color.color_text_3'))
+          .fontWeight(FontWeight.Medium)
+        Row({ space: 1 }) {
+          Text('¥')
+            .fontSize(13)
+            .fontColor($r('app.color.color_live'))
+            .fontWeight(FontWeight.Bold)
+          Text(this.formatPriceInt(this.payable))
+            .fontSize(22)
+            .fontColor($r('app.color.color_live'))
+            .fontWeight(FontWeight.Bold)
         }
-      }.layoutWeight(1)
-      Button('提交订单')
-        .height(44).borderRadius(22).backgroundColor($r('app.color.color_secondary')).fontColor(Color.White).fontSize(15)
-        .padding({ left: 32, right: 32 }).enabled(!this.isSubmitting)
+        .alignItems(VerticalAlign.Bottom)
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+
+      // 提交订单按钮（墨黑底）
+      Text('提交订单')
+        .fontSize(15)
+        .fontColor(Color.White)
+        .fontWeight(FontWeight.Bold)
+        .height(46)
+        .padding({ left: 30, right: 30 })
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .backgroundColor(this.isSubmitting ? $r('app.color.color_text_4') : $r('app.color.color_cta_black'))
+        .textAlign(TextAlign.Center)
         .onClick(() => { this.onSubmitOrder(); })
     }
-    .width('100%').height(64).padding({ left: 16, right: 16 }).backgroundColor($r('app.color.color_bg_card')).border({ width: { top: 0.5 }, color: $r('app.color.color_divider') }).alignItems(VerticalAlign.Center)
-  }
-
-  /** 格式化规格 */
-  private formatSpecs(specs?: OrderItemSpec[]): string {
-    if (!specs || specs.length === 0) {
-      return '';
-    }
-    return specs.map((s: OrderItemSpec) => s.value).join(' / ');
+    .width('100%')
+    .height(64)
+    .padding({ left: 16, right: 16 })
+    .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_NAV)
+    .alignItems(VerticalAlign.Center)
   }
 }

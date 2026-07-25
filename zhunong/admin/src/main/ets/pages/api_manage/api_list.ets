@@ -1,11 +1,13 @@
 /**
- * api_list - API 接口列表（spec 3.3.2 / 10.8.3.2）
- *
- * 路径搜索（防抖 300ms）+ 分页 + 跳转 API 详情 / 限流配置
- * - 列表项：接口路径 + 方法 Tag（GET/POST/PUT/DELETE 颜色区分）+ 描述
- *   + 今日请求量 + 错误率 + 平均响应时间
- * - 点击 → `pages/api_manage/api_detail?apiId=xxx`
- * - 右侧操作：限流配置按钮 → `pages/api_manage/rate_limit?apiId=xxx`
+ * api_list - API 接口列表（UI 复刻 qunong-harmony-app/pages/api-list.html）
+ * 遵循 spec 3.3.2 / 10.8.3.2：
+ *  - 顶栏：圆形返回键 + 居中 "API管理" + 接口计数
+ *  - 搜索栏（防抖 300ms）：胶囊形白底 + 搜索图标 + placeholder
+ *  - LazyForEach 分页 API 列表
+ *  - 列表项：方法 Tag（GET 绿/POST 蓝/PUT 橙/DELETE 红）+ 路径 + "查看 ›" + 描述
+ *    + 3 列指标（调用次数/成功率/平均耗时，顶部虚线分隔）+ 2 按钮（查看详情线框 + 限流配置黄边）
+ *  - 点击 → `pages/api_manage/api_detail?apiId=xxx`
+ *  - 限流配置按钮 → `pages/api_manage/rate_limit?apiId=xxx`
  *
  * 越权防御（spec 10.8.8）：aboutToAppear 校验 super_admin / api_admin
  * 全部 Mock 数据（spec 10.8.3.2）
@@ -51,7 +53,7 @@ export struct ApiList {
       NavigationHelper.pop();
       return;
     }
-    Logger.info(AppConstants.SCENE_ADMIN, { action: 'api_list_appear', adminId: adminInfo.adminId, role: adminInfo.role });
+    Logger.info(AppConstants.SCENE_ADMIN, { action: 'api_list_appear', adminId: adminInfo.adminId });
     await this.refresh();
   }
 
@@ -86,46 +88,38 @@ export struct ApiList {
     NavigationHelper.push(RouteName.ADMIN_RATE_LIMIT, param);
   }
 
-  /** 方法 Tag 背景色（spec 10.8.3.2：GET/POST/PUT/DELETE 颜色区分） */
-  private methodBg(method: HttpMethod): string {
+  /** 方法 Tag 背景色（spec：GET 绿 / POST 蓝 / PUT 橙 / DELETE 红） */
+  private methodBg(method: HttpMethod): ResourceColor {
     if (method === 'GET') {
-      return 'rgba(76,175,80,0.15)';
+      return $r('app.color.color_green');
     } else if (method === 'POST') {
-      return 'rgba(33,150,243,0.15)';
+      return $r('app.color.color_info');
     } else if (method === 'PUT') {
-      return 'rgba(255,152,0,0.15)';
+      return $r('app.color.color_warn');
     }
-    return 'rgba(244,67,54,0.15)';
+    return $r('app.color.color_live');
   }
 
   /** 方法 Tag 文字色 */
-  private methodColor(method: HttpMethod): string {
+  private methodColor(method: HttpMethod): ResourceColor {
     if (method === 'GET') {
-      return '#4CAF50';
-    } else if (method === 'POST') {
-      return '#2196F3';
-    } else if (method === 'PUT') {
-      return '#FF9800';
+      return $r('app.color.color_ink');
     }
-    return '#F44336';
-  }
-
-  /** 错误率文字色（>0.1 红色告警） */
-  private errorRateColor(rate: number): Resource {
-    if (rate >= 0.1) {
-      return $r('app.color.color_error');
-    } else if (rate >= 0.05) {
-      return $r('app.color.color_secondary');
-    }
-    return $r('app.color.color_text_hint');
+    return Color.White;
   }
 
   /** 格式化响应时间 */
   private formatResponseTime(ms: number): string {
     if (ms < 1000) {
-      return `${ms} ms`;
+      return `${ms}ms`;
     }
-    return `${(ms / 1000).toFixed(2)} s`;
+    return `${(ms / 1000).toFixed(2)}s`;
+  }
+
+  /** 计算成功率（1 - 错误率） */
+  private formatSuccessRate(errorRate: number): string {
+    const successRate: number = (1 - errorRate) * 100;
+    return `${successRate.toFixed(1)}%`;
   }
 
   build() {
@@ -146,68 +140,81 @@ export struct ApiList {
       }
       .width('100%')
       .height('100%')
-      .backgroundColor($r('app.color.color_bg_page'))
+      .backgroundColor($r('app.color.color_cream'))
     }
     .hideTitleBar(true)
   }
 
-  /** 顶部导航 */
+  /** 顶部导航：圆形返回键 + 居中标题 + 接口计数 */
   @Builder
   TopBar() {
-    Row({ space: 12 }) {
-      Text('‹')
-        .fontSize(28)
-        .fontColor($r('app.color.color_text_primary'))
-        .onClick(() => NavigationHelper.pop())
-      Text('API 管理')
-        .fontSize(18)
-        .fontColor($r('app.color.color_text_primary'))
-        .fontWeight(FontWeight.Medium)
+    Row() {
+      // 圆形返回键
+      Stack() {
+        Text('‹')
+          .fontSize(22)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+      }
+      .width(32)
+      .height(32)
+      .borderRadius(AppConstants.RADIUS_PILL)
+      .backgroundColor($r('app.color.color_bg_card'))
+      .shadow(AppConstants.SHADOW_CARD)
+      .onClick(() => NavigationHelper.pop())
+
+      // 居中标题
+      Text('API管理')
+        .fontSize(17)
+        .fontColor($r('app.color.color_ink'))
+        .fontWeight(FontWeight.Bold)
         .layoutWeight(1)
-      Text(`共 ${this.dataSource.totalCount()} 个`)
+        .textAlign(TextAlign.Center)
+
+      // 接口计数
+      Text(`共${this.dataSource.totalCount()}个`)
         .fontSize(12)
-        .fontColor($r('app.color.color_text_secondary'))
+        .fontColor($r('app.color.color_text_3'))
+        .fontWeight(FontWeight.Medium)
     }
     .width('100%')
-    .height(56)
-    .padding({ left: 16, right: 16 })
-    .backgroundColor($r('app.color.color_bg_card'))
+    .height(48)
+    .padding({ left: 16, right: 16, top: 4, bottom: 10 })
     .alignItems(VerticalAlign.Center)
   }
 
-  /** 搜索栏（防抖 300ms） */
+  /** 搜索栏（胶囊形白底 + 搜索图标 + 防抖 300ms） */
   @Builder
   SearchBar() {
     Row({ space: 8 }) {
-      TextInput({ text: this.inputText, placeholder: '搜索接口路径 / 描述（防抖 300ms）' })
+      Text('🔍')
+        .fontSize(14)
+        .fontColor($r('app.color.color_text_3'))
+      TextInput({ text: this.inputText, placeholder: '搜索接口路径/名称' })
         .layoutWeight(1)
         .height(40)
-        .fontSize(14)
-        .backgroundColor($r('app.color.color_bg_page'))
-        .borderRadius(20)
+        .fontSize(13)
+        .fontColor($r('app.color.color_ink'))
+        .backgroundColor(Color.Transparent)
+        .placeholderColor($r('app.color.color_text_3'))
         .onChange((value: string) => {
           this.onInputChange(value);
         })
-      Button('搜索')
-        .height(40)
-        .borderRadius(20)
-        .backgroundColor($r('app.color.color_primary'))
-        .fontColor(Color.White)
-        .fontSize(14)
-        .onClick(() => {
-          this.keyword = this.inputText.trim();
-          this.refresh();
-        })
     }
     .width('100%')
-    .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+    .height(40)
+    .padding({ left: 16, right: 16 })
+    .borderRadius(AppConstants.RADIUS_PILL)
     .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
+    .margin({ left: 16, right: 16, top: 4, bottom: 12 })
+    .alignItems(VerticalAlign.Center)
   }
 
   /** API 列表 */
   @Builder
   ApiListView() {
-    List({ space: 8 }) {
+    List({ space: 10 }) {
       LazyForEach(this.dataSource, (api: ApiInfo) => {
         ListItem() {
           this.ApiItemCard(api)
@@ -221,7 +228,7 @@ export struct ApiList {
             LoadingProgress().width(20).height(20)
             Text('加载中...')
               .fontSize(12)
-              .fontColor($r('app.color.color_text_secondary'))
+              .fontColor($r('app.color.color_text_2'))
           }
           .width('100%')
           .height(48)
@@ -229,7 +236,7 @@ export struct ApiList {
         } else if (this.dataSource.getHasMore()) {
           Text('上拉加载更多')
             .fontSize(12)
-            .fontColor($r('app.color.color_text_hint'))
+            .fontColor($r('app.color.color_text_4'))
             .width('100%')
             .height(48)
             .textAlign(TextAlign.Center)
@@ -237,7 +244,7 @@ export struct ApiList {
         } else {
           Text('没有更多了')
             .fontSize(12)
-            .fontColor($r('app.color.color_text_hint'))
+            .fontColor($r('app.color.color_text_4'))
             .width('100%')
             .height(48)
             .textAlign(TextAlign.Center)
@@ -246,111 +253,132 @@ export struct ApiList {
     }
     .width('100%')
     .layoutWeight(1)
-    .padding({ left: 12, right: 12, top: 8 })
+    .padding({ left: 16, right: 16 })
     .cachedCount(AppConstants.LIST_CACHED_COUNT)
     .onReachEnd(() => this.dataSource.loadMore())
   }
 
-  /** API 卡片 */
+  /** API 卡片（对齐 api-list.html 设计） */
   @Builder
   ApiItemCard(api: ApiInfo) {
-    Column({ space: 8 }) {
-      // 第一行：方法 Tag + 路径 + 跳转箭头
+    Column({ space: 10 }) {
+      // 第一行：方法 Tag + 路径 + "查看 ›"
       Row({ space: 8 }) {
         Text(api.method)
           .fontSize(11)
           .fontColor(this.methodColor(api.method))
           .backgroundColor(this.methodBg(api.method))
-          .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-          .borderRadius(4)
+          .padding({ left: 7, right: 7, top: 2, bottom: 2 })
+          .borderRadius(AppConstants.RADIUS_XS)
           .fontWeight(FontWeight.Bold)
+
         Text(api.path)
           .fontSize(13)
-          .fontColor($r('app.color.color_text_primary'))
+          .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Medium)
           .layoutWeight(1)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
-        Text('›')
-          .fontSize(24)
-          .fontColor($r('app.color.color_text_hint'))
+
+        // "查看 ›" 链接
+        Row({ space: 1 }) {
+          Text('查看')
+            .fontSize(12)
+            .fontColor($r('app.color.color_text_3'))
+          Text('›')
+            .fontSize(14)
+            .fontColor($r('app.color.color_text_3'))
+        }
+        .alignItems(VerticalAlign.Center)
+        .onClick(() => this.gotoDetail(api.apiId))
       }
       .width('100%')
       .alignItems(VerticalAlign.Center)
 
       // 第二行：描述
       Text(api.description)
-        .fontSize(12)
-        .fontColor($r('app.color.color_text_secondary'))
+        .fontSize(13)
+        .fontColor($r('app.color.color_text_2'))
         .width('100%')
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
 
-      // 第三行：指标
-      Row({ space: 16 }) {
-        Column({ space: 2 }) {
-          Text('今日请求')
+      // 第三行：3 列指标（顶部虚线分隔）
+      Row() {
+        Column({ space: 3 }) {
+          Text(`${api.todayRequestCount.toLocaleString()}`)
+            .fontSize(14)
+            .fontColor($r('app.color.color_ink'))
+            .fontWeight(FontWeight.Bold)
+          Text('调用次数')
             .fontSize(10)
-            .fontColor($r('app.color.color_text_hint'))
-          Text(`${api.todayRequestCount}`)
-            .fontSize(13)
-            .fontColor($r('app.color.color_text_primary'))
-            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.color_text_3'))
         }
-        .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
+        .alignItems(HorizontalAlign.Center)
 
-        Column({ space: 2 }) {
-          Text('错误率')
+        Column({ space: 3 }) {
+          Text(this.formatSuccessRate(api.errorRate))
+            .fontSize(14)
+            .fontColor($r('app.color.color_ink'))
+            .fontWeight(FontWeight.Bold)
+          Text('成功率')
             .fontSize(10)
-            .fontColor($r('app.color.color_text_hint'))
-          Text(`${(api.errorRate * 100).toFixed(2)}%`)
-            .fontSize(13)
-            .fontColor(this.errorRateColor(api.errorRate))
-            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.color_text_3'))
         }
-        .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
+        .alignItems(HorizontalAlign.Center)
 
-        Column({ space: 2 }) {
-          Text('平均响应')
-            .fontSize(10)
-            .fontColor($r('app.color.color_text_hint'))
+        Column({ space: 3 }) {
           Text(this.formatResponseTime(api.avgResponseTime))
-            .fontSize(13)
-            .fontColor($r('app.color.color_text_primary'))
-            .fontWeight(FontWeight.Medium)
+            .fontSize(14)
+            .fontColor($r('app.color.color_ink'))
+            .fontWeight(FontWeight.Bold)
+          Text('平均耗时')
+            .fontSize(10)
+            .fontColor($r('app.color.color_text_3'))
         }
-        .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
+        .alignItems(HorizontalAlign.Center)
       }
       .width('100%')
+      .padding({ top: 10 })
+      .border({ width: { top: 1 }, color: $r('app.color.color_line'), style: BorderStyle.Dashed })
 
-      // 第四行：操作按钮
+      // 第四行：2 按钮（查看详情线框 + 限流配置黄边）
       Row({ space: 8 }) {
-        Button('查看详情')
+        Text('查看详情')
           .layoutWeight(1)
           .height(32)
-          .borderRadius(16)
-          .backgroundColor($r('app.color.color_bg_page'))
-          .fontColor($r('app.color.color_text_primary'))
-          .fontSize(12)
+          .borderRadius(AppConstants.RADIUS_SM)
+          .backgroundColor($r('app.color.color_bg_card'))
+          .border({ width: 1, color: $r('app.color.color_line_2') })
+          .fontColor($r('app.color.color_text_2'))
+          .fontSize(13)
+          .fontWeight(FontWeight.Bold)
+          .textAlign(TextAlign.Center)
           .onClick(() => this.gotoDetail(api.apiId))
-        Button('限流配置')
+
+        Text('限流配置')
           .layoutWeight(1)
           .height(32)
-          .borderRadius(16)
-          .backgroundColor($r('app.color.color_bg_page'))
-          .fontColor($r('app.color.color_secondary'))
-          .fontSize(12)
+          .borderRadius(AppConstants.RADIUS_SM)
+          .backgroundColor($r('app.color.color_bg_card'))
+          .border({ width: 1, color: $r('app.color.color_yellow') })
+          .fontColor($r('app.color.color_ink'))
+          .fontSize(13)
+          .fontWeight(FontWeight.Bold)
+          .textAlign(TextAlign.Center)
           .onClick(() => this.gotoRateLimit(api.apiId))
       }
       .width('100%')
+      .alignItems(VerticalAlign.Center)
     }
     .width('100%')
-    .padding(12)
-    .borderRadius(12)
+    .padding(14)
+    .borderRadius(AppConstants.RADIUS_LG)
     .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
     .onClick(() => {
       this.gotoDetail(api.apiId);
     })

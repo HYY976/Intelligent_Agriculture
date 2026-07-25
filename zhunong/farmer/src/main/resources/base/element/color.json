@@ -1,23 +1,15 @@
 {
   "color": [
-    { "name": "color_primary", "value": "#4CAF50" },
-    { "name": "color_primary_light", "value": "#8BC34A" },
-    { "name": "color_secondary", "value": "#FF9800" },
-    { "name": "color_accent_gold", "value": "#FFD54F" },
-    { "name": "color_bg_page", "value": "#F5F5F5" },
-    { "name": "color_bg_card", "value": "#FFFFFF" },
-    { "name": "color_bg_panel_dark", "value": "#1A1A1A" },
-    { "name": "color_text_primary", "value": "#212121" },
-    { "name": "color_text_secondary", "value": "#757575" },
-    { "name": "color_text_hint", "value": "#BDBDBD" },
-    { "name": "color_text_on_dark", "value": "#81C784" },
-    { "name": "color_error", "value": "#F44336" },
-    { "name": "color_price", "value": "#FF5722" },
-    { "name": "color_divider", "value": "#E0E0E0" },
-    { "name": "color_button_disabled", "value": "#BDBDBD" },
-    { "name": "color_medal_gold", "value": "#FFD54F" },
-    { "name": "color_medal_silver", "value": "#9E9E9E" },
-    { "name": "color_medal_bronze", "value": "#8D6E63" },
-    { "name": "start_window_background", "value": "#FFFFFF" }
+    { "name": "color_dark_panel", "value": "#1A1A1A" },
+    { "name": "color_dark_soft", "value": "#2A2A2A" },
+    { "name": "color_dark_text", "value": "#9E9E9E" },
+    { "name": "color_green_mint", "value": "#81C784" },
+    { "name": "color_pill_sale", "value": "#EAF7D8" },
+    { "name": "color_pill_live", "value": "#FFF6B8" },
+    { "name": "color_pill_refund", "value": "#FFE7E7" },
+    { "name": "color_pill_pending", "value": "#FFF3E0" },
+    { "name": "color_pill_settled", "value": "#EAF7D8" },
+    { "name": "color_pill_withdrawn", "value": "#F6F6F4" },
+    { "name": "start_window_background", "value": "#FFFEF5" }
   ]
 }
