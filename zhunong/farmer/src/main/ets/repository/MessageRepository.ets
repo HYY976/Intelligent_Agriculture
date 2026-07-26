@@ -4,7 +4,7 @@
  * 实时通信仍走 WsClient（长连接），本 Repository 仅负责会话列表与历史消息查询
  */
 
-import { BaseRepository, AppConstants } from 'common';
+import { BaseRepository, AppConstants, Logger } from 'common';
 import { ChatSession, ChatMessage, SessionListResult } from '../model/FarmerMessageModels';
 import { getMockSessions, getMockMessagesBySessionId, mockSendMessage } from '../mock/FarmerMessageMock';
 
@@ -33,15 +33,22 @@ class MessageRepositoryImpl {
   /**
    * 会话列表（spec 3.1.3.3：私信会话 + 系统通知会话）
    * GET /api/message/sessions?farmerId=
+   * 注意：后端返回空列表时回退 Mock，避免误显示"暂无会话"
    */
   async getSessions(farmerId: string): Promise<SessionListResult> {
     const params: SessionListQuery = { farmerId };
-    return BaseRepository.fetchWithFallback<SessionListResult>(
+    const result: SessionListResult = await BaseRepository.fetchWithFallback<SessionListResult>(
       'message/sessions',
       params,
       async (): Promise<SessionListResult> => getMockSessions(),
       AppConstants.SCENE_FARMER
     );
+    // 后端返回成功但列表为空时，回退 Mock（确保本地演示有数据）
+    if (result.list.length === 0) {
+      Logger.warn(AppConstants.SCENE_FARMER, { action: 'sessions_empty_fallback_mock' });
+      return getMockSessions();
+    }
+    return result;
   }
 
   /**

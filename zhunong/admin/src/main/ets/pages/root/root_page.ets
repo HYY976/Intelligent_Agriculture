@@ -19,6 +19,7 @@ import { RouteName, NavigationHelper } from 'common';
 
 // 登录
 import { AdminLogin } from '../login/admin_login';
+import { AdminRegister } from '../login/admin_register';
 
 // 后台首页
 import { AdminHome } from '../home/admin_home';
@@ -61,6 +62,8 @@ struct RootPage {
   pageMap(name: string, param: object) {
     if (name === RouteName.ADMIN_LOGIN) {
       AdminLogin()
+    } else if (name === RouteName.ADMIN_REGISTER) {
+      AdminRegister()
     } else if (name === RouteName.ADMIN_HOME) {
       AdminHome()
     } else if (name === RouteName.ADMIN_USER_LIST) {

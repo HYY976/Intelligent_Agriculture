@@ -7,11 +7,12 @@
  * 其余结构与用户端社区一致（话题Tab + 最新/最热排序 + 无限嵌套评论）
  */
 
-import { Logger, AppConstants, FarmerRoutes, NavigationHelper, RouteName, PageResult, ListStateView } from 'common';
+import { Logger, AppConstants, FarmerRoutes, NavigationHelper, RouteName, PageResult, ListStateView, ToastUtil } from 'common';
 import { Post, Topic, PostSortBy } from '../../model/FarmerCommunityModels';
 import { CommunityRepository } from '../../repository/CommunityRepository';
 import { FarmerCommunityListDataSource } from '../../viewmodel/FarmerCommunityListDataSource';
 import { PRESET_TOPICS } from '../../model/FarmerCommunityModels';
+import { MOCK_FARMER_ID } from '../../mock/FarmerMock';
 
 /** 排序选项 */
 interface SortOption {
@@ -36,6 +37,12 @@ export struct CommunityList {
   @Local sortBy: PostSortBy = 'latest';
   /** 话题列表 */
   @Local topics: Topic[] = PRESET_TOPICS;
+  /** 帖子总数（@Local 驱动 UI 刷新，解决 private postDataSource 状态变化不触发重渲染的问题） */
+  @Local postCount: number = 0;
+  /** 是否正在加载（@Local 驱动 loading/empty/list 状态切换） */
+  @Local isLoadingData: boolean = true;
+  /** 是否加载失败 */
+  @Local hasLoadFailed: boolean = false;
 
   /** 排序选项 */
   private sortOptions: SortOption[] = [
@@ -54,20 +61,31 @@ export struct CommunityList {
     }
   }
 
-  /** 页面显示时刷新数据（解决从发帖页返回后列表不更新的问题） */
-  async onPageShow(): Promise<void> {
-    Logger.info(AppConstants.SCENE_FARMER, { action: 'community_list_onPageShow' });
+  /** NavDestination onShown 回调：页面显示时刷新数据（解决从发帖页返回后列表不更新的问题） */
+  private async onShown(): Promise<void> {
+    Logger.info(AppConstants.SCENE_FARMER, { action: 'community_list_onShown' });
     try {
       await this.refresh();
     } catch (err) {
-      Logger.error(AppConstants.SCENE_FARMER, { action: 'community_list_onPageShow_fail', error: (err as Error).message });
+      Logger.error(AppConstants.SCENE_FARMER, { action: 'community_list_onShown_fail', error: (err as Error).message });
     }
   }
 
   /** 刷新（spec 10.11.4 Step 3：交由 DataSource.refresh 处理分页/状态） */
   private async refresh(): Promise<void> {
-    await this.postDataSource.refresh();
-    this.isEmpty = this.postDataSource.totalCount() === 0;
+    this.isLoadingData = true;
+    this.hasLoadFailed = false;
+    try {
+      await this.postDataSource.refresh();
+      this.postCount = this.postDataSource.totalCount();
+      this.isEmpty = this.postCount === 0;
+      this.hasLoadFailed = this.postDataSource.getLoadFailed();
+    } catch (err) {
+      Logger.error(AppConstants.SCENE_FARMER, { action: 'community_list_refresh_fail', error: (err as Error).message });
+      this.hasLoadFailed = true;
+    } finally {
+      this.isLoadingData = false;
+    }
   }
 
   /** 切换话题 */
@@ -93,6 +111,22 @@ export struct CommunityList {
   /** 跳转发帖页 */
   private gotoPostCreate(): void {
     NavigationHelper.push(RouteName.FARMER_POST_CREATE);
+  }
+
+  /** 删除帖子（仅自己发的帖子可删） */
+  private async onDeletePost(postId: string): Promise<void> {
+    try {
+      const ok: boolean = await CommunityRepository.deletePost(postId);
+      if (ok) {
+        ToastUtil.success('已删除');
+        await this.refresh();
+      } else {
+        ToastUtil.warning('删除失败');
+      }
+    } catch (err) {
+      Logger.error(AppConstants.SCENE_FARMER, { action: 'delete_post_fail', error: (err as Error).message });
+      ToastUtil.error('删除失败');
+    }
   }
 
   /** 格式化时间 */
@@ -185,7 +219,7 @@ export struct CommunityList {
           .onClick(() => { this.onSortChange(opt.value); })
       }, (opt: SortOption) => opt.value)
       Blank()
-      Text(`共 ${this.postDataSource.totalCount()} 条`)
+      Text(`共 ${this.postCount} 条`)
         .fontSize(11)
         .fontColor($r('app.color.color_text_hint'))
     }
@@ -197,11 +231,11 @@ export struct CommunityList {
   /** 帖子列表 */
   @Builder
   PostList() {
-    if (this.postDataSource.getLoadFailed()) {
+    if (this.hasLoadFailed) {
       ListStateView({ state: 'error', onRefresh: () => this.refresh() })
-    } else if (this.postDataSource.getIsFirstLoad()) {
+    } else if (this.isLoadingData) {
       ListStateView({ state: 'loading' })
-    } else if (this.postDataSource.totalCount() === 0) {
+    } else if (this.postCount === 0) {
       ListStateView({ state: 'empty', emptyUseEmoji: true, emptyEmoji: '💬', emptyText: '暂无帖子' })
     } else {
       List({ space: 12 }) {
@@ -337,6 +371,12 @@ export struct CommunityList {
             .fontColor($r('app.color.color_text_hint'))
         }
         Blank()
+        // 自己发的帖子显示删除按钮
+        if (post.authorId === MOCK_FARMER_ID) {
+          Text('🗑')
+            .fontSize(14)
+            .onClick(() => this.onDeletePost(post.postId))
+        }
         Text('🔗')
           .fontSize(14)
       }

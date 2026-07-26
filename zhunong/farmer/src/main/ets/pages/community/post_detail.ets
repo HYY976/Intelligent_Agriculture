@@ -1,4 +1,4 @@
-﻿/**
+/**
  * post_detail - 帖子详情（spec 3.2.4.2 / 9.9.2）
  *
  * - 帖子详情展示（作者信息+标题+正文+图片+互动）
@@ -9,7 +9,7 @@
 import { Logger, AppConstants, ToastUtil, NavigationHelper, RouteName } from 'common';
 import { Post, Comment } from '../../model/FarmerCommunityModels';
 import { CommunityRepository } from '../../repository/CommunityRepository';
-import { MOCK_FARMER_ID } from '../../mock/FarmerMock';
+import { MOCK_FARMER_ID, MOCK_FARMER_PROFILE } from '../../mock/FarmerMock';
 
 /** 扁平化评论项（递归渲染用） */
 interface FlatCommentItem {
@@ -169,10 +169,11 @@ export struct PostDetail {
               this.CommentSection()
             }
             .width('100%')
-            .padding({ left: 12, right: 12, top: 12, bottom: 80 })
+            .padding({ left: 12, right: 12, top: 0, bottom: 80 })
           }
           .layoutWeight(1)
           .scrollBar(BarState.Off)
+          .align(Alignment.Top)
           this.CommentInputBar()
         }
       }

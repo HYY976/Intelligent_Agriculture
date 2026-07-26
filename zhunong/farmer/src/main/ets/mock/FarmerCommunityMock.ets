@@ -6,6 +6,7 @@
 import { Post, Comment, PostSortBy } from '../model/FarmerCommunityModels';
 import { PRESET_TOPICS } from '../model/FarmerCommunityModels';
 import { PaginatedResult } from '../model/FarmerModels';
+import { MOCK_FARMER_PROFILE } from './FarmerMock';
 
 /** 社区帖子 Mock（卖家发帖带"卖家"V标） */
 export const MOCK_POSTS: Post[] = [
@@ -133,7 +134,7 @@ export function getMockCommentsByPostId(postId: string): Comment[] {
 }
 
 /**
- * Mock 创建帖子（将新帖子插入列表，使其发布后可立即在列表中查看）
+ * Mock 创建帖子（将新帖子插入列表，使用注册身份信息，避免显示 ID）
  */
 export function mockCreatePost(
   authorId: string,
@@ -158,12 +159,73 @@ export function mockCreatePost(
     shareCount: 0,
     status: 'normal',
     createdAt: now,
-    authorNickname: '青禾农庄',
-    authorAvatar: 'avatar_farmer_1',
+    // 使用注册身份信息（shopName），不显示 ID
+    authorNickname: MOCK_FARMER_PROFILE.shopName,
+    authorAvatar: MOCK_FARMER_PROFILE.shopLogo,
     isSeller: true
   };
   MOCK_POSTS.unshift(post);
   return postId;
+}
+
+/**
+ * Mock 创建评论（将评论实际写入 MOCK_COMMENTS，确保发评论后可见）
+ */
+export function mockCreateComment(
+  postId: string,
+  parentId: string | null,
+  authorId: string,
+  content: string
+): string {
+  const now: number = Date.now();
+  const commentId: string = `c_${now}`;
+  const comment: Comment = {
+    commentId,
+    postId,
+    parentId,
+    authorId,
+    authorType: 'farmer',
+    content,
+    likeCount: 0,
+    createdAt: now,
+    authorNickname: MOCK_FARMER_PROFILE.shopName,
+    authorAvatar: MOCK_FARMER_PROFILE.shopLogo,
+    isSeller: true,
+    replies: []
+  };
+  MOCK_COMMENTS.push(comment);
+  // 同步帖子的评论数
+  const post: Post | undefined = MOCK_POSTS.find((p: Post): boolean => p.postId === postId);
+  if (post) {
+    post.commentCount = post.commentCount + 1;
+  }
+  return commentId;
+}
+
+/**
+ * Mock 删除帖子（从 MOCK_POSTS 中移除）
+ */
+export function mockDeletePost(postId: string): boolean {
+  const idx: number = MOCK_POSTS.findIndex((p: Post): boolean => p.postId === postId);
+  if (idx >= 0) {
+    MOCK_POSTS.splice(idx, 1);
+    // 同时删除该帖子的评论
+    for (let i: number = MOCK_COMMENTS.length - 1; i >= 0; i--) {
+      if (MOCK_COMMENTS[i].postId === postId) {
+        MOCK_COMMENTS.splice(i, 1);
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+/**
+ * 获取本地创建的帖子（通过 mockCreatePost 创建，ID 以 'p_' 开头）
+ * 用于与后端返回的列表合并，确保本地发的帖子在列表中可见
+ */
+export function getLocallyCreatedPosts(): Post[] {
+  return MOCK_POSTS.filter((p: Post): boolean => p.postId.startsWith('p_'));
 }
 
 /**

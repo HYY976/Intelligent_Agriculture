@@ -1,4 +1,4 @@
-﻿/**
+/**
  * product_publish - 商品上架发布页（spec 3.2.2 / 第8章 AI接口预留）
  *
  * 完整复刻淘宝发布详情页，字段：
@@ -22,10 +22,9 @@
 
 import { Logger, AppConstants, ToastUtil, NavigationHelper } from 'common';
 import { ProductPublishForm, FarmerSkuInput, FreightTemplate, LiveCategory } from '../../model/FarmerModels';
-import { AiCopywriteRequest } from '../../model/AiModels';
 import { ProductManageRepository } from '../../repository/ProductManageRepository';
-import { AiCopywriteClient } from '../../utils/AiCopywriteClient';
 import { AiPosterClient } from '../../utils/AiPosterClient';
+import { BailianClient } from '../../utils/BailianClient';
 import { MOCK_FARMER_ID } from '../../mock/FarmerMock';
 
 /** 类目选项 */
@@ -103,8 +102,7 @@ export struct ProductPublish {
   ];
 
   aboutToDisappear(): void {
-    // 页面销毁时取消 AI 生成（避免内存泄漏）
-    AiCopywriteClient.cancel();
+    // 页面销毁时取消 AI 海报任务轮询（避免内存泄漏）
     AiPosterClient.cancel();
   }
 
@@ -163,14 +161,16 @@ export struct ProductPublish {
     this.mainImages.splice(index, 1);
   }
 
-  /** AI 文案生成（spec 8.1：WebSocket 流式） */
+  /**
+   * AI 文案生成（接入阿里云百炼智能体应用）
+   * 调用百炼 application/completion 接口，由智能体应用生成商品描述文案
+   */
   private async generateCopywrite(): Promise<void> {
     if (this.title.length === 0) {
       ToastUtil.warning('请先填写商品标题');
       return;
     }
     if (this.isGeneratingCopywrite) {
-      AiCopywriteClient.cancel();
       this.isGeneratingCopywrite = false;
       ToastUtil.info('已取消 AI 文案生成');
       return;
@@ -179,32 +179,22 @@ export struct ProductPublish {
     this.description = '';
     Logger.info(AppConstants.SCENE_FARMER, { action: 'ai_copywrite_start_btn' });
 
-    const request: AiCopywriteRequest = {
-      title: this.title,
-      category: this.categoryName,
-      images: this.mainImages,
-      keyPoints: []
-    };
-    await AiCopywriteClient.stream(request, {
-      onChunk: (chunk: string) => {
-        // 流式文案片段实时填充到详情字段
-        this.description += chunk;
-      },
-      onDone: (description: string, highlights: string[]) => {
+    // 构造百炼提示词
+    const prompt: string = BailianClient.buildCopywritePrompt(this.title, this.categoryName, []);
+
+    await BailianClient.generateText(prompt,
+      (text: string) => {
         this.isGeneratingCopywrite = false;
-        if (description.length > 0) {
-          // 用完整描述覆盖（更完整）
-          this.description = description + (highlights.length > 0 ? '\n\n【核心亮点】\n' + highlights.join('\n') : '');
-        }
+        this.description = text;
         ToastUtil.success('AI 文案生成完成');
-        Logger.info(AppConstants.SCENE_FARMER, { action: 'ai_copywrite_done', highlightsCount: highlights.length });
+        Logger.info(AppConstants.SCENE_FARMER, { action: 'ai_copywrite_done', textLength: text.length });
       },
-      onError: (message: string) => {
+      (message: string) => {
         this.isGeneratingCopywrite = false;
         ToastUtil.error(`AI 文案生成失败：${message}`);
         Logger.error(AppConstants.SCENE_FARMER, { action: 'ai_copywrite_error', message });
       }
-    });
+    );
   }
 
   /** AI 海报生成（spec 8.2：异步任务+轮询） */
@@ -305,8 +295,6 @@ export struct ProductPublish {
             if (this.aiPosterUrl.length > 0) {
               this.AiPosterPreview()
             }
-            // AI 生成按钮区
-            this.AiActionsSection()
             // 基础信息
             this.BasicInfoSection()
             // 主图上传
@@ -315,6 +303,8 @@ export struct ProductPublish {
             this.PriceStockSection()
             // 详情富文本
             this.DescriptionSection()
+            // AI 智能助手（移至商品详情下方）
+            this.AiActionsSection()
             // 物流信息
             this.LogisticsSection()
             // 上架状态

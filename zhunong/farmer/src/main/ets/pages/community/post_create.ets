@@ -8,7 +8,7 @@
 import { Logger, AppConstants, ToastUtil, NavigationHelper, RouteName } from 'common';
 import { Topic } from '../../model/FarmerCommunityModels';
 import { CommunityRepository } from '../../repository/CommunityRepository';
-import { MOCK_FARMER_ID } from '../../mock/FarmerMock';
+import { MOCK_FARMER_ID, MOCK_FARMER_PROFILE } from '../../mock/FarmerMock';
 import { PRESET_TOPICS } from '../../model/FarmerCommunityModels';
 
 @ComponentV2
@@ -125,6 +125,12 @@ export struct PostCreate {
         .fontWeight(FontWeight.Medium)
         .layoutWeight(1)
       Row({ space: 4 }) {
+        Text(MOCK_FARMER_PROFILE.shopName)
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_secondary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .constraintSize({ maxWidth: 120 })
         Text('卖家')
           .fontSize(10)
           .fontColor(Color.White)

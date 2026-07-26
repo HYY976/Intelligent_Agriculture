@@ -127,6 +127,8 @@ export class FarmerRoutes {
 export class AdminRoutes {
   /** 管理员登录 */
   static readonly LOGIN: string = 'pages/login/admin_login';
+  /** 管理员注册 */
+  static readonly REGISTER: string = 'pages/login/admin_register';
   /** 后台首页（侧边栏） */
   static readonly HOME: string = 'pages/home/admin_home';
   /** 用户列表 */
@@ -303,6 +305,8 @@ export class RouteName {
   // ===== Admin 端路由名（对应 admin 模块 route_map.json 中的 name） =====
   /** 管理员登录 */
   static readonly ADMIN_LOGIN: string = 'admin_login';
+  /** 管理员注册 */
+  static readonly ADMIN_REGISTER: string = 'admin_register';
   /** 后台首页（侧边栏） */
   static readonly ADMIN_HOME: string = 'admin_home';
   /** 用户列表 */

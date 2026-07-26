@@ -1,59 +1,58 @@
 /**
- * admin_login - 管理后台登录页（UI 复刻 qunong-harmony-app/pages/admin-login.html）
- * 遵循 spec 1.3.2 / 3.3.1 / 6.6.3：
- *  - 登录方式：用户名 + 密码 + 角色（4角色RBAC：超管/用户管理员/内容审核员/API管理员）
- *  - JWT 24小时有效（后端控制，比用户/卖家的7天短）
- *  - 登录成功跳转 pages/home/admin_home（侧边栏导航）
- *  现阶段 Mock：用户名 admin + 密码 123456 + 任意角色均可登录成功（后端 Mock）
+ * admin_register - 管理员注册页（UI 对齐 admin_login 风格）
+ * 遵循 spec 3.3.1 / 6.6.3：
+ *  - 注册方式：用户名 + 密码 + 确认密码 + 角色（4角色RBAC：超管/用户管理员/内容审核员/API管理员）
+ *  - 注册成功后自动登录并跳转 admin_home
  *
- * UI 设计要点（对齐 admin-login.html）：
+ * UI 设计要点（对齐 admin_login）：
  *  - 顶部黄/绿径向渐变小气泡装饰
  *  - 黄色渐变圆角方块 Logo（80×80）+ 盾牌图标 + 右上深绿小角标
- *  - 表单区：用户名/密码字段（52高，左侧图标 + 右侧眼睛切换）
+ *  - 表单区：用户名/密码/确认密码字段（52高，左侧图标 + 右侧眼睛切换）
  *  - 角色选择：深绿小圆点 + "选择角色" 标题 + 2×2 胶囊网格（选中黄底墨黑）
- *  - 墨黑登录按钮（48高，箭头图标）
- *  - 黄底测试账号提示卡 + 用户协议文字
- *  - 底部黄色波浪装饰（双层 Path）
+ *  - 墨黑注册按钮（48高）
+ *  - 底部黄色波浪装饰
  */
+
 import { Logger, AppConstants, HttpUtil, TokenStore, ToastUtil, NavigationHelper, RouteName } from 'common';
 import { ApiResponse, AdminInfo } from 'common';
 
-/** 管理员角色枚举（spec 3.3.1：4角色RBAC） */
+/** 管理员角色枚举 */
 type AdminRole = 'super_admin' | 'user_admin' | 'content_reviewer' | 'api_admin';
 
 /** 角色选项 */
 interface RoleOption {
-  /** 角色值 */
   value: AdminRole;
-  /** 角色中文名 */
   label: string;
-  /** 角色图标 emoji */
   icon: string;
 }
 
-interface AdminLoginRequest {
+interface AdminRegisterRequest {
   username: string;
   password: string;
   role: AdminRole;
 }
 
-interface AdminLoginResponse {
+interface AdminRegisterResponse {
   token: string;
   adminInfo: AdminInfo;
 }
 
 @ComponentV2
-export struct AdminLogin {
+export struct AdminRegister {
   /** 用户名 */
   @Local username: string = '';
   /** 密码 */
   @Local password: string = '';
+  /** 确认密码 */
+  @Local confirmPassword: string = '';
   /** 选中的角色 */
-  @Local selectedRole: AdminRole = 'super_admin';
-  /** 是否正在登录 */
-  @Local isLogging: boolean = false;
+  @Local selectedRole: AdminRole = 'user_admin';
+  /** 是否正在注册 */
+  @Local isRegistering: boolean = false;
   /** 是否显示明文密码 */
   @Local showPassword: boolean = false;
+  /** 是否显示确认密码 */
+  @Local showConfirmPassword: boolean = false;
   /** 角色选项列表（2×2 网格） */
   private roleOptions: RoleOption[] = [
     { value: 'super_admin', label: '超级管理员', icon: '🛡️' },
@@ -68,46 +67,89 @@ export struct AdminLogin {
       ToastUtil.warning('请输入用户名');
       return false;
     }
+    if (this.username.length < 4) {
+      ToastUtil.warning('用户名至少 4 个字符');
+      return false;
+    }
     if (this.password.length === 0) {
       ToastUtil.warning('请输入密码');
+      return false;
+    }
+    if (this.password.length < 6) {
+      ToastUtil.warning('密码至少 6 个字符');
+      return false;
+    }
+    if (this.confirmPassword !== this.password) {
+      ToastUtil.warning('两次密码不一致');
       return false;
     }
     return true;
   }
 
-  /** 登录 */
-  private async doLogin(): Promise<void> {
+  /** 注册（后端未部署时走 Mock 兜底，与登录页 admin/123456 测试模式一致） */
+  private async doRegister(): Promise<void> {
     if (!this.validateForm()) {
       return;
     }
-    this.isLogging = true;
+    this.isRegistering = true;
     try {
-      const req: AdminLoginRequest = {
+      const req: AdminRegisterRequest = {
         username: this.username,
         password: this.password,
         role: this.selectedRole
       };
-      const resp: ApiResponse<AdminLoginResponse> = await HttpUtil.post<AdminLoginResponse>('/admin/login', req, {
-        withAuth: false
+      const resp: ApiResponse<AdminRegisterResponse> = await HttpUtil.post<AdminRegisterResponse>('/admin/register', req, {
+        withAuth: false,
+        showErrorToast: false
       });
+
+      // 后端部署成功：走真实流程
       if (resp.code === AppConstants.CODE_SUCCESS && resp.data) {
         await TokenStore.setToken(resp.data.token);
         await TokenStore.setAdminInfo(resp.data.adminInfo);
-        ToastUtil.success('登录成功');
+        ToastUtil.success('注册成功');
         Logger.info(AppConstants.SCENE_ADMIN, {
-          action: 'login_success',
+          action: 'register_success',
           adminId: resp.data.adminInfo.adminId,
           role: resp.data.adminInfo.role
         });
         NavigationHelper.replace(RouteName.ADMIN_HOME);
-      } else {
-        ToastUtil.error(resp.msg || '登录失败');
+        return;
       }
+
+      // 后端 404/未部署：走 Mock 兜底（本地构造 Token 与 AdminInfo）
+      if (resp.code === 404 || resp.code === -1) {
+        Logger.warn(AppConstants.SCENE_ADMIN, {
+          action: 'register_mock_fallback',
+          bizCode: String(resp.code)
+        });
+        const mockAdminInfo: AdminInfo = {
+          adminId: `admin_${Date.now()}`,
+          username: this.username,
+          nickname: this.username,
+          role: this.selectedRole,
+          lastLoginAt: Date.now()
+        };
+        const mockToken: string = `mock_admin_token_${Date.now()}_${this.username}`;
+        await TokenStore.setToken(mockToken);
+        await TokenStore.setAdminInfo(mockAdminInfo);
+        ToastUtil.success('注册成功（演示模式）');
+        Logger.info(AppConstants.SCENE_ADMIN, {
+          action: 'register_mock_success',
+          adminId: mockAdminInfo.adminId,
+          role: mockAdminInfo.role
+        });
+        NavigationHelper.replace(RouteName.ADMIN_HOME);
+        return;
+      }
+
+      // 其他业务错误（如用户名已存在）
+      ToastUtil.error(resp.msg || '注册失败');
     } catch (err) {
-      Logger.error(AppConstants.SCENE_ADMIN, { action: 'login_fail', error: (err as Error).message });
-      ToastUtil.error('登录失败，请稍后重试');
+      Logger.error(AppConstants.SCENE_ADMIN, { action: 'register_fail', error: (err as Error).message });
+      ToastUtil.error('注册失败，请稍后重试');
     } finally {
-      this.isLogging = false;
+      this.isRegistering = false;
     }
   }
 
@@ -121,12 +163,10 @@ export struct AdminLogin {
             this.BrandHero()
             // 2. 表单区
             this.FormArea()
-            // 3. 测试账号提示卡
-            this.MockTipCard()
-            // 4. 用户协议文字
+            // 3. 用户协议文字
             this.AgreementText()
-            // 5. 注册入口链接
-            this.RegisterLink()
+            // 4. 返回登录链接
+            this.BackToLoginLink()
           }
           .width('100%')
           .padding({ left: 24, right: 24, bottom: 80 })
@@ -188,9 +228,8 @@ export struct AdminLogin {
     Column({ space: 8 }) {
       // 黄色渐变圆角方块 Logo + 深绿小角标
       Stack() {
-        // 黄色渐变方块 + 盾牌图标
         Stack() {
-          Text('🛡️')
+          Text('📝')
             .fontSize(40)
             .fontColor($r('app.color.color_admin_green'))
         }
@@ -204,10 +243,10 @@ export struct AdminLogin {
         .shadow({ radius: 26, color: 'rgba(255,217,61,0.42)', offsetX: 0, offsetY: 10 })
         .border({ width: 3, color: $r('app.color.color_bg_card') })
 
-        // 右上深绿小角标（白色对勾）
+        // 右上深绿小角标（白色加号）
         Stack() {
-          Text('✓')
-            .fontSize(12)
+          Text('+')
+            .fontSize(16)
             .fontColor(Color.White)
             .fontWeight(FontWeight.Bold)
         }
@@ -224,7 +263,7 @@ export struct AdminLogin {
       .margin({ top: 72 })
 
       // 标题
-      Text('助农管理后台')
+      Text('管理员注册')
         .fontSize(22)
         .fontColor($r('app.color.color_ink'))
         .fontWeight(FontWeight.Bold)
@@ -232,7 +271,7 @@ export struct AdminLogin {
         .margin({ top: 8 })
 
       // 副标题
-      Text('用户管理·API管理·内容审核')
+      Text('创建管理后台账号')
         .fontSize(13)
         .fontColor($r('app.color.color_text_3'))
         .letterSpacing(0.5)
@@ -249,25 +288,25 @@ export struct AdminLogin {
       this.UsernameField()
       // b) 密码输入框（带眼睛切换）
       this.PasswordField()
-      // c) 角色选择区
+      // c) 确认密码输入框（带眼睛切换）
+      this.ConfirmPasswordField()
+      // d) 角色选择区
       this.RoleSection()
-      // d) 管理员登录按钮
-      this.LoginButton()
+      // e) 注册按钮
+      this.RegisterButton()
     }
     .width('100%')
-    .margin({ top: 32 })
+    .margin({ top: 28 })
   }
 
   /** 用户名输入框 */
   @Builder
   UsernameField() {
     Row({ space: 12 }) {
-      // 用户图标
       Text('👤')
         .fontSize(18)
         .fontColor($r('app.color.color_text_3'))
-      // 输入框
-      TextInput({ text: this.username, placeholder: '请输入用户名' })
+      TextInput({ text: this.username, placeholder: '请设置用户名（至少4字符）' })
         .type(InputType.Normal)
         .maxLength(32)
         .backgroundColor(Color.Transparent)
@@ -295,12 +334,10 @@ export struct AdminLogin {
   @Builder
   PasswordField() {
     Row({ space: 12 }) {
-      // 锁图标
       Text('🔒')
         .fontSize(18)
         .fontColor($r('app.color.color_text_3'))
-      // 密码输入框
-      TextInput({ text: this.password, placeholder: '请输入密码' })
+      TextInput({ text: this.password, placeholder: '请设置密码（至少6位）' })
         .type(this.showPassword ? InputType.Normal : InputType.Password)
         .maxLength(32)
         .backgroundColor(Color.Transparent)
@@ -313,7 +350,6 @@ export struct AdminLogin {
         .onChange((value: string) => {
           this.password = value;
         })
-      // 眼睛切换按钮
       Stack() {
         Text(this.showPassword ? '👁️' : '🙈')
           .fontSize(18)
@@ -335,11 +371,51 @@ export struct AdminLogin {
     .alignItems(VerticalAlign.Center)
   }
 
+  /** 确认密码输入框（带显隐切换） */
+  @Builder
+  ConfirmPasswordField() {
+    Row({ space: 12 }) {
+      Text('🔐')
+        .fontSize(18)
+        .fontColor($r('app.color.color_text_3'))
+      TextInput({ text: this.confirmPassword, placeholder: '请确认密码' })
+        .type(this.showConfirmPassword ? InputType.Normal : InputType.Password)
+        .maxLength(32)
+        .backgroundColor(Color.Transparent)
+        .fontSize(14)
+        .fontColor($r('app.color.color_ink'))
+        .placeholderColor($r('app.color.color_text_4'))
+        .placeholderFont({ size: 14 })
+        .layoutWeight(1)
+        .height('100%')
+        .onChange((value: string) => {
+          this.confirmPassword = value;
+        })
+      Stack() {
+        Text(this.showConfirmPassword ? '👁️' : '🙈')
+          .fontSize(18)
+          .fontColor($r('app.color.color_text_3'))
+      }
+      .width(28)
+      .height(28)
+      .onClick(() => {
+        this.showConfirmPassword = !this.showConfirmPassword;
+      })
+    }
+    .width('100%')
+    .height(52)
+    .padding({ left: 16, right: 16 })
+    .borderRadius(AppConstants.RADIUS_MD)
+    .backgroundColor($r('app.color.color_bg_card'))
+    .border({ width: 1, color: $r('app.color.color_line') })
+    .shadow(AppConstants.SHADOW_CARD)
+    .alignItems(VerticalAlign.Center)
+  }
+
   /** 角色选择区（2×2 胶囊网格） */
   @Builder
   RoleSection() {
     Column({ space: 12 }) {
-      // 标题行（深绿小圆点 + "选择角色"）
       Row({ space: 6 }) {
         Column()
           .width(6)
@@ -355,7 +431,6 @@ export struct AdminLogin {
       .width('100%')
       .padding({ left: 2 })
 
-      // 2×2 角色胶囊网格
       Grid() {
         ForEach(this.roleOptions, (option: RoleOption) => {
           GridItem() {
@@ -370,7 +445,7 @@ export struct AdminLogin {
       .height(94)
     }
     .width('100%')
-    .margin({ top: 8, bottom: 22 })
+    .margin({ top: 8, bottom: 20 })
     .alignItems(HorizontalAlign.Start)
   }
 
@@ -403,65 +478,35 @@ export struct AdminLogin {
     })
   }
 
-  /** 管理员登录按钮 */
+  /** 注册按钮 */
   @Builder
-  LoginButton() {
+  RegisterButton() {
     Row({ space: 6 }) {
-      Text(this.isLogging ? '登录中...' : '登录')
+      Text(this.isRegistering ? '注册中...' : '立即注册')
         .fontSize(15)
         .fontColor(Color.White)
         .fontWeight(FontWeight.Bold)
         .letterSpacing(1)
-      if (!this.isLogging) {
-        Text('→')
-          .fontSize(18)
-          .fontColor(Color.White)
-          .fontWeight(FontWeight.Bold)
-      }
     }
     .width('100%')
     .height(48)
     .borderRadius(AppConstants.RADIUS_MD)
-    .backgroundColor(this.isLogging ? $r('app.color.color_button_disabled') : $r('app.color.color_cta_black'))
+    .backgroundColor(this.isRegistering ? $r('app.color.color_button_disabled') : $r('app.color.color_cta_black'))
     .justifyContent(FlexAlign.Center)
     .alignItems(VerticalAlign.Center)
-    .opacity(this.isLogging ? 0.7 : 1)
+    .opacity(this.isRegistering ? 0.7 : 1)
     .onClick(() => {
-      if (!this.isLogging) {
-        this.doLogin();
+      if (!this.isRegistering) {
+        this.doRegister();
       }
     })
-  }
-
-  /** 测试账号提示卡 */
-  @Builder
-  MockTipCard() {
-    Row({ space: 8 }) {
-      Text('ℹ️')
-        .fontSize(16)
-      Text() {
-        Span('测试账号：')
-          .fontColor('#8A6D00')
-          .fontSize(12)
-        Span('admin / 123456')
-          .fontColor('#6B5400')
-          .fontSize(12)
-          .fontWeight(FontWeight.Bold)
-      }
-    }
-    .width('100%')
-    .padding({ left: 14, right: 14, top: 12, bottom: 12 })
-    .borderRadius(AppConstants.RADIUS_MD)
-    .backgroundColor($r('app.color.color_yellow_soft'))
-    .margin({ top: 18 })
-    .alignItems(VerticalAlign.Top)
   }
 
   /** 用户协议文字 */
   @Builder
   AgreementText() {
     Text() {
-      Span('登录即同意')
+      Span('注册即同意')
         .fontColor($r('app.color.color_text_3'))
         .fontSize(11)
       Span('《用户协议》')
@@ -476,26 +521,26 @@ export struct AdminLogin {
     }
     .width('100%')
     .textAlign(TextAlign.Center)
-    .margin({ top: 16 })
+    .margin({ top: 12 })
   }
 
-  /** 注册入口链接 */
+  /** 返回登录链接 */
   @Builder
-  RegisterLink() {
+  BackToLoginLink() {
     Row({ space: 4 }) {
-      Text('还没有账号？')
+      Text('已有账号？')
         .fontColor($r('app.color.color_text_3'))
         .fontSize(13)
-      Text('立即注册 →')
+      Text('去登录 →')
         .fontColor($r('app.color.color_admin_green'))
         .fontSize(13)
         .fontWeight(FontWeight.Bold)
     }
     .width('100%')
     .justifyContent(FlexAlign.Center)
-    .margin({ top: 12 })
+    .margin({ top: 24 })
     .onClick(() => {
-      NavigationHelper.replace(RouteName.ADMIN_REGISTER);
+      NavigationHelper.replace(RouteName.ADMIN_LOGIN);
     })
   }
 
@@ -503,7 +548,6 @@ export struct AdminLogin {
   @Builder
   BottomWave() {
     Stack() {
-      // 使用两个 Column 模拟波浪层（简化实现）
       Column()
         .width('100%')
         .height(50)

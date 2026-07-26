@@ -27,7 +27,7 @@ export struct MessageList {
   /** 总未读数 */
   @Local totalUnread: number = 0;
   /** 是否正在加载 */
-  @Local isLoading: boolean = false;
+  @Local isLoading: boolean = true;
   /** WebSocket 连接状态 */
   @Local wsState: WsConnectionState = 'disconnected';
 
@@ -113,6 +113,9 @@ export struct MessageList {
       .backgroundColor($r('app.color.color_bg_page'))
     }
     .hideTitleBar(true)
+    .onShown(() => {
+      this.loadSessions();
+    })
   }
 
   /** 顶部导航 */

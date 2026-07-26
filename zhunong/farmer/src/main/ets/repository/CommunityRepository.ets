@@ -10,7 +10,10 @@ import {
   getMockPostById,
   getMockCommentsByPostId,
   getMockTopics,
-  mockCreatePost
+  mockCreatePost,
+  getLocallyCreatedPosts,
+  mockCreateComment,
+  mockDeletePost
 } from '../mock/FarmerCommunityMock';
 
 /** 帖子列表查询参数 */
@@ -45,6 +48,11 @@ interface CreateCommentBody {
   content: string;
 }
 
+/** 删除帖子请求体 */
+interface DeletePostBody {
+  postId: string;
+}
+
 class CommunityRepositoryImpl {
   /**
    * 帖子列表（spec 3.1.3.2 / 3.2.4.2：话题Tab + 最新/最热排序）
@@ -60,22 +68,70 @@ class CommunityRepositoryImpl {
     if (topicId && topicId.length > 0) {
       params.topicId = topicId;
     }
-    return BaseRepository.fetchWithFallback<PageResult<Post>>(
-      'community/posts',
-      params,
-      async (): Promise<PageResult<Post>> => {
+    try {
+      // 先尝试后端 REST 接口
+      const resp = await BaseRepository.fetchWithFallback<PageResult<Post>>(
+        'community/posts',
+        params,
+        async (): Promise<PageResult<Post>> => {
+          const mockResult = getMockPostList(page, size, topicId, sortBy);
+          const result: PageResult<Post> = {
+            list: mockResult.list,
+            total: mockResult.total,
+            page: page,
+            size: size,
+            hasMore: mockResult.hasMore
+          };
+          return result;
+        },
+        AppConstants.SCENE_FARMER
+      );
+      // 后端返回空列表时回退 Mock（确保有演示数据）
+      let finalList: Post[] = resp.list;
+      let finalTotal: number = resp.total;
+      if (resp.list.length === 0) {
         const mockResult = getMockPostList(page, size, topicId, sortBy);
-        const result: PageResult<Post> = {
-          list: mockResult.list,
-          total: mockResult.total,
-          page: page,
-          size: size,
-          hasMore: mockResult.hasMore
+        finalList = mockResult.list;
+        finalTotal = mockResult.total;
+      }
+      // 将本地创建的帖子按当前话题筛选后合并到列表顶部
+      const localPosts: Post[] = getLocallyCreatedPosts();
+      const filteredLocalPosts: Post[] = localPosts.filter((p: Post): boolean => {
+        if (!topicId || topicId === 't0') {
+          return true;
+        }
+        return p.topicId === topicId;
+      });
+      if (filteredLocalPosts.length > 0 && page === 1) {
+        const mergedList: Post[] = filteredLocalPosts.concat(finalList);
+        const mergedResult: PageResult<Post> = {
+          list: mergedList,
+          total: finalTotal + filteredLocalPosts.length,
+          page: resp.page,
+          size: resp.size,
+          hasMore: resp.hasMore
         };
-        return result;
-      },
-      AppConstants.SCENE_FARMER
-    );
+        return mergedResult;
+      }
+      const finalResult: PageResult<Post> = {
+        list: finalList,
+        total: finalTotal,
+        page: resp.page,
+        size: resp.size,
+        hasMore: resp.hasMore
+      };
+      return finalResult;
+    } catch (err) {
+      // 异常时完全回退到 Mock
+      const mockResult = getMockPostList(page, size, topicId, sortBy);
+      return {
+        list: mockResult.list,
+        total: mockResult.total,
+        page: page,
+        size: size,
+        hasMore: mockResult.hasMore
+      };
+    }
   }
 
   /**
@@ -167,9 +223,22 @@ class CommunityRepositoryImpl {
     const result: string = await BaseRepository.postWithFallback<string>(
       'community/comment/create',
       body,
-      async (): Promise<string> => {
-        return `c_${Date.now()}`;
-      },
+      async (): Promise<string> => mockCreateComment(postId, parentId, authorId, content),
+      AppConstants.SCENE_FARMER
+    );
+    return result;
+  }
+
+  /**
+   * 删除帖子（spec 3.2.4.2：卖家可删除自己的帖子）
+   * POST /api/community/post/delete
+   */
+  async deletePost(postId: string): Promise<boolean> {
+    const body: DeletePostBody = { postId };
+    const result: boolean = await BaseRepository.postWithFallback<boolean>(
+      'community/post/delete',
+      body,
+      async (): Promise<boolean> => mockDeletePost(postId),
       AppConstants.SCENE_FARMER
     );
     return result;

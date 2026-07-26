@@ -19,6 +19,16 @@ interface ServerConfig {
   isDev: boolean;
 }
 
+/** 阿里云百炼（Bailian）应用调用配置 */
+interface BailianConfig {
+  /** 百炼统一 BaseURL（应用调用） */
+  baseUrl: string;
+  /** 百炼应用 ID（app_id） */
+  appId: string;
+  /** 百炼 API Key（sk-ws-...） */
+  apiKey: string;
+}
+
 class ConfigUtilImpl {
   /** 开发环境配置（本机调试） */
   private readonly devConfig: ServerConfig = {
@@ -41,9 +51,23 @@ class ConfigUtilImpl {
   /** 当前激活配置（默认 dev） */
   private activeConfig: ServerConfig = this.devConfig;
 
+  /** 阿里云百炼配置（用户提供的应用 ID + API Key） */
+  private readonly bailianConfig: BailianConfig = {
+    // 阿里云百炼应用调用统一入口（注意是 /apps/ 不是 /applications/）
+    // 官方文档：https://help.aliyun.com/zh/model-studio/developer-reference/call-application-through-api
+    baseUrl: 'https://dashscope.aliyuncs.com/api/v1/apps',
+    appId: '1106454de98d442d8581e6ed187f9a75',
+    apiKey: 'sk-ws-H.EIDXEHY.0yN1.MEUCIQCGLsoRoygKGO0EwHgKnjHfgqFfnNpql8OjjHxdnzWGMgIgCPKEVyj1huJEFKkR4jcsYamh6L1ViV3aGK1eWjG8Hf8'
+  };
+
   /** 获取当前配置 */
   getConfig(): ServerConfig {
     return this.activeConfig;
+  }
+
+  /** 获取阿里云百炼配置 */
+  getBailianConfig(): BailianConfig {
+    return this.bailianConfig;
   }
 
   /** 切换到开发环境 */

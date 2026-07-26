@@ -198,6 +198,18 @@ export interface LogInfo {
   routeName?: string;
   /** 优惠券 ID（用户优惠券使用） */
   couponId?: string;
+  /** Prompt 长度（百炼调用入参） */
+  promptLength?: number;
+  /** 响应体长度（百炼调用响应） */
+  bodyLength?: number;
+  /** 响应体原文（百炼调用错误时记录） */
+  body?: string;
+  /** 百炼/外部服务请求 ID */
+  requestId?: string;
+  /** AI 生成文案长度 */
+  textLength?: number;
+  /** 百炼业务错误码（字符串，区别于 code 的"WebSocket 关闭码 number"语义） */
+  bizCode?: string;
 }
 
 class LoggerImpl {

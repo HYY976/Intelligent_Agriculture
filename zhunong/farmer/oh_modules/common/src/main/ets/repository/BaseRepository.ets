@@ -29,7 +29,8 @@ class BaseRepositoryImpl {
     scene: string
   ): Promise<T> {
     try {
-      const resp: ApiResponse<T> = await HttpUtil.get<T>(path, params, { showErrorToast: false });
+      // redirectOnAuth: false 避免 401 时跳转登录页，确保 Mock 回退正常工作
+      const resp: ApiResponse<T> = await HttpUtil.get<T>(path, params, { showErrorToast: false, redirectOnAuth: false });
       if (resp.code === 200 && resp.data !== null) {
         return resp.data;
       }
@@ -57,7 +58,8 @@ class BaseRepositoryImpl {
     scene: string
   ): Promise<T> {
     try {
-      const resp: ApiResponse<T> = await HttpUtil.post<T>(path, body, { showErrorToast: false });
+      // redirectOnAuth: false 避免 401 时跳转登录页，确保 Mock 回退正常工作
+      const resp: ApiResponse<T> = await HttpUtil.post<T>(path, body, { showErrorToast: false, redirectOnAuth: false });
       if (resp.code === 200 && resp.data !== null) {
         return resp.data;
       }
