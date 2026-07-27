@@ -29,6 +29,26 @@ interface BailianConfig {
   apiKey: string;
 }
 
+/** 阿里云百炼 AI 助手智能体配置（用于 AI 助手对话页） */
+interface BailianAgentConfig {
+  /** 百炼应用调用 BaseURL（含 /api/v1/apps 前缀） */
+  baseUrl: string;
+  /** 百炼智能体应用 ID */
+  appId: string;
+  /** 百炼 API Key */
+  apiKey: string;
+}
+
+/** 阿里云百炼直播开播介绍优化智能体配置（spec 16.7：用于开播介绍 AI 优化） */
+interface BailianLiveIntroConfig {
+  /** 百炼应用调用 BaseURL（含 /api/v1/apps 前缀） */
+  baseUrl: string;
+  /** 百炼直播智能体应用 ID */
+  appId: string;
+  /** 百炼 API Key */
+  apiKey: string;
+}
+
 class ConfigUtilImpl {
   /** 开发环境配置（本机调试） */
   private readonly devConfig: ServerConfig = {
@@ -60,6 +80,24 @@ class ConfigUtilImpl {
     apiKey: 'sk-ws-H.EIDXEHY.0yN1.MEUCIQCGLsoRoygKGO0EwHgKnjHfgqFfnNpql8OjjHxdnzWGMgIgCPKEVyj1huJEFKkR4jcsYamh6L1ViV3aGK1eWjG8Hf8'
   };
 
+  /** 阿里云百炼 AI 助手智能体配置（用于顶部导航栏 AI 助手对话页） */
+  private readonly bailianAgentConfig: BailianAgentConfig = {
+    // 使用华北2-北京业务空间专属域名（API Host），性能更好、稳定性更高
+    // 专属域名格式：https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com/api/v1/apps
+    baseUrl: 'https://llm-rybx4hw7nil2ekgl.cn-beijing.maas.aliyuncs.com/api/v1/apps',
+    appId: '73e8df32b0d44ad090927ff7d33b9e19',
+    apiKey: 'sk-ws-H.EIDXEHY.0yN1.MEUCIQCGLsoRoygKGO0EwHgKnjHfgqFfnNpql8OjjHxdnzWGMgIgCPKEVyj1huJEFKkR4jcsYamh6L1ViV3aGK1eWjG8Hf8'
+  };
+
+  /** spec 16.7：阿里云百炼直播开播介绍优化智能体配置（农户端创建直播页 AI 优化按钮） */
+  private readonly bailianLiveIntroConfig: BailianLiveIntroConfig = {
+    // 阿里云百炼应用调用 API 端点（apps，非控制台页面路径 applications）
+    // 实际请求 URL：{baseUrl}/{appId}/completion
+    baseUrl: 'https://dashscope.aliyuncs.com/api/v1/apps',
+    appId: '38c6f2e6d0a74cc38081b07872ecac5f',
+    apiKey: 'sk-ws-H.EIDXEHY.0yN1.MEUCIQCGLsoRoygKGO0EwHgKnjHfgqFfnNpql8OjjHxdnzWGMgIgCPKEVyj1huJEFKkR4jcsYamh6L1ViV3aGK1eWjG8Hf8'
+  };
+
   /** 获取当前配置 */
   getConfig(): ServerConfig {
     return this.activeConfig;
@@ -68,6 +106,16 @@ class ConfigUtilImpl {
   /** 获取阿里云百炼配置 */
   getBailianConfig(): BailianConfig {
     return this.bailianConfig;
+  }
+
+  /** 获取阿里云百炼 AI 助手智能体配置 */
+  getBailianAgentConfig(): BailianAgentConfig {
+    return this.bailianAgentConfig;
+  }
+
+  /** spec 16.7：获取阿里云百炼直播开播介绍优化智能体配置 */
+  getBailianLiveIntroConfig(): BailianLiveIntroConfig {
+    return this.bailianLiveIntroConfig;
   }
 
   /** 切换到开发环境 */

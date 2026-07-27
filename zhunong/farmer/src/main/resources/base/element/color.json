@@ -4,6 +4,7 @@
     { "name": "color_dark_soft", "value": "#2A2A2A" },
     { "name": "color_dark_text", "value": "#9E9E9E" },
     { "name": "color_green_mint", "value": "#81C784" },
+    { "name": "color_green_deep", "value": "#5BB315" },
     { "name": "color_pill_sale", "value": "#EAF7D8" },
     { "name": "color_pill_live", "value": "#FFF6B8" },
     { "name": "color_pill_refund", "value": "#FFE7E7" },

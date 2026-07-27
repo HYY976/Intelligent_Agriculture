@@ -43,8 +43,9 @@ export struct Withdraw {
   private async loadBalance(): Promise<void> {
     try {
       const profile: FarmerProfile = await FarmerRepository.getMyProfile(MOCK_FARMER_ID);
-      this.availableBalance = profile.availableBalance;
-      this.frozenBalance = profile.frozenBalance;
+      // 字段可能 undefined（Mock 数据不完整），用 ?? 0 兜底避免 toLocaleString 崩溃
+      this.availableBalance = profile.availableBalance ?? 0;
+      this.frozenBalance = profile.frozenBalance ?? 0;
     } catch (err) {
       Logger.error(AppConstants.SCENE_FARMER, { action: 'load_balance_fail', error: (err as Error).message });
     }
@@ -54,7 +55,7 @@ export struct Withdraw {
   private async refreshRecords(): Promise<void> {
     try {
       const result: PageResult<Withdrawal> = await RevenueRepository.getWithdrawals(MOCK_FARMER_ID, 1, 20);
-      this.withdrawals = result.list;
+      this.withdrawals = result.list ?? MOCK_WITHDRAWALS.slice();
     } catch (err) {
       Logger.error(AppConstants.SCENE_FARMER, { action: 'load_withdrawals_fail', error: (err as Error).message });
       this.withdrawals = MOCK_WITHDRAWALS.slice();

@@ -18,7 +18,8 @@ import { createMockOrder, CreateOrderItem } from '../../mock/OrderMock';
 import { getMockCartGroups } from '../../mock/CartMock';
 import { getMockDefaultAddress, MOCK_COUPONS } from '../../mock/ProfileMock';
 import { Address, Coupon } from '../../model/ProfileModels';
-import { getMockProductById, MOCK_FARMER_NAMES } from '../../mock/ProductMock';
+import { MOCK_FARMER_NAMES } from '../../mock/ProductMock';
+import { ProductRepository } from '../../repository/ProductRepository';
 import { ImageUtil } from '../../utils/ImageUtil';
 import { CartGroup, CartItem } from '../../model/CartModels';
 import { ProductSku } from '../../model/ProductModels';
@@ -109,7 +110,7 @@ export struct OrderConfirm {
     { method: 'balance', name: '余额支付', desc: '可用余额 ¥0.00', iconBg: $r('app.color.color_ink'), iconText: '余' }
   ];
 
-  aboutToAppear(): void {
+  async aboutToAppear(): Promise<void> {
     const params = NavigationHelper.getParam<OrderConfirmNavParam>();
     if (params) {
       this.buyNow = params.buyNow === '1';
@@ -118,17 +119,17 @@ export struct OrderConfirm {
       this.buyQuantity = parseInt(params.quantity ?? '1', 10);
     }
     this.address = getMockDefaultAddress();
-    this.loadOrderItems();
+    await this.loadOrderItems();
     this.loadCoupons();
     this.calculateTotal();
   }
 
   /** 加载订单商品项（购物车模式 / 立即购买模式） */
-  private loadOrderItems(): void {
+  private async loadOrderItems(): Promise<void> {
     this.sellerGroups = [];
     if (this.buyNow) {
-      // 立即购买：单品
-      const product = getMockProductById(this.buyProductId);
+      // 立即购买：单品（spec 16.3：先查共享池，再回退 mock）
+      const product = await ProductRepository.getProductById(this.buyProductId);
       if (product) {
         const skuIdx: number = this.buySkuId
           ? product.skuList.findIndex((s: ProductSku) => s.skuId === this.buySkuId)

@@ -13,7 +13,8 @@
 
 import { RouteName, NavigationHelper, Logger, AppConstants, ToastUtil } from 'common';
 import { Product, ProductSku, ProductSkuSpec, Review } from '../../model/ProductModels';
-import { getMockProductById, MOCK_FARMER_NAMES, MOCK_FARMER_AVATARS, getMockCategoryPath } from '../../mock/ProductMock';
+import { MOCK_FARMER_NAMES, MOCK_FARMER_AVATARS, getMockCategoryPath } from '../../mock/ProductMock';
+import { ProductRepository } from '../../repository/ProductRepository';
 import { getMockReviewsByProductId, getMockReviewStats, ReviewStats } from '../../mock/ReviewMock';
 import { addToMockCart } from '../../mock/CartMock';
 import { ImageUtil } from '../../utils/ImageUtil';
@@ -72,9 +73,9 @@ export struct ProductDetail {
     this.loadProductDetail();
   }
 
-  /** 加载商品详情 */
-  private loadProductDetail(): void {
-    this.product = getMockProductById(this.productId);
+  /** 加载商品详情（spec 16.3：先查 SharedProductStore，再回退 mock） */
+  private async loadProductDetail(): Promise<void> {
+    this.product = await ProductRepository.getProductById(this.productId);
     if (this.product) {
       this.reviews = getMockReviewsByProductId(this.productId);
       this.reviewStats = getMockReviewStats(this.productId);

@@ -6,7 +6,7 @@
  * - 评论输入框（卖家评论带 V 标）
  */
 
-import { Logger, AppConstants, ToastUtil, NavigationHelper, RouteName } from 'common';
+import { Logger, AppConstants, ToastUtil, NavigationHelper, RouteName, TokenStore } from 'common';
 import { Post, Comment } from '../../model/FarmerCommunityModels';
 import { CommunityRepository } from '../../repository/CommunityRepository';
 import { MOCK_FARMER_ID, MOCK_FARMER_PROFILE } from '../../mock/FarmerMock';
@@ -44,11 +44,32 @@ export struct PostDetail {
   @Local hasLiked: boolean = false;
   /** 是否已收藏 */
   @Local hasFavorited: boolean = false;
+  /** 当前用户昵称（spec 16.4：评论使用注册身份） */
+  @Local currentNickname: string = MOCK_FARMER_PROFILE.shopName;
+  /** 当前用户头像（spec 16.4：评论使用注册身份） */
+  @Local currentAvatar: string = MOCK_FARMER_PROFILE.shopLogo;
 
   async aboutToAppear(): Promise<void> {
     const params: Record<string, string> = NavigationHelper.getParam<Record<string, string>>() ?? {};
     this.postId = params?.postId ?? '';
     Logger.info(AppConstants.SCENE_FARMER, { action: 'post_detail_appear', postId: this.postId });
+    // spec 16.4：加载注册身份信息（评论时使用）
+    try {
+      const userInfo = await TokenStore.getUserInfo();
+      if (userInfo !== null) {
+        if (userInfo.nickname.length > 0) {
+          this.currentNickname = userInfo.nickname;
+        }
+        if (userInfo.avatar.length > 0) {
+          this.currentAvatar = userInfo.avatar;
+        }
+      }
+    } catch (err) {
+      Logger.error(AppConstants.SCENE_FARMER, {
+        action: 'load_user_info_fail',
+        error: (err as Error).message
+      });
+    }
     await this.loadData();
   }
 
@@ -99,14 +120,21 @@ export struct PostDetail {
     return result;
   }
 
-  /** 提交评论 */
+  /** 提交评论（spec 16.4：使用注册身份信息） */
   private async submitComment(): Promise<void> {
     if (this.inputComment.length === 0) {
       ToastUtil.warning('请输入评论内容');
       return;
     }
     try {
-      await CommunityRepository.createComment(this.postId, null, MOCK_FARMER_ID, this.inputComment);
+      await CommunityRepository.createComment(
+        this.postId,
+        null,
+        MOCK_FARMER_ID,
+        this.inputComment,
+        this.currentNickname,
+        this.currentAvatar
+      );
       ToastUtil.success('评论成功');
       this.inputComment = '';
       // 重新加载评论

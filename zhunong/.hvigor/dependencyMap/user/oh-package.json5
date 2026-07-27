@@ -1,1 +1,0 @@
-{"name":"user","version":"1.0.0","description":"助农平台普通用户端 - 商品购买/直播/社区/文旅地图","main":"","author":"zhunong","license":"Apache-2.0","dependencies":{"common":"file:../common"}}

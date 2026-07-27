@@ -25,10 +25,12 @@ interface LiveListQuery {
   size: number;
 }
 
-/** 开播请求体 */
+/** 开播请求体（spec 16.4：携带 anchorName/anchorAvatar 同步注册身份） */
 interface CreateLiveBody {
   farmerId: string;
   form: LiveCreateForm;
+  anchorName: string;
+  anchorAvatar: string;
 }
 
 /** 结束直播请求体 */
@@ -70,11 +72,16 @@ class LiveManageRepositoryImpl {
   }
 
   /**
-   * 开播创建（spec 3.2.4.3：开始直播 → 直播状态变为 living）
+   * 开播创建（spec 3.2.4.3 + spec 16.4：开始直播 → 直播状态变为 living，使用注册身份）
    * POST /api/farmer/live/create
    */
-  async createLive(farmerId: string, form: LiveCreateForm): Promise<string> {
-    const body: CreateLiveBody = { farmerId, form };
+  async createLive(
+    farmerId: string,
+    form: LiveCreateForm,
+    anchorName: string,
+    anchorAvatar: string
+  ): Promise<string> {
+    const body: CreateLiveBody = { farmerId, form, anchorName, anchorAvatar };
     const result: string = await BaseRepository.postWithFallback<string>(
       'farmer/live/create',
       body,

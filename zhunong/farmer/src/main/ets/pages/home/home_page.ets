@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿/**
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿/**
  * home_page - 农户卖家端首页
  * 对齐设计稿 pages/farmer-home.html：
  *  - 顶部 4 入口导航栏（商城/直播/智能体/搜索）白底圆角18浮卡 56vp
@@ -12,7 +12,7 @@
  * spec 3.2.1 / 3.2.3 / 3.2.4 / 6.6.1
  */
 
-import { TokenStore, Logger, AppConstants, ModeStore, NavigationHelper, RouteName } from 'common';
+import { TokenStore, Logger, AppConstants, ModeStore, NavigationHelper, RouteName, FontUtil } from 'common';
 import { UserInfo } from 'common';
 import type { CurrentModeKey } from 'common';
 import { FarmerProfile, RevenueSummary, RevenueRange, FarmerProductItem } from '../../model/FarmerModels';
@@ -297,7 +297,7 @@ export struct FarmerHomePage {
             .layoutWeight(1)
           // V 认证徽章（对齐 qn-v-badge：16×16 黄底圆 + V字）
           Text('V')
-            .fontSize(11)
+            .fontSize(FontUtil.s(11, this.isElderMode()))
             .fontColor($r('app.color.color_ink'))
             .fontWeight(FontWeight.Bold)
             .width(16)
@@ -324,7 +324,7 @@ export struct FarmerHomePage {
     Row({ space: 8 }) {
       // 文字标签
       Text(this.isElderMode() ? '老人' : '默认')
-        .fontSize(11)
+        .fontSize(FontUtil.s(11, this.isElderMode()))
         .fontColor('rgba(255,255,255,0.75)')
         .fontWeight(FontWeight.Medium)
 
@@ -332,7 +332,7 @@ export struct FarmerHomePage {
       Stack() {
         Row() {
           Text(this.isElderMode() ? '老' : '默')
-            .fontSize(10)
+            .fontSize(FontUtil.s(10, this.isElderMode()))
             .fontColor($r('app.color.color_ink'))
             .fontWeight(FontWeight.Bold)
         }
@@ -365,7 +365,7 @@ export struct FarmerHomePage {
           .fontColor(Color.White)
           .fontWeight(FontWeight.Bold)
         Text(unit)
-          .fontSize(11)
+          .fontSize(FontUtil.s(11, this.isElderMode()))
           .fontColor(Color.White)
           .fontWeight(FontWeight.Medium)
           .margin({ left: 1 })
@@ -445,7 +445,7 @@ export struct FarmerHomePage {
       // 价格（红色）
       Row() {
         Text('¥')
-          .fontSize(11)
+          .fontSize(FontUtil.s(11, this.isElderMode()))
           .fontColor($r('app.color.color_live'))
           .fontWeight(FontWeight.Bold)
         Text(product.price.toFixed(1))
@@ -477,7 +477,7 @@ export struct FarmerHomePage {
         .fontColor($r('app.color.color_ink'))
         .fontWeight(FontWeight.Bold)
       Text('›')
-        .fontSize(16)
+        .fontSize(FontUtil.s(16, this.isElderMode()))
         .fontColor($r('app.color.color_ink'))
         .fontWeight(FontWeight.Bold)
         .margin({ left: 6 })

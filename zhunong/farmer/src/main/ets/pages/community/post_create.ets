@@ -1,11 +1,12 @@
 /**
- * post_create - 发帖页（spec 3.2.4.2）
+ * post_create - 发帖页（spec 3.2.4.2 / spec 16.4 注册身份同步）
  *
  * 卖家发帖昵称带"卖家"V标
  * 字段：话题选择 + 标题 + 正文 + 图片（最多9张）
+ * spec 16.4：发帖时使用 TokenStore 中的注册身份信息（昵称、头像）
  */
 
-import { Logger, AppConstants, ToastUtil, NavigationHelper, RouteName } from 'common';
+import { Logger, AppConstants, ToastUtil, NavigationHelper, RouteName, TokenStore } from 'common';
 import { Topic } from '../../model/FarmerCommunityModels';
 import { CommunityRepository } from '../../repository/CommunityRepository';
 import { MOCK_FARMER_ID, MOCK_FARMER_PROFILE } from '../../mock/FarmerMock';
@@ -25,6 +26,33 @@ export struct PostCreate {
   @Local isSubmitting: boolean = false;
   /** 话题列表（发帖时排除"全部"聚合标签，只按现有分类发布） */
   @Local topics: Topic[] = PRESET_TOPICS.filter((t: Topic) => t.topicId !== 't0');
+  /** 作者昵称（spec 16.4：从 TokenStore 加载，回退 MOCK_FARMER_PROFILE.shopName） */
+  @Local authorNickname: string = MOCK_FARMER_PROFILE.shopName;
+  /** 作者头像（spec 16.4：从 TokenStore 加载，回退 MOCK_FARMER_PROFILE.shopLogo） */
+  @Local authorAvatar: string = MOCK_FARMER_PROFILE.shopLogo;
+
+  async aboutToAppear(): Promise<void> {
+    try {
+      const userInfo = await TokenStore.getUserInfo();
+      if (userInfo !== null) {
+        if (userInfo.nickname.length > 0) {
+          this.authorNickname = userInfo.nickname;
+        }
+        if (userInfo.avatar.length > 0) {
+          this.authorAvatar = userInfo.avatar;
+        }
+        Logger.info(AppConstants.SCENE_FARMER, {
+          action: 'post_create_load_user_info',
+          nickname: this.authorNickname
+        });
+      }
+    } catch (err) {
+      Logger.error(AppConstants.SCENE_FARMER, {
+        action: 'load_user_info_fail',
+        error: (err as Error).message
+      });
+    }
+  }
 
   /** 图片预设 key */
   private imageKeys: string[] = [
@@ -61,7 +89,7 @@ export struct PostCreate {
     return true;
   }
 
-  /** 提交发帖 */
+  /** 提交发帖（spec 16.4：携带注册身份信息） */
   private async submitPost(): Promise<void> {
     if (!this.validateForm()) {
       return;
@@ -73,7 +101,9 @@ export struct PostCreate {
         this.topicId,
         this.title,
         this.content,
-        this.images
+        this.images,
+        this.authorNickname,
+        this.authorAvatar
       );
       ToastUtil.success('发帖成功');
       Logger.info(AppConstants.SCENE_FARMER, { action: 'post_create_success', postId, topicId: this.topicId });
@@ -125,7 +155,7 @@ export struct PostCreate {
         .fontWeight(FontWeight.Medium)
         .layoutWeight(1)
       Row({ space: 4 }) {
-        Text(MOCK_FARMER_PROFILE.shopName)
+        Text(this.authorNickname)
           .fontSize(11)
           .fontColor($r('app.color.color_text_secondary'))
           .maxLines(1)

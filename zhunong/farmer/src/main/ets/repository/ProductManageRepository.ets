@@ -91,9 +91,9 @@ class ProductManageRepositoryImpl {
   }
 
   /**
-   * 商品上架发布（spec 3.2.2：完整表单提交）
+   * 商品上架发布（spec 3.2.2 + spec 16.2：去审核，直接发布）
    * POST /api/farmer/product/publish
-   * 商品状态变为 pending_review（待审核，spec 6.2 第9步）
+   * 商品状态直接变为 approved（无需管理员审核）
    */
   async publishProduct(farmerId: string, form: ProductPublishForm): Promise<string> {
     const body: PublishProductBody = { farmerId, form };

@@ -47,6 +47,47 @@ export const MOCK_LIVE_LIST: LiveListItem[] = [
     liveId: 'l008', title: '山野好物·蜂蜜采收', coverImage: 'live_cover_8',
     farmerName: '山野好物', farmerAvatar: 'avatar_farmer_2', status: 'ended',
     totalViewUv: 856, category: 'tea'
+  },
+  // spec 16.5：扩充直播 Mock 数据，丰富浏览页内容
+  {
+    liveId: 'l009', title: '现磨面粉·古法石磨工艺展示', coverImage: 'live_cover_9',
+    farmerName: '麦香坊', farmerAvatar: 'avatar_farmer_4', status: 'living',
+    onlineCount: 412, totalViewUv: 412, category: 'grain'
+  },
+  {
+    liveId: 'l010', title: '高山散养土鸡·林间觅食实况', coverImage: 'live_cover_10',
+    farmerName: '田园牧歌', farmerAvatar: 'avatar_farmer_3', status: 'living',
+    onlineCount: 258, totalViewUv: 258, category: 'meat'
+  },
+  {
+    liveId: 'l011', title: '雨前龙井·手工炒制直播', coverImage: 'live_cover_11',
+    farmerName: '云雾茶舍', farmerAvatar: 'avatar_farmer_5', status: 'preview',
+    totalViewUv: 0, category: 'tea'
+  },
+  {
+    liveId: 'l012', title: '时令草莓园·亲子采摘体验', coverImage: 'live_cover_12',
+    farmerName: '红果乐园', farmerAvatar: 'avatar_farmer_6', status: 'living',
+    onlineCount: 528, totalViewUv: 528, category: 'fresh'
+  },
+  {
+    liveId: 'l013', title: '深山野生菌·采摘过程全纪录', coverImage: 'live_cover_13',
+    farmerName: '山野好物', farmerAvatar: 'avatar_farmer_2', status: 'ended',
+    totalViewUv: 1432, category: 'other'
+  },
+  {
+    liveId: 'l014', title: '有机蔬菜礼盒·产地直发专场', coverImage: 'live_cover_14',
+    farmerName: '青禾农庄', farmerAvatar: 'avatar_farmer_1', status: 'preview',
+    totalViewUv: 0, category: 'fresh'
+  },
+  {
+    liveId: 'l015', title: '古法红糖·甘蔗熬制工艺', coverImage: 'live_cover_15',
+    farmerName: '甜蜜坊', farmerAvatar: 'avatar_farmer_7', status: 'ended',
+    totalViewUv: 720, category: 'other'
+  },
+  {
+    liveId: 'l016', title: '生态大米·稻田收割直播', coverImage: 'live_cover_16',
+    farmerName: '金穗农场', farmerAvatar: 'avatar_farmer_8', status: 'living',
+    onlineCount: 196, totalViewUv: 196, category: 'grain'
   }
 ];
 

@@ -1,1 +1,0 @@
-{"name":"admin","version":"1.0.0","description":"助农平台系统管理后台端 - 用户管理/API管理/内容审核/4角色RBAC","main":"","author":"zhunong","license":"Apache-2.0","dependencies":{"common":"file:../common"}}

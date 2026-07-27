@@ -83,8 +83,9 @@ export struct RevenueStats {
   private async loadData(): Promise<void> {
     try {
       this.profile = await FarmerRepository.getMyProfile(MOCK_FARMER_ID);
-      this.totalRevenue = this.profile.totalRevenue;
-      this.availableAmount = this.profile.availableBalance;
+      // 字段可能 undefined（Mock 数据不完整），用 ?? 0 兜底避免 toLocaleString 崩溃
+      this.totalRevenue = this.profile.totalRevenue ?? 0;
+      this.availableAmount = this.profile.availableBalance ?? 0;
     } catch (err) {
       Logger.error(AppConstants.SCENE_FARMER, { action: 'load_profile_fail', error: (err as Error).message });
     }

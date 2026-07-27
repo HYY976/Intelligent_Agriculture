@@ -18,9 +18,14 @@ export { HttpUtil } from './src/main/ets/utils/HttpUtil';
 export { ToastUtil } from './src/main/ets/utils/ToastUtil';
 /** spec 10.9.2：声明式路由跳转工具（替代 router.pushUrl/replaceUrl/back/getParams） */
 export { NavigationHelper } from './src/main/ets/utils/NavigationHelper';
+/** spec 16.6：老人模式全局字体放大工具 */
+export { FontUtil } from './src/main/ets/utils/FontUtil';
 
 // ===== Repository 基础设施（spec 10.3：先 REST 后 Mock 兜底） =====
 export { BaseRepository } from './src/main/ets/repository/BaseRepository';
+/** spec 16.3：共享商品池（农户端发布 → 用户端读取，跨端同步） */
+export { SharedProductStore } from './src/main/ets/repository/SharedProductStore';
+export type { SharedProduct } from './src/main/ets/repository/SharedProductStore';
 
 // ===== ViewModel 基础设施（spec 10.11.3：LazyForEach 通用数据源基类） =====
 export { BaseDataSource } from './src/main/ets/viewmodel/BaseDataSource';

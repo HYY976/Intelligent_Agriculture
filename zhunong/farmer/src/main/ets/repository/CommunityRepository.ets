@@ -11,7 +11,6 @@ import {
   getMockCommentsByPostId,
   getMockTopics,
   mockCreatePost,
-  getLocallyCreatedPosts,
   mockCreateComment,
   mockDeletePost
 } from '../mock/FarmerCommunityMock';
@@ -29,7 +28,7 @@ interface PostDetailQuery {
   postId: string;
 }
 
-/** 发帖请求体 */
+/** 发帖请求体（spec 16.4：携带 authorNickname/authorAvatar 同步注册身份） */
 interface CreatePostBody {
   authorId: string;
   authorType: 'farmer';
@@ -37,15 +36,19 @@ interface CreatePostBody {
   title: string;
   content: string;
   images: string[];
+  authorNickname: string;
+  authorAvatar: string;
 }
 
-/** 评论请求体 */
+/** 评论请求体（spec 16.4：携带 authorNickname/authorAvatar 同步注册身份） */
 interface CreateCommentBody {
   postId: string;
   parentId: string | null;
   authorId: string;
   authorType: 'farmer';
   content: string;
+  authorNickname: string;
+  authorAvatar: string;
 }
 
 /** 删除帖子请求体 */
@@ -94,25 +97,8 @@ class CommunityRepositoryImpl {
         finalList = mockResult.list;
         finalTotal = mockResult.total;
       }
-      // 将本地创建的帖子按当前话题筛选后合并到列表顶部
-      const localPosts: Post[] = getLocallyCreatedPosts();
-      const filteredLocalPosts: Post[] = localPosts.filter((p: Post): boolean => {
-        if (!topicId || topicId === 't0') {
-          return true;
-        }
-        return p.topicId === topicId;
-      });
-      if (filteredLocalPosts.length > 0 && page === 1) {
-        const mergedList: Post[] = filteredLocalPosts.concat(finalList);
-        const mergedResult: PageResult<Post> = {
-          list: mergedList,
-          total: finalTotal + filteredLocalPosts.length,
-          page: resp.page,
-          size: resp.size,
-          hasMore: resp.hasMore
-        };
-        return mergedResult;
-      }
+      // spec 16.5：移除 getLocallyCreatedPosts 合并逻辑（getMockPostList 已包含 MOCK_POSTS 全部，
+      // 含 mockCreatePost 新增的 p_ 帖子，再合并会重复）
       const finalResult: PageResult<Post> = {
         list: finalList,
         total: finalTotal,
@@ -176,7 +162,7 @@ class CommunityRepositoryImpl {
   }
 
   /**
-   * 发帖（spec 3.2.4.2：卖家发帖昵称带"卖家"V标）
+   * 发帖（spec 3.2.4.2 + spec 16.4：卖家发帖昵称带"卖家"V标，使用注册身份信息）
    * POST /api/community/post/create
    */
   async createPost(
@@ -184,7 +170,9 @@ class CommunityRepositoryImpl {
     topicId: string,
     title: string,
     content: string,
-    images: string[]
+    images: string[],
+    authorNickname: string,
+    authorAvatar: string
   ): Promise<string> {
     const body: CreatePostBody = {
       authorId,
@@ -192,38 +180,44 @@ class CommunityRepositoryImpl {
       topicId,
       title,
       content,
-      images
+      images,
+      authorNickname,
+      authorAvatar
     };
     const result: string = await BaseRepository.postWithFallback<string>(
       'community/post/create',
       body,
-      async (): Promise<string> => mockCreatePost(authorId, topicId, title, content, images),
+      async (): Promise<string> => mockCreatePost(authorId, topicId, title, content, images, authorNickname, authorAvatar),
       AppConstants.SCENE_FARMER
     );
     return result;
   }
 
   /**
-   * 发表评论（spec 3.1.3.2：评论仅文字+表情，无限嵌套）
+   * 发表评论（spec 3.1.3.2 + spec 16.4：评论仅文字+表情，无限嵌套，使用注册身份）
    * POST /api/community/comment/create
    */
   async createComment(
     postId: string,
     parentId: string | null,
     authorId: string,
-    content: string
+    content: string,
+    authorNickname: string,
+    authorAvatar: string
   ): Promise<string> {
     const body: CreateCommentBody = {
       postId,
       parentId,
       authorId,
       authorType: 'farmer',
-      content
+      content,
+      authorNickname,
+      authorAvatar
     };
     const result: string = await BaseRepository.postWithFallback<string>(
       'community/comment/create',
       body,
-      async (): Promise<string> => mockCreateComment(postId, parentId, authorId, content),
+      async (): Promise<string> => mockCreateComment(postId, parentId, authorId, content, authorNickname, authorAvatar),
       AppConstants.SCENE_FARMER
     );
     return result;

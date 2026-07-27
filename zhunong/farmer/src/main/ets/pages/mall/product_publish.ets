@@ -1,5 +1,5 @@
 /**
- * product_publish - 商品上架发布页（spec 3.2.2 / 第8章 AI接口预留）
+ * product_publish - 商品上架发布页（spec 3.2.2 / 第8章 AI接口预留 / spec 16.2 去审核）
  *
  * 完整复刻淘宝发布详情页，字段：
  *  - 商品标题（5-60字，必填）
@@ -15,12 +15,12 @@
  *  - AI文案生成按钮（spec 8.1：WebSocket 流式返回）
  *  - AI海报生成按钮（spec 8.2：异步任务+轮询）
  *
- * 上架流程（spec 6.2）：
- *  - 卖家填写 → 可选 AI 文案/海报 → 点击发布 → 状态 pending_review
- *  - 后台审核通过 → approved → 可被搜索/推荐
+ * 上架流程（spec 16.2：去审核）：
+ *  - 卖家填写 → 可选 AI 文案/海报 → 点击发布 → 状态 approved（直接发布）
+ *  - 商品同步至 SharedProductStore，用户端立即可见
  */
 
-import { Logger, AppConstants, ToastUtil, NavigationHelper } from 'common';
+import { Logger, AppConstants, ToastUtil, NavigationHelper, TokenStore, SharedProductStore, SharedProduct } from 'common';
 import { ProductPublishForm, FarmerSkuInput, FreightTemplate, LiveCategory } from '../../model/FarmerModels';
 import { ProductManageRepository } from '../../repository/ProductManageRepository';
 import { AiPosterClient } from '../../utils/AiPosterClient';
@@ -244,7 +244,7 @@ export struct ProductPublish {
     });
   }
 
-  /** 提交发布（spec 6.2：商品状态 pending_review） */
+  /** 提交发布（spec 16.2：去审核，立即上架 → 状态 approved；同步到共享商品池） */
   private async submitPublish(): Promise<void> {
     if (!this.validateForm()) {
       return;
@@ -265,7 +265,41 @@ export struct ProductPublish {
         aiPosterUrl: this.aiPosterUrl.length > 0 ? this.aiPosterUrl : undefined
       };
       const productId: string = await ProductManageRepository.publishProduct(MOCK_FARMER_ID, form);
-      ToastUtil.success(this.publishNow ? '商品已提交审核' : '商品已存入仓库');
+
+      // spec 16.2：立即上架 → 直接同步到共享商品池，用户端立即可见
+      if (this.publishNow) {
+        const userInfo = await TokenStore.getUserInfo();
+        const now: number = Date.now();
+        const sharedProduct: SharedProduct = {
+          productId,
+          farmerId: MOCK_FARMER_ID,
+          farmerName: userInfo?.nickname ?? '青禾农庄·王大叔',
+          farmerAvatar: userInfo?.avatar ?? 'avatar_farmer',
+          title: this.title,
+          categoryId: this.categoryId,
+          mainImages: this.mainImages,
+          aiPosterUrl: this.aiPosterUrl.length > 0 ? this.aiPosterUrl : undefined,
+          description: this.description,
+          price: parseFloat(this.priceStr),
+          stock: parseInt(this.stockStr, 10),
+          shipFrom: this.shipFrom,
+          freightTemplate: this.freightOptions.find((o) => o.value === this.freight)?.label ?? '包邮',
+          monthlySales: 0,
+          monthlyGmv: 0,
+          totalSales: 0,
+          status: 'approved',
+          createdAt: now,
+          updatedAt: now
+        };
+        await SharedProductStore.publish(sharedProduct);
+        Logger.info(AppConstants.SCENE_FARMER, {
+          action: 'shared_product_synced',
+          productId,
+          farmerName: sharedProduct.farmerName
+        });
+      }
+
+      ToastUtil.success(this.publishNow ? '商品已发布' : '商品已存入仓库');
       Logger.info(AppConstants.SCENE_FARMER, {
         action: 'product_publish_success',
         productId,

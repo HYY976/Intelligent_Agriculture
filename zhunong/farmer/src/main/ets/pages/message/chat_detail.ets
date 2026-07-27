@@ -1,4 +1,4 @@
-﻿/**
+/**
  * chat_detail - 聊天详情（spec 3.2.4.4 / 4.1.10）
  *
  * 买卖家互通聊天界面
@@ -13,6 +13,14 @@ import { ChatMessage, WsMessage, WsConnectionState } from '../../model/FarmerMes
 import { MessageRepository } from '../../repository/MessageRepository';
 import { FarmerWsClient } from '../../utils/WsClient';
 import { MOCK_FARMER_ID } from '../../mock/FarmerMock';
+
+/** 独立时间格式化函数（避免 ForEach 内 this 上下文丢失导致崩溃） */
+function formatMsgTime(ts: number): string {
+  const d: Date = new Date(ts);
+  const hh: string = `${d.getHours()}`.padStart(2, '0');
+  const mi: string = `${d.getMinutes()}`.padStart(2, '0');
+  return `${hh}:${mi}`;
+}
 
 @ComponentV2
 export struct ChatDetail {
@@ -60,9 +68,11 @@ export struct ChatDetail {
     this.isLoading = true;
     try {
       const list: ChatMessage[] = await MessageRepository.getMessageHistory(this.sessionId, this.page, 50);
-      this.messages = list;
+      // 确保 messages 永远不是 undefined（防止 ForEach 崩溃）
+      this.messages = list ?? [];
     } catch (err) {
       Logger.error(AppConstants.SCENE_FARMER, { action: 'load_history_fail', error: (err as Error).message });
+      this.messages = [];
     } finally {
       this.isLoading = false;
     }
@@ -219,29 +229,83 @@ export struct ChatDetail {
   /** 消息列表 */
   @Builder
   MessageList() {
-    if (this.messages.length === 0 && this.isLoading) {
-      Column() {
-        Text('加载中...')
-          .fontSize(14)
-          .fontColor($r('app.color.color_text_secondary'))
-      }
-      .width('100%')
-      .layoutWeight(1)
-      .justifyContent(FlexAlign.Center)
-      .alignItems(HorizontalAlign.Center)
-    } else {
-      List({ space: 12 }) {
-        ForEach(this.messages, (msg: ChatMessage, _idx: number) => {
-          ListItem() {
-            this.MessageBubble(msg)
-          }
-        }, (msg: ChatMessage) => msg.messageId)
-      }
-      .width('100%')
-      .layoutWeight(1)
-      .padding({ left: 12, right: 12, top: 12, bottom: 12 })
-      .scrollBar(BarState.Off)
+    // 空态提示
+    Column() {
+      Text(this.isLoading ? '加载中...' : '暂无消息，开始聊天吧')
+        .fontSize(14)
+        .fontColor($r('app.color.color_text_secondary'))
     }
+    .width('100%')
+    .layoutWeight(1)
+    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
+    .visibility(this.messages.length > 0 ? Visibility.Hidden : Visibility.Visible)
+
+    List({ space: 12 }) {
+      ForEach(this.messages, (msg: ChatMessage, _idx: number) => {
+        ListItem() {
+          Row({ space: 8 }) {
+            // 自己的消息（右对齐）
+            Blank()
+              .visibility(msg.senderId === MOCK_FARMER_ID ? Visibility.Visible : Visibility.None)
+
+            Column({ space: 4 }) {
+              Row({ space: 4 }) {
+                Text('卖家')
+                  .fontSize(9)
+                  .fontColor(Color.White)
+                  .backgroundColor($r('app.color.color_cta_black'))
+                  .padding({ left: 4, right: 4, top: 1, bottom: 1 })
+                  .borderRadius(4)
+                  .visibility(msg.senderId === MOCK_FARMER_ID ? Visibility.Visible : Visibility.None)
+                Text(formatMsgTime(msg.createdAt))
+                  .fontSize(10)
+                  .fontColor($r('app.color.color_text_hint'))
+              }
+              .width('100%')
+              .justifyContent(msg.senderId === MOCK_FARMER_ID ? FlexAlign.End : FlexAlign.Start)
+              Text(msg.content)
+                .fontSize(14)
+                .fontColor(msg.senderId === MOCK_FARMER_ID ? Color.White : $r('app.color.color_text_primary'))
+                .backgroundColor(msg.senderId === MOCK_FARMER_ID ? $r('app.color.color_cta_black') : $r('app.color.color_card_yellow'))
+                .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+                .borderRadius(12)
+            }
+            .alignItems(msg.senderId === MOCK_FARMER_ID ? HorizontalAlign.End : HorizontalAlign.Start)
+            .constraintSize({ maxWidth: '70%' })
+
+            // 对方头像（左对齐时显示）
+            Text('👤')
+              .fontSize(20)
+              .width(32)
+              .height(32)
+              .borderRadius(16)
+              .backgroundColor(msg.senderId === MOCK_FARMER_ID ? $r('app.color.color_cta_black') : $r('app.color.color_card_yellow'))
+              .textAlign(TextAlign.Center)
+              .visibility(msg.senderId !== MOCK_FARMER_ID ? Visibility.Visible : Visibility.None)
+
+            // 自己的头像（右对齐时显示）
+            Text('👤')
+              .fontSize(20)
+              .width(32)
+              .height(32)
+              .borderRadius(16)
+              .backgroundColor($r('app.color.color_cta_black'))
+              .textAlign(TextAlign.Center)
+              .visibility(msg.senderId === MOCK_FARMER_ID ? Visibility.Visible : Visibility.None)
+
+            Blank()
+              .visibility(msg.senderId !== MOCK_FARMER_ID ? Visibility.Visible : Visibility.None)
+          }
+          .width('100%')
+        }
+      }, (msg: ChatMessage) => msg.messageId)
+    }
+    .width('100%')
+    .layoutWeight(1)
+    .padding({ left: 12, right: 12, top: 12, bottom: 12 })
+    .scrollBar(BarState.Off)
+    .visibility(this.messages.length > 0 ? Visibility.Visible : Visibility.Hidden)
   }
 
   /** 消息气泡 */

@@ -6214,9 +6214,254 @@ ListStateView 视觉按 15.4.2 对齐设计稿（LoadingProgress 48 主黄、⚠
 
 ---
 
-**文档结束（v4.0）**
+# 16 商品发布去审核 + 双端数据同步 + 注册身份同步（v4.1 新增，2026-07-26）
 
-> 本 spec.md v4.0 已涵盖 v3.4 全部章节（项目概述、三端产品定位、全局技术规范、分端页面清单+布局规范、完整数据实体Model、路由清单、业务全流程、权限清单、AI预留接口清单、交互规则、榜单广告规则、切换模式规则、开发实现顺序、待确认疑问清单、第 11~14 章配色/主题改造）+ 新增第 15 章 UI 复刻实施基线（决策回执、设计令牌映射、资源迁移、组件抽取、65 页对照总表、重写规则、路由注册、三阶段分批计划、四维验收标准、风险回滚）。
+## 16.1 改造目标
+
+经第 29 批需求确认回执（4 项关键决策已落地），本次迭代解决三类关联问题：
+
+1. **商品发布去除管理员审核**：农户端发布商品无需管理员审核，发布后状态直接为 `approved`，立即可见
+2. **建立共享商品池实现双端同步**：农户端发布的商品需同步到用户端商品列表/搜索/分类中，确保数据一致
+3. **发帖/开直播/评论同步注册身份信息**：发帖、评论、开直播时使用 TokenStore 中注册时保存的 UserInfo（nickname/avatar），不再使用 MOCK_FARMER_PROFILE 固定值；用户端发帖也同步注册身份信息
+
+## 16.2 决策回执（第 29 批需求确认）
+
+| 决策项 | 用户选择 | 说明 |
+| --- | --- | --- |
+| 商品审核处理 | 直接 approved + 双端同步 | 商品发布后状态直接为 approved，立即在农户端商品管理列表和用户端商品列表/搜索/分类中可见 |
+| 双端数据同步方式 | 建立共享商品池 | 在 common 模块创建 SharedProductStore，农户端发布商品时写入共享池，用户端从共享池读取 |
+| 注册身份同步策略 | 读取 TokenStore.getUserInfo | 发帖/开直播/评论时从 TokenStore 读取注册时保存的 UserInfo（nickname/avatar），不再使用 MOCK_FARMER_PROFILE.shopName |
+| 用户端发帖身份 | 同步用户注册信息 | 用户端 createMockPost 也从 TokenStore.getUserInfo 读取 nickname/avatar |
+
+## 16.3 共享商品池设计（common/repository/SharedProductStore.ets）
+
+### 16.3.1 数据结构
+
+```typescript
+/** 共享商品（双端同步用，字段对齐 user 端 Product） */
+export interface SharedProduct {
+  productId: string;
+  farmerId: string;
+  /** 卖家昵称（来自 UserInfo.nickname） */
+  farmerName: string;
+  /** 卖家头像 key（来自 UserInfo.avatar） */
+  farmerAvatar: string;
+  title: string;
+  categoryId: string;
+  mainImages: string[];
+  aiPosterUrl?: string;
+  description: string;
+  price: number;
+  stock: number;
+  shipFrom: string;
+  freightTemplate: string;
+  monthlySales: number;
+  monthlyGmv: number;
+  totalSales: number;
+  status: ProductStatus;
+  createdAt: number;
+  updatedAt: number;
+}
+```
+
+### 16.3.2 API 设计
+
+```typescript
+class SharedProductStoreImpl {
+  /** 发布商品到共享池（农户端调用） */
+  publish(product: SharedProduct): void;
+  /** 获取全部共享商品（用户端读取并合并到 Mock 列表头部） */
+  getAll(): SharedProduct[];
+  /** 根据 productId 获取共享商品 */
+  getById(productId: string): SharedProduct | null;
+  /** 根据 farmerId 获取该卖家的所有共享商品 */
+  getByFarmer(farmerId: string): SharedProduct[];
+  /** 清空共享池（退出登录时调用，避免账号切换数据残留） */
+  clear(): void;
+}
+export const SharedProductStore: SharedProductStoreImpl;
+```
+
+### 16.3.3 common/Index.ets 导出
+
+```typescript
+export { SharedProductStore } from './src/main/ets/repository/SharedProductStore';
+export type { SharedProduct } from './src/main/ets/repository/SharedProductStore';
+```
+
+## 16.4 商品发布去审核实施
+
+### 16.4.1 farmer/pages/mall/product_publish.ets 改造
+
+- `submitPublish()` 方法中：
+  - Toast 文案由 "商品已提交审核" 改为 "商品已发布" / "商品已存入仓库"
+  - publishNow=true 时调用 SharedProductStore.publish() 同步到共享池
+  - 写入共享池时使用 TokenStore.getUserInfo 读取的 nickname/avatar 作为 farmerName/farmerAvatar
+
+### 16.4.2 farmer/repository/ProductManageRepository.ets 改造
+
+- `publishProduct()` 方法 Mock 兜底中：
+  - 新建商品状态固定为 `approved`（之前为 `pending_review`）
+  - 同时调用 SharedProductStore.publish() 写入共享池
+  - 注释由"商品状态变为 pending_review（待审核）"改为"商品状态直接 approved（去审核）"
+
+### 16.4.3 farmer/mock/FarmerMock.ets 改造
+
+- MOCK_FARMER_PRODUCTS 中 `p016_draft` 状态由 `pending_review` 改为 `approved`，标题去掉"（待审核）"后缀
+- `p017_reject` 状态由 `rejected` 改为 `approved`，移除 rejectReason 字段，标题去掉"（驳回示例）"后缀
+- 删除商品管理列表中"待审核"和"驳回"状态筛选项（保留：全部/已上架/已下架）
+
+## 16.5 用户端共享商品读取
+
+### 16.5.1 user/mock/ProductMock.ets 改造
+
+- 在 `getMockProductList()` 函数中：
+  - 从 SharedProductStore.getAll() 读取共享池商品
+  - 将共享商品转换为 ProductListItem 后**合并到列表头部**（page=1 时）
+  - 共享商品不参与 Mock 无限流循环逻辑
+
+### 16.5.2 user/mock/ProductMock.ets getMockProductById 改造
+
+- 优先从 SharedProductStore.getById() 查询，未找到再查 MOCK_PRODUCTS
+
+## 16.6 注册身份同步实施
+
+### 16.6.1 farmer/pages/community/post_create.ets 改造
+
+- TopBar 中"卖家"标签前的店铺名由 `MOCK_FARMER_PROFILE.shopName` 改为：
+  - 通过 `await TokenStore.getUserInfo()` 异步获取 UserInfo.nickname
+  - 缺失时 fallback 到 `MOCK_FARMER_PROFILE.shopName`
+- 新增 `@Local authorNickname: string` 和 `@Local authorAvatar: string` 状态
+- aboutToAppear 中加载用户信息
+
+### 16.6.2 farmer/pages/live/live_create.ets 改造
+
+- aboutToAppear 中加载 TokenStore.getUserInfo
+- 开播表单提交时 LiveCreateForm 增加 farmerName/farmerAvatar 字段（可选）
+- 直播间页面显示卖家昵称时使用注册身份信息
+
+### 16.6.3 farmer/mock/FarmerCommunityMock.ets 改造
+
+- `mockCreatePost()` 函数中：
+  - 参数新增 `authorNickname: string` 和 `authorAvatar: string`
+  - 替代原 `MOCK_FARMER_PROFILE.shopName` 和 `MOCK_FARMER_PROFILE.shopLogo`
+- `mockCreateComment()` 函数中：
+  - 参数新增 `authorNickname: string` 和 `authorAvatar: string`
+  - 替代原 `MOCK_FARMER_PROFILE.shopName` 和 `MOCK_FARMER_PROFILE.shopLogo`
+
+### 16.6.4 farmer/repository/CommunityRepository.ets 改造
+
+- `createPost()` 和 `createComment()` 方法签名新增 `authorNickname` 和 `authorAvatar` 参数
+- 传递给 mockCreatePost/mockCreateComment
+
+### 16.6.5 farmer/pages/message/chat_detail.ets 改造
+
+- 发送消息时使用 TokenStore.getUserInfo 的 nickname/avatar
+- 不再使用 MOCK_FARMER_PROFILE 固定值
+
+### 16.6.6 user/mock/CommunityMock.ets 改造
+
+- `createMockPost()` 函数中：
+  - 从 TokenStore.getUserInfo() 读取 nickname/avatar
+  - 替代原固定昵称 '我' 和 'avatar_default'
+  - 缺失时 fallback 到 '我' / 'avatar_default'
+
+### 16.6.7 user/pages/community/post_create.ets 改造
+
+- 发帖时调用 createMockPost 传入从 TokenStore.getUserInfo 读取的身份信息
+
+## 16.7 退出登录清空共享池
+
+### 16.7.1 farmer/pages/profile/setting.ets 改造
+
+- 退出登录调用 TokenStore.clearAuth() 后，同时调用 SharedProductStore.clear()
+- 避免账号切换后共享池数据残留
+
+### 16.7.2 user/pages/profile/setting.ets 改造
+
+- 退出登录调用 TokenStore.clearAuth() 后，无需清空共享池（用户端不写入共享池）
+
+## 16.8 文件变更清单
+
+### 16.8.1 新增文件（1 个）
+
+| 文件路径 | 说明 |
+| --- | --- |
+| `common/src/main/ets/repository/SharedProductStore.ets` | 共享商品池单例，跨农户端和用户端数据同步 |
+
+### 16.8.2 修改文件（10 个）
+
+| 文件路径 | 改动要点 |
+| --- | --- |
+| `common/Index.ets` | 导出 SharedProductStore 和 SharedProduct 类型 |
+| `farmer/src/main/ets/pages/mall/product_publish.ets` | submitPublish 改为 approved + 写入共享池 |
+| `farmer/src/main/ets/repository/ProductManageRepository.ets` | publishProduct Mock 改为 approved |
+| `farmer/src/main/ets/mock/FarmerMock.ets` | MOCK_FARMER_PRODUCTS 状态调整 |
+| `farmer/src/main/ets/pages/community/post_create.ets` | 使用 TokenStore.getUserInfo 同步身份 |
+| `farmer/src/main/ets/pages/live/live_create.ets` | 使用 TokenStore.getUserInfo 同步身份 |
+| `farmer/src/main/ets/mock/FarmerCommunityMock.ets` | mockCreatePost/mockCreateComment 接收身份参数 |
+| `farmer/src/main/ets/repository/CommunityRepository.ets` | createPost/createComment 传递身份参数 |
+| `user/src/main/ets/mock/ProductMock.ets` | getMockProductList/getMockProductById 合并共享池 |
+| `user/src/main/ets/mock/CommunityMock.ets` | createMockPost 从 TokenStore 读取身份 |
+
+### 16.8.3 可选修改文件（2 个）
+
+| 文件路径 | 改动要点 |
+| --- | --- |
+| `farmer/src/main/ets/pages/message/chat_detail.ets` | 发送消息使用 TokenStore.getUserInfo 身份（如该页仍使用 MOCK_FARMER_PROFILE） |
+| `farmer/src/main/ets/pages/profile/setting.ets` | 退出登录时清空 SharedProductStore |
+
+## 16.9 验收标准
+
+### 16.9.1 功能验收
+
+- 农户端发布商品后状态为 `approved`，无"待审核"中间态
+- 农户端发布商品后，立即在用户端首页推荐流/商品列表/分类页可见
+- 用户端商品详情页可查看农户端发布的商品完整信息
+- 农户端发帖时显示的昵称、头像与注册时填写的一致
+- 农户端开直播时直播间显示的昵称、头像与注册时填写的一致
+- 农户端发评论时显示的昵称、头像与注册时填写的一致
+- 用户端发帖时显示的昵称、头像与注册时填写的一致
+- 退出登录后重新登录另一账号，共享池数据清空，不显示前一账号发布的商品
+
+### 16.9.2 编译验收
+
+- 三端 BUILD SUCCESSFUL（user/farmer/admin）
+- 0 ERROR（仅允许签名配置 WARN）
+- 0 弃用 API 警告（延续 v1.8/v3.0 成果）
+- VSCode GetDiagnostics 静态诊断 0 ERROR
+- ArkTS 严格模式：所有对象字面量都有 interface 声明，无 any/unknown
+
+### 16.9.3 V2 合规
+
+- 全项目 0 个 V1 装饰器
+- 所有新增/修改页面使用 @ComponentV2 + @Local/@Param/@Event
+- @ObservedV2/@Trace 不从 @kit.ArkUI 导入
+
+### 16.9.4 数据一致性
+
+- SharedProductStore 中的商品字段与用户端 ProductListItem 字段映射正确
+- 共享池商品在用户端列表中显示位置为列表头部（page=1 时）
+- 共享池商品不参与 Mock 无限流循环（避免重复显示）
+- 共享池商品的 farmerName/farmerAvatar 与农户注册身份信息一致
+
+## 16.10 风险与回滚
+
+| 风险 | 影响 | 缓解措施 |
+| --- | --- | --- |
+| SharedProductStore 是内存存储，应用重启后数据丢失 | 中 | 用户端 Mock 数据本身也是内存级，重启后回到 Mock 默认数据是预期行为；后端部署后由后端持久化 |
+| 共享池商品与用户端 MOCK_PRODUCTS 数据结构差异 | 中 | SharedProduct 字段对齐 user 端 Product，转换时使用 ProductListItem 字段子集 |
+| TokenStore.getUserInfo 为 null（未登录场景） | 低 | 各调用点 fallback 到原 MOCK_FARMER_PROFILE（farmer 端）或 '我'（user 端） |
+| 用户端商品列表分页与共享池合并逻辑冲突 | 中 | 共享池商品仅在 page=1 时合并到列表头部，不参与分页循环填充 |
+| 回滚需求 | — | 仅需删除 SharedProductStore.ets + 还原 10 个修改文件，不影响其他模块 |
+
+---
+
+**文档结束（v4.1）**
+
+> 本 spec.md v4.1 在 v4.0 基础上新增第 16 章：商品发布去审核 + 双端数据同步 + 注册身份同步（决策回执、共享商品池设计、商品发布去审核实施、用户端共享商品读取、注册身份同步实施、退出登录清空共享池、文件变更清单、四维验收标准、风险回滚）。
+>
+> 第 16 章需求已通过与用户确认（第 29 批需求确认回执，4 项关键决策：直接 approved + 双端同步 / 建立共享商品池 / 读取 TokenStore.getUserInfo / 同步用户注册信息），可作为后续开发的唯一基线依据。
 >
 > 第 15 章需求已通过与用户确认（第 28 批需求确认回执，4 项关键决策：按模块分批 / 整页重写复用服务层 / 生成 v4.0 新 spec / Pro 优先+新页新建），可作为后续 UI 复刻开发的唯一基线依据。
 >

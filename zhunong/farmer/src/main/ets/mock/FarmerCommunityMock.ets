@@ -134,14 +134,16 @@ export function getMockCommentsByPostId(postId: string): Comment[] {
 }
 
 /**
- * Mock 创建帖子（将新帖子插入列表，使用注册身份信息，避免显示 ID）
+ * Mock 创建帖子（spec 16.4：使用注册身份信息，避免显示 ID）
  */
 export function mockCreatePost(
   authorId: string,
   topicId: string,
   title: string,
   content: string,
-  images: string[]
+  images: string[],
+  authorNickname: string,
+  authorAvatar: string
 ): string {
   const now: number = Date.now();
   const postId: string = `p_${now}`;
@@ -159,9 +161,9 @@ export function mockCreatePost(
     shareCount: 0,
     status: 'normal',
     createdAt: now,
-    // 使用注册身份信息（shopName），不显示 ID
-    authorNickname: MOCK_FARMER_PROFILE.shopName,
-    authorAvatar: MOCK_FARMER_PROFILE.shopLogo,
+    // spec 16.4：使用注册身份信息（来自 TokenStore）
+    authorNickname,
+    authorAvatar,
     isSeller: true
   };
   MOCK_POSTS.unshift(post);
@@ -169,13 +171,15 @@ export function mockCreatePost(
 }
 
 /**
- * Mock 创建评论（将评论实际写入 MOCK_COMMENTS，确保发评论后可见）
+ * Mock 创建评论（spec 16.4：将评论实际写入 MOCK_COMMENTS，使用注册身份信息）
  */
 export function mockCreateComment(
   postId: string,
   parentId: string | null,
   authorId: string,
-  content: string
+  content: string,
+  authorNickname: string,
+  authorAvatar: string
 ): string {
   const now: number = Date.now();
   const commentId: string = `c_${now}`;
@@ -188,8 +192,9 @@ export function mockCreateComment(
     content,
     likeCount: 0,
     createdAt: now,
-    authorNickname: MOCK_FARMER_PROFILE.shopName,
-    authorAvatar: MOCK_FARMER_PROFILE.shopLogo,
+    // spec 16.4：使用注册身份信息（来自 TokenStore）
+    authorNickname,
+    authorAvatar,
     isSeller: true,
     replies: []
   };

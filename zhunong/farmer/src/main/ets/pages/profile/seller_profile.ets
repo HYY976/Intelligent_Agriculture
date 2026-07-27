@@ -7,7 +7,8 @@
  *  - 功能入口列表卡（7 行：商品/直播/提现/营收/粉丝/认证/设置）
  */
 
-import { Logger, AppConstants, NavigationHelper, RouteName } from 'common';
+import { Logger, AppConstants, NavigationHelper, RouteName, ModeStore, FontUtil } from 'common';
+import type { CurrentModeKey } from 'common';
 import { FarmerProfile } from '../../model/FarmerModels';
 import { FarmerRepository } from '../../repository/FarmerRepository';
 import { MOCK_FARMER_ID } from '../../mock/FarmerMock';
@@ -36,6 +37,8 @@ export struct SellerProfile {
   @Local profile: FarmerProfile | null = null;
   /** 是否正在加载 */
   @Local isLoading: boolean = false;
+  /** 当前模式（spec 16.6：老人模式字体放大） */
+  @Local modeRef: CurrentModeKey = ModeStore.connectModeRef();
 
   /** 功能入口列表（对齐设计稿 7 行：商品/直播/提现/营收/粉丝/认证/设置） */
   private entries: ProfileEntry[] = [
@@ -131,14 +134,19 @@ export struct SellerProfile {
     .hideTitleBar(true)
   }
 
-  /** 黄色头部区（缩小高度至170，避免遮挡下方统计数据） */
+  /** spec 16.7：黄色头部高度（老人模式加大，避免遮挡统计卡） */
+  private headerHeight(): number {
+    return this.isElder() ? 220 : 170;
+  }
+
+  /** 黄色头部区（高度随模式自适应，避免老人模式遮挡下方统计卡） */
   @Builder
   YellowHeader() {
     Stack() {
       // 渐变背景 + 装饰圆
       Column()
         .width('100%')
-        .height(170)
+        .height(this.headerHeight())
         .linearGradient({
           angle: 135,
           colors: [[$r('app.color.color_yellow'), 0.0], [$r('app.color.color_yellow_deep'), 1.0]]
@@ -160,7 +168,7 @@ export struct SellerProfile {
       .padding({ left: 16, right: 16 })
     }
     .width('100%')
-    .height(170)
+    .height(this.headerHeight())
     .alignContent(Alignment.TopStart)
   }
 
@@ -170,7 +178,7 @@ export struct SellerProfile {
     Row() {
       // 返回
       Text('‹')
-        .fontSize(28)
+        .fontSize(FontUtil.s(28, this.isElder()))
         .fontColor(Color.White)
         .width(32)
         .height(32)
@@ -178,23 +186,25 @@ export struct SellerProfile {
         .onClick(() => NavigationHelper.pop())
       // 标题
       Text('卖家中心')
-        .fontSize(18)
+        .fontSize(FontUtil.s(20, this.isElder()))
         .fontColor(Color.White)
         .fontWeight(FontWeight.Bold)
         .layoutWeight(1)
         .textAlign(TextAlign.Center)
-      // 设置齿轮
-      Text('⚙')
-        .fontSize(18)
-        .fontColor(Color.White)
+      // spec 16.5：移除设置齿轮 emoji，改为不可见占位（保持标题居中）
+      Column()
         .width(32)
         .height(32)
-        .textAlign(TextAlign.Center)
         .onClick(() => this.gotoSetting())
     }
     .width('100%')
-    .height(44)
+    .height(48)
     .alignItems(VerticalAlign.Center)
+  }
+
+  /** spec 16.6：当前是否老年大字模式 */
+  private isElder(): boolean {
+    return FontUtil.isElder(this.modeRef.value);
   }
 
   /** 卖家信息行 */
@@ -212,7 +222,7 @@ export struct SellerProfile {
       Column({ space: 4 }) {
         Row({ space: 6 }) {
           Text(this.profile?.shopName ?? '加载中...')
-            .fontSize(18)
+            .fontSize(FontUtil.s(20, this.isElder()))
             .fontColor(Color.White)
             .fontWeight(FontWeight.Bold)
             .maxLines(1)
@@ -220,12 +230,12 @@ export struct SellerProfile {
             .layoutWeight(1)
           // V 标
           Text('V')
-            .fontSize(11)
+            .fontSize(FontUtil.s(13, this.isElder()))
             .fontColor(Color.White)
             .backgroundColor($r('app.color.color_info'))
-            .width(18)
-            .height(18)
-            .borderRadius(9)
+            .width(22)
+            .height(22)
+            .borderRadius(11)
             .textAlign(TextAlign.Center)
             .fontWeight(FontWeight.Bold)
         }
@@ -233,23 +243,23 @@ export struct SellerProfile {
         .alignItems(VerticalAlign.Center)
         // 简介
         Text(this.profile?.shopIntro ?? '专注有机果蔬种植')
-          .fontSize(12)
-          .fontColor('rgba(255,255,255,0.8)')
+          .fontSize(FontUtil.s(14, this.isElder()))
+          .fontColor('rgba(255,255,255,0.85)')
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .width('100%')
         // 已认证 pill（绿底白字）
         Row({ space: 3 }) {
           Text('✓')
-            .fontSize(10)
+            .fontSize(FontUtil.s(12, this.isElder()))
             .fontColor(Color.White)
             .fontWeight(FontWeight.Bold)
           Text('已认证')
-            .fontSize(11)
+            .fontSize(FontUtil.s(13, this.isElder()))
             .fontColor(Color.White)
             .fontWeight(FontWeight.Medium)
         }
-        .padding({ left: 10, right: 10, top: 3, bottom: 3 })
+        .padding({ left: 10, right: 10, top: 4, bottom: 4 })
         .borderRadius(AppConstants.RADIUS_PILL)
         .backgroundColor($r('app.color.color_green'))
         .margin({ top: 2 })
@@ -262,7 +272,7 @@ export struct SellerProfile {
     .padding({ top: 6 })
   }
 
-  /** 悬浮统计卡（向上覆盖黄色头部 30px） */
+  /** 悬浮统计卡（spec 16.7：两种模式均不上浮覆盖黄色头部，避免遮挡） */
   @Builder
   FloatingStatsCard() {
     Row() {
@@ -279,21 +289,21 @@ export struct SellerProfile {
     .borderRadius(AppConstants.RADIUS_LG)
     .backgroundColor($r('app.color.color_bg_card'))
     .shadow(AppConstants.SHADOW_CARD)
-    .margin({ top: -30 })
+    .margin({ top: 8 })
   }
 
   /** 单个统计项 */
   @Builder
   StatItem(value: string, label: string) {
-    Column({ space: 2 }) {
+    Column({ space: 4 }) {
       Text(value)
-        .fontSize(17)
+        .fontSize(FontUtil.s(20, this.isElder()))
         .fontColor($r('app.color.color_ink'))
         .fontWeight(FontWeight.Bold)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
       Text(label)
-        .fontSize(11)
+        .fontSize(FontUtil.s(13, this.isElder()))
         .fontColor($r('app.color.color_text_3'))
     }
     .alignItems(HorizontalAlign.Center)
@@ -316,7 +326,7 @@ export struct SellerProfile {
       // 区块标题
       Row() {
         Text('卖家功能')
-          .fontSize(16)
+          .fontSize(FontUtil.s(18, this.isElder()))
           .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Bold)
       }
@@ -341,38 +351,38 @@ export struct SellerProfile {
     .shadow(AppConstants.SHADOW_CARD)
   }
 
-  /** 单个入口行 */
+  /** 单个入口行（spec 16.5：放大图标和字体，确保看得清晰） */
   @Builder
   EntryRow(entry: ProfileEntry) {
-    Row({ space: 12 }) {
-      // 图标
+    Row({ space: 14 }) {
+      // 图标（放大到 48×48，emoji 字号 24）
       Text(entry.icon)
-        .fontSize(18)
-        .width(40)
-        .height(40)
-        .borderRadius(20)
+        .fontSize(FontUtil.s(24, this.isElder()))
+        .width(48)
+        .height(48)
+        .borderRadius(24)
         .backgroundColor(this.toneBg(entry.tone))
         .fontColor(this.toneFg(entry.tone))
         .textAlign(TextAlign.Center)
       // 文案
-      Column({ space: 2 }) {
+      Column({ space: 3 }) {
         Text(entry.label)
-          .fontSize(15)
+          .fontSize(FontUtil.s(17, this.isElder()))
           .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Bold)
         Text(entry.desc)
-          .fontSize(12)
+          .fontSize(FontUtil.s(13, this.isElder()))
           .fontColor($r('app.color.color_text_3'))
       }
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(1)
       // 箭头
       Text('›')
-        .fontSize(20)
+        .fontSize(FontUtil.s(24, this.isElder()))
         .fontColor($r('app.color.color_text_4'))
     }
     .width('100%')
-    .height(56)
+    .height(64)
     .padding({ left: 0, right: 0 })
     .alignItems(VerticalAlign.Center)
     .onClick(() => this.gotoEntry(entry.route))

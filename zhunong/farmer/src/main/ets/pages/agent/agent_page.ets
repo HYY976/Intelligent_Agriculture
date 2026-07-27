@@ -13,6 +13,7 @@
 
 import { Logger, AppConstants, ToastUtil, NavigationHelper, RouteName } from 'common';
 import { ImageUtil } from '../../utils/ImageUtil';
+import { BailianClient } from '../../utils/BailianClient';
 
 /** 消息角色 */
 type ChatRole = 'ai' | 'user';
@@ -70,6 +71,8 @@ export struct AgentPage {
   @Local isThinking: boolean = false;
   /** 滚动控制器 */
   private scroller: Scroller = new Scroller();
+  /** 百炼智能体会话 ID（首轮为空，由百炼返回后填充，用于多轮对话） */
+  private sessionId: string = '';
 
   /** 快捷提问 */
   private quickPrompts: QuickPrompt[] = [
@@ -87,6 +90,7 @@ export struct AgentPage {
 
   /** 初始化对话 */
   private initConversation(): void {
+    this.sessionId = '';
     this.messages = [
       {
         msgId: 'm1',
@@ -105,7 +109,7 @@ export struct AgentPage {
   }
 
   /** 发送消息 */
-  private sendMessage(text: string): void {
+  private async sendMessage(text: string): Promise<void> {
     if (text.trim().length === 0 || this.isThinking) {
       return;
     }
@@ -120,72 +124,32 @@ export struct AgentPage {
     this.inputText = '';
     Logger.info(AppConstants.SCENE_FARMER, { action: 'agent_user_send', msg: text.trim() });
 
-    // 模拟 AI 思考并回复
+    // 调用百炼 AI 助手智能体
     this.isThinking = true;
-    setTimeout(() => {
+    try {
+      const result = await BailianClient.chatWithAgent(text.trim(), this.sessionId);
+      this.sessionId = result.sessionId;
       this.isThinking = false;
-      this.generateAiReply(text.trim());
-    }, 800);
-  }
-
-  /** 生成 AI 回复（Mock 智能回复） */
-  private generateAiReply(userText: string): void {
-    let aiMsg: ChatMessage;
-    if (userText.includes('销量') || userText.includes('下降')) {
-      // 销量建议 + 建议卡片
-      aiMsg = {
-        msgId: `a${Date.now()}`,
-        role: 'ai',
-        type: 'suggest',
-        content: '根据分析, 你的草莓销量近7天下降了12%。建议: 1. 开启直播带货, 展示采摘过程; 2. 推出限时优惠组合装; 3. 优化商品主图, 突出"现摘"卖点。',
-        suggest: {
-          title: '开启直播',
-          desc: '展示采摘过程，吸引买家下单',
-          uplift: '30%',
-          btnLabel: '去开播',
-          route: RouteName.FARMER_LIVE_CREATE
-        }
-      };
-    } else if (userText.includes('话术') || userText.includes('直播')) {
-      // 直播话术 + 引用块
-      aiMsg = {
-        msgId: `a${Date.now()}`,
-        role: 'ai',
-        type: 'quote',
-        content: '没问题! 以下是草莓直播话术:',
-        quote: '『家人们好! 欢迎来到王大叔的果园! 今天带大家看看我家现摘的奶油草莓~ 你看这颜色, 红透透的, 咬一口满嘴奶香! 限时特价29.9元2斤, 顺丰冷链直达, 收到还是新鲜的! 数量有限, 先到先得!』'
-      };
-    } else if (userText.includes('采摘')) {
-      aiMsg = {
+      const aiMsg: ChatMessage = {
         msgId: `a${Date.now()}`,
         role: 'ai',
         type: 'text',
-        content: '根据今日天气预报, 气温 22-28℃, 湿度 65%, 无降雨。上午 8-10 点是最佳采摘时段, 此时草莓表面无露水, 利于保存。建议今天采摘, 但避免正午高温时段。'
+        content: result.text.length > 0 ? result.text : '我暂时无法回答这个问题，请稍后重试。'
       };
-    } else if (userText.includes('病虫害') || userText.includes('发黄')) {
-      aiMsg = {
+      this.messages.push(aiMsg);
+    } catch (err) {
+      this.isThinking = false;
+      const errMsg: string = (err as Error).message ?? 'AI 助手调用失败';
+      Logger.error(AppConstants.SCENE_FARMER, { action: 'agent_call_fail', error: errMsg });
+      const aiMsg: ChatMessage = {
         msgId: `a${Date.now()}`,
         role: 'ai',
         type: 'text',
-        content: '番茄叶子发黄可能原因: 1. 缺氮肥, 建议追施尿素 5kg/亩; 2. 根腐病, 检查根部是否发黑, 可用多菌灵灌根; 3. 浇水过多导致根系缺氧, 控制浇水频率。建议先检查根部状况, 再对症处理。'
+        content: `抱歉，AI 助手暂时无法响应：${errMsg}`
       };
-    } else if (userText.includes('价格') || userText.includes('定价')) {
-      aiMsg = {
-        msgId: `a${Date.now()}`,
-        role: 'ai',
-        type: 'text',
-        content: '根据市场行情分析, 当前草莓均价 ¥12.8/斤。你的草莓品质较好, 建议定价 ¥29.9/2斤 (约 ¥15/斤), 略高于市场均价, 突出"现摘奶油"卖点。可配合限时优惠促进转化。'
-      };
-    } else {
-      // 默认回复
-      aiMsg = {
-        msgId: `a${Date.now()}`,
-        role: 'ai',
-        type: 'text',
-        content: '我理解你的问题。作为你的AI农业助手, 我可以帮你解答种植技巧、销售策略、直播话术、病虫害防治等问题。请告诉我更具体的需求。'
-      };
+      this.messages.push(aiMsg);
+      ToastUtil.info(`AI 助手调用失败：${errMsg}`);
     }
-    this.messages.push(aiMsg);
   }
 
   /** 点击建议卡片按钮 */
@@ -296,16 +260,11 @@ export struct AgentPage {
     Scroll(this.scroller) {
       Column({ space: 16 }) {
         ForEach(this.messages, (msg: ChatMessage) => {
-          if (msg.role === 'ai') {
-            this.AiMessage(msg)
-          } else {
-            this.UserMessage(msg)
-          }
+          this.AiMessage(msg)
+          this.UserMessage(msg)
         }, (msg: ChatMessage) => msg.msgId)
         // 思考中提示
-        if (this.isThinking) {
-          this.ThinkingIndicator()
-        }
+        this.ThinkingIndicator()
       }
       .width('100%')
       .padding({ left: 16, right: 16, top: 16, bottom: 16 })
@@ -363,6 +322,7 @@ export struct AgentPage {
     }
     .width('100%')
     .alignItems(VerticalAlign.Top)
+    .visibility(msg.role === 'ai' ? Visibility.Visible : Visibility.None)
   }
 
   /** 用户消息（右侧 + 头像） */
@@ -391,6 +351,7 @@ export struct AgentPage {
     }
     .width('100%')
     .alignItems(VerticalAlign.Top)
+    .visibility(msg.role === 'user' ? Visibility.Visible : Visibility.None)
   }
 
   /** 建议卡片 */
@@ -485,6 +446,7 @@ export struct AgentPage {
     }
     .width('100%')
     .alignItems(VerticalAlign.Top)
+    .visibility(this.isThinking ? Visibility.Visible : Visibility.None)
   }
 
   /** 快捷提问芯片栏 */

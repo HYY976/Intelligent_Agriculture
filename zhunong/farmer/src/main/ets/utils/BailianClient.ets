@@ -30,6 +30,8 @@ interface BailianHeaders {
 interface BailianInput {
   /** 用户输入提示词 */
   prompt: string;
+  /** 会话 ID（多轮对话时传入，首轮不传） */
+  session_id?: string;
 }
 
 /** 百炼应用调用请求体（parameters 部分） */
@@ -64,6 +66,14 @@ interface BailianResponse {
   code?: string;
   /** 错误信息（调用失败时） */
   message?: string;
+}
+
+/** 百炼 AI 助手对话返回结果 */
+interface BailianAgentResult {
+  /** 智能体回复文本 */
+  text: string;
+  /** 更新后的会话 ID */
+  sessionId: string;
 }
 
 /** http.request 选项参数 */
@@ -205,6 +215,194 @@ class BailianClientImpl {
     parts.push('4. 文案风格亲切自然，300字以内；');
     parts.push('5. 输出纯文本，不要使用 markdown 标记。');
     return parts.join('\n');
+  }
+
+  /**
+   * spec 16.7：调用直播开播介绍优化智能体
+   * 使用独立的直播智能体配置（BailianLiveIntroConfig）
+   * @param intro 农户输入的开播介绍原文
+   * @param onSuccess 成功回调，返回优化后的开播介绍
+   * @param onError 失败回调，返回错误信息
+   */
+  async optimizeLiveIntro(intro: string, onSuccess: OnBailianSuccess, onError: OnBailianError): Promise<void> {
+    const cfg = ConfigUtil.getBailianLiveIntroConfig();
+    const url: string = `${cfg.baseUrl}/${cfg.appId}/completion`;
+
+    Logger.info(AppConstants.SCENE_FARMER, {
+      action: 'bailian_live_intro_invoke_start',
+      url,
+      promptLength: intro.length
+    });
+
+    const inputObj: BailianInput = { prompt: intro };
+    const parametersObj: BailianParameters = { has_thoughts: false };
+    const requestBody: BailianRequest = {
+      input: inputObj,
+      parameters: parametersObj
+    };
+    const headersObj: BailianHeaders = {
+      'Authorization': `Bearer ${cfg.apiKey}`,
+      'Content-Type': 'application/json'
+    };
+    const requestOptions: HttpRequestOptions = {
+      method: http.RequestMethod.POST,
+      header: headersObj,
+      extraData: JSON.stringify(requestBody),
+      connectTimeout: AppConstants.HTTP_TIMEOUT_AI,
+      readTimeout: AppConstants.HTTP_TIMEOUT_AI,
+      expectDataType: http.HttpDataType.STRING
+    };
+
+    const httpRequest: http.HttpRequest = http.createHttp();
+    try {
+      const response: http.HttpResponse = await httpRequest.request(url, requestOptions);
+
+      const responseStr: string = typeof response.result === 'string' ? response.result : '';
+      const responseCode: number = response.responseCode;
+
+      Logger.info(AppConstants.SCENE_FARMER, {
+        action: 'bailian_live_intro_response',
+        status: responseCode,
+        bodyLength: responseStr.length
+      });
+
+      if (responseCode < 200 || responseCode >= 300) {
+        Logger.error(AppConstants.SCENE_FARMER, {
+          action: 'bailian_live_intro_http_error',
+          status: responseCode,
+          body: responseStr
+        });
+        onError(`AI 优化失败(${responseCode})`);
+        return;
+      }
+
+      const parsed: BailianResponse = JSON.parse(responseStr) as BailianResponse;
+
+      if (parsed.code && parsed.code.length > 0) {
+        Logger.error(AppConstants.SCENE_FARMER, {
+          action: 'bailian_live_intro_biz_error',
+          bizCode: parsed.code,
+          message: parsed.message
+        });
+        onError(parsed.message ?? `AI 优化错误：${parsed.code}`);
+        return;
+      }
+
+      const text: string = parsed.output?.text ?? '';
+      if (text.length === 0) {
+        Logger.warn(AppConstants.SCENE_FARMER, {
+          action: 'bailian_live_intro_empty',
+          requestId: parsed.request_id
+        });
+        onError('AI 未返回有效内容，请稍后重试');
+        return;
+      }
+
+      Logger.info(AppConstants.SCENE_FARMER, {
+        action: 'bailian_live_intro_done',
+        requestId: parsed.request_id,
+        textLength: text.length
+      });
+      onSuccess(text);
+    } catch (err) {
+      const errMsg: string = (err as Error).message ?? 'AI 优化调用异常';
+      Logger.error(AppConstants.SCENE_FARMER, {
+        action: 'bailian_live_intro_exception',
+        error: errMsg
+      });
+      onError(errMsg);
+    } finally {
+      httpRequest.destroy();
+    }
+  }
+
+  /**
+   * 与 AI 助手智能体对话（支持多轮）
+   * 使用独立的智能体配置（BailianAgentConfig），与 AI 文案智能体隔离
+   * @param prompt 用户输入内容
+   * @param sessionId 会话 ID（首轮传空字符串，后续传入百炼返回的 session_id）
+   * @returns 智能体回复文本 + 更新后的会话 ID
+   */
+  async chatWithAgent(prompt: string, sessionId: string): Promise<BailianAgentResult> {
+    const cfg = ConfigUtil.getBailianAgentConfig();
+    const url: string = `${cfg.baseUrl}/${cfg.appId}/completion`;
+
+    Logger.info(AppConstants.SCENE_FARMER, {
+      action: 'bailian_agent_invoke_start',
+      url,
+      promptLength: prompt.length,
+      hasSession: sessionId.length > 0
+    });
+
+    const inputObj: BailianInput = sessionId.length > 0
+      ? { prompt, session_id: sessionId }
+      : { prompt };
+    const parametersObj: BailianParameters = { has_thoughts: false };
+    const requestBody: BailianRequest = {
+      input: inputObj,
+      parameters: parametersObj
+    };
+    const headersObj: BailianHeaders = {
+      'Authorization': `Bearer ${cfg.apiKey}`,
+      'Content-Type': 'application/json'
+    };
+    const requestOptions: HttpRequestOptions = {
+      method: http.RequestMethod.POST,
+      header: headersObj,
+      extraData: JSON.stringify(requestBody),
+      connectTimeout: AppConstants.HTTP_TIMEOUT_AI,
+      readTimeout: AppConstants.HTTP_TIMEOUT_AI,
+      expectDataType: http.HttpDataType.STRING
+    };
+
+    const httpRequest: http.HttpRequest = http.createHttp();
+    try {
+      const response: http.HttpResponse = await httpRequest.request(url, requestOptions);
+      const responseStr: string = typeof response.result === 'string' ? response.result : '';
+      const responseCode: number = response.responseCode;
+
+      if (responseCode < 200 || responseCode >= 300) {
+        Logger.error(AppConstants.SCENE_FARMER, {
+          action: 'bailian_agent_http_error',
+          status: responseCode,
+          body: responseStr
+        });
+        throw new Error(`AI 助手调用失败(${responseCode})`);
+      }
+
+      const parsed: BailianResponse = JSON.parse(responseStr) as BailianResponse;
+
+      if (parsed.code && parsed.code.length > 0) {
+        Logger.error(AppConstants.SCENE_FARMER, {
+          action: 'bailian_agent_biz_error',
+          bizCode: parsed.code,
+          message: parsed.message
+        });
+        throw new Error(parsed.message ?? `AI 助手调用错误：${parsed.code}`);
+      }
+
+      const text: string = parsed.output?.text ?? '';
+      const newSessionId: string = parsed.output?.session_id ?? sessionId;
+
+      Logger.info(AppConstants.SCENE_FARMER, {
+        action: 'bailian_agent_invoke_done',
+        requestId: parsed.request_id,
+        textLength: text.length,
+        hasNewSession: newSessionId.length > 0
+      });
+
+      const result: BailianAgentResult = { text, sessionId: newSessionId };
+      return result;
+    } catch (err) {
+      const errMsg: string = (err as Error).message ?? 'AI 助手调用异常';
+      Logger.error(AppConstants.SCENE_FARMER, {
+        action: 'bailian_agent_invoke_exception',
+        error: errMsg
+      });
+      throw new Error(errMsg);
+    } finally {
+      httpRequest.destroy();
+    }
   }
 }
 

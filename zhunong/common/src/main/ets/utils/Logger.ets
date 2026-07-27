@@ -210,6 +210,16 @@ export interface LogInfo {
   textLength?: number;
   /** 百炼业务错误码（字符串，区别于 code 的"WebSocket 关闭码 number"语义） */
   bizCode?: string;
+  /** 是否携带会话 ID（百炼 AI 助手多轮对话） */
+  hasSession?: boolean;
+  /** 是否返回新会话 ID（百炼 AI 助手多轮对话） */
+  hasNewSession?: boolean;
+  /** 卖家昵称（spec 16.4：商品发布/共享池同步日志） */
+  farmerName?: string;
+  /** 用户昵称（spec 16.4：发帖/开播加载注册身份日志） */
+  nickname?: string;
+  /** 主播昵称（spec 16.4：开播成功日志） */
+  anchorName?: string;
 }
 
 class LoggerImpl {

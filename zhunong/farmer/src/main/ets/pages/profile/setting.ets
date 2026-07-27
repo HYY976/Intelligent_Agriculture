@@ -13,7 +13,7 @@
  * spec 10.16：方案 C 自建模态（@Local show + Stack + @Builder）
  */
 
-import { Logger, AppConstants, ToastUtil, ModeStore, ThemeStore, TokenStore, NavigationHelper, RouteName } from 'common';
+import { Logger, AppConstants, ToastUtil, ModeStore, ThemeStore, TokenStore, NavigationHelper, RouteName, FontUtil } from 'common';
 import type { CurrentModeKey, CurrentThemeKey } from 'common';
 
 /** 主题选项 */
@@ -83,6 +83,11 @@ export struct Setting {
 
   async aboutToAppear(): Promise<void> {
     Logger.info(AppConstants.SCENE_FARMER, { action: 'setting_appear' });
+  }
+
+  /** spec 16.6：当前是否老年大字模式 */
+  private isElder(): boolean {
+    return FontUtil.isElder(this.modeRef.value);
   }
 
   /** 切换主题 */
@@ -212,7 +217,7 @@ export struct Setting {
   TopBar() {
     Row() {
       Text('‹')
-        .fontSize(20)
+        .fontSize(FontUtil.s(20, this.isElder()))
         .fontColor($r('app.color.color_ink'))
         .width(32)
         .height(32)
@@ -222,7 +227,7 @@ export struct Setting {
         .textAlign(TextAlign.Center)
         .onClick(() => NavigationHelper.pop())
       Text('设置')
-        .fontSize(17)
+        .fontSize(FontUtil.s(19, this.isElder()))
         .fontColor($r('app.color.color_ink'))
         .fontWeight(FontWeight.Bold)
         .layoutWeight(1)
@@ -243,7 +248,7 @@ export struct Setting {
   ThemeCard() {
     Row() {
       Text('主题模式')
-        .fontSize(15)
+        .fontSize(FontUtil.s(16, this.isElder()))
         .fontColor($r('app.color.color_ink_2'))
         .fontWeight(FontWeight.Medium)
       Blank()
@@ -251,7 +256,7 @@ export struct Setting {
       Row({ space: 0 }) {
         ForEach(this.themeOptions, (opt: ThemeOption) => {
           Text(opt.label)
-            .fontSize(12)
+            .fontSize(FontUtil.s(13, this.isElder()))
             .fontColor(this.themeRef.value === opt.value ? $r('app.color.color_ink') : $r('app.color.color_text_3'))
             .backgroundColor(this.themeRef.value === opt.value ? $r('app.color.color_yellow') : Color.Transparent)
             .fontWeight(this.themeRef.value === opt.value ? FontWeight.Bold : FontWeight.Medium)
@@ -279,7 +284,7 @@ export struct Setting {
     Column({ space: 8 }) {
       Row() {
         Text('字号模式')
-          .fontSize(15)
+          .fontSize(FontUtil.s(16, this.isElder()))
           .fontColor($r('app.color.color_ink_2'))
           .fontWeight(FontWeight.Medium)
         Blank()
@@ -287,7 +292,7 @@ export struct Setting {
         Row({ space: 0 }) {
           ForEach(this.fontSizeOptions, (opt: FontSizeOption) => {
             Text(opt.label)
-              .fontSize(12)
+              .fontSize(FontUtil.s(13, this.isElder()))
               .fontColor(this.modeRef.value === opt.value ? $r('app.color.color_ink') : $r('app.color.color_text_3'))
               .backgroundColor(this.modeRef.value === opt.value ? $r('app.color.color_yellow') : Color.Transparent)
               .fontWeight(this.modeRef.value === opt.value ? FontWeight.Bold : FontWeight.Medium)
@@ -305,7 +310,7 @@ export struct Setting {
       .alignItems(VerticalAlign.Center)
       // 提示文案
       Text('老年大字模式仅卖家端生效，字体全局放大')
-        .fontSize(11)
+        .fontSize(FontUtil.s(12, this.isElder()))
         .fontColor($r('app.color.color_text_3'))
         .width('100%')
     }
@@ -343,34 +348,34 @@ export struct Setting {
     Row({ space: 12 }) {
       // 彩色图标
       Text(item.icon)
-        .fontSize(16)
-        .width(32)
-        .height(32)
+        .fontSize(FontUtil.s(20, this.isElder()))
+        .width(40)
+        .height(40)
         .borderRadius(AppConstants.RADIUS_SM)
         .backgroundColor(this.toneBg(item.tone))
         .fontColor(this.toneFg(item.tone))
         .textAlign(TextAlign.Center)
       // 标题
       Text(item.label)
-        .fontSize(15)
+        .fontSize(FontUtil.s(16, this.isElder()))
         .fontColor($r('app.color.color_ink_2'))
         .fontWeight(FontWeight.Medium)
         .layoutWeight(1)
       // 右侧值
       if (item.value.length > 0) {
         Text(item.value)
-          .fontSize(13)
+          .fontSize(FontUtil.s(13, this.isElder()))
           .fontColor($r('app.color.color_text_3'))
       }
       // 箭头
       if (item.showArrow) {
         Text('›')
-          .fontSize(20)
+          .fontSize(FontUtil.s(22, this.isElder()))
           .fontColor($r('app.color.color_text_4'))
       }
     }
     .width('100%')
-    .height(56)
+    .height(60)
     .alignItems(VerticalAlign.Center)
     .onClick(() => this.onOtherItemTap(item.action))
   }
@@ -380,12 +385,12 @@ export struct Setting {
   LogoutButton() {
     Row() {
       Text('退出登录')
-        .fontSize(16)
+        .fontSize(FontUtil.s(17, this.isElder()))
         .fontColor($r('app.color.color_live'))
         .fontWeight(FontWeight.Bold)
     }
     .width('100%')
-    .height(48)
+    .height(52)
     .borderRadius(AppConstants.RADIUS_LG)
     .backgroundColor($r('app.color.color_bg_card'))
     .shadow(AppConstants.SHADOW_CARD)
@@ -409,12 +414,12 @@ export struct Setting {
       Column({ space: 8 }) {
         // 标题
         Text('确认退出登录？')
-          .fontSize(17)
+          .fontSize(FontUtil.s(18, this.isElder()))
           .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Bold)
         // 描述
         Text('退出后需要重新登录才能继续使用趣农助农服务，是否确认退出当前账号？')
-          .fontSize(13)
+          .fontSize(FontUtil.s(14, this.isElder()))
           .fontColor($r('app.color.color_text_3'))
           .lineHeight(20)
           .textAlign(TextAlign.Center)
@@ -425,22 +430,22 @@ export struct Setting {
           // 取消
           Button('取消')
             .layoutWeight(1)
-            .height(44)
+            .height(46)
             .borderRadius(AppConstants.RADIUS_MD)
             .backgroundColor($r('app.color.color_bg_card'))
             .fontColor($r('app.color.color_text_2'))
-            .fontSize(15)
+            .fontSize(FontUtil.s(16, this.isElder()))
             .fontWeight(FontWeight.Bold)
             .border({ width: 1, color: $r('app.color.color_line_2') })
             .onClick(() => { this.showLogoutDialog = false; })
           // 确定
           Button('确定')
             .layoutWeight(1)
-            .height(44)
+            .height(46)
             .borderRadius(AppConstants.RADIUS_MD)
             .backgroundColor($r('app.color.color_live'))
             .fontColor(Color.White)
-            .fontSize(15)
+            .fontSize(FontUtil.s(16, this.isElder()))
             .fontWeight(FontWeight.Bold)
             .onClick(() => { this.doLogout(); })
         }
