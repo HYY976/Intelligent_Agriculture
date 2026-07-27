@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿/**
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿/**
  * home_page - 农户卖家端首页
  * 对齐设计稿 pages/farmer-home.html：
  *  - 顶部 4 入口导航栏（商城/直播/智能体/搜索）白底圆角18浮卡 56vp
@@ -223,6 +223,11 @@ export struct FarmerHomePage {
       .backgroundColor($r('app.color.color_bg_page'))
     }
     .hideTitleBar(true)
+    .onShown(() => {
+      // spec 16.10：NavDestination 显示时刷新（从设置页/发布页返回后同步头像/姓名/新商品）
+      this.syncPublishedProducts();
+      this.loadUserInfo();
+    })
   }
 
   /** 顶部 4 入口导航栏（对齐设计稿 qn-topnav：白底圆角18浮卡 56vp） */
@@ -492,8 +497,12 @@ export struct FarmerHomePage {
   @Builder
   ProductCard(product: FarmerProductItem) {
     Column({ space: 6 }) {
-      // 商品图（120×120 圆角14）
-      Image(ImageUtil.get(product.mainImage))
+      // 商品图（120×120 圆角14，spec 16.11：支持 file:// / http(s) URI 直接渲染）
+      Image(
+        product.mainImage.startsWith('file://') || product.mainImage.startsWith('http')
+          ? product.mainImage
+          : ImageUtil.get(product.mainImage)
+      )
         .width(120)
         .height(120)
         .borderRadius(AppConstants.RADIUS_MD)

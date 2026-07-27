@@ -70,23 +70,40 @@ export struct LiveBrowse {
     await this.loadList();
   }
 
-  /** spec 16.9：页面再次显示时刷新（主播结束直播后回到列表同步状态） */
+  /** spec 16.11：页面再次显示时刷新（新创建直播/结束直播后回到列表同步状态） */
   onPageShow(): void {
-    if (this.liveList.length > 0) {
-      this.refreshForEndedLives();
+    // spec 16.11：每次页面显示都刷新，确保新创建的直播间能展示出来
+    this.refreshForEndedLives();
+    // 如果列表为空或需要同步新直播，重新加载
+    if (this.liveList.length === 0) {
+      this.loadList();
     }
   }
 
-  /** spec 16.9：过滤掉已结束的直播，使列表与直播间结束状态同步 */
+  /** spec 16.10：将已结束的直播状态从 living 改为 ended（保留列表项，仅切换状态） */
   private refreshForEndedLives(): void {
-    const before: number = this.liveList.length;
-    this.liveList = this.liveList.filter(
-      (it: LiveListItem): boolean => !LiveStatusBroadcaster.isEnded(it.liveId)
-    );
-    if (this.liveList.length !== before) {
+    let changed: number = 0;
+    this.liveList = this.liveList.map((it: LiveListItem): LiveListItem => {
+      if (it.status === 'living' && LiveStatusBroadcaster.isEnded(it.liveId)) {
+        changed++;
+        return {
+          liveId: it.liveId,
+          title: it.title,
+          coverImage: it.coverImage,
+          farmerName: it.farmerName,
+          farmerAvatar: it.farmerAvatar,
+          status: 'ended',
+          onlineCount: it.onlineCount,
+          totalViewUv: it.totalViewUv,
+          category: it.category
+        };
+      }
+      return it;
+    });
+    if (changed > 0) {
       Logger.info(AppConstants.SCENE_FARMER, {
         action: 'live_list_sync_ended',
-        msg: `before=${before},after=${this.liveList.length}`
+        msg: `changed=${changed}`
       });
     }
   }
@@ -161,6 +178,12 @@ export struct LiveBrowse {
       .backgroundColor($r('app.color.color_bg_page'))
     }
     .hideTitleBar(true)
+    .onShown(() => {
+      // spec 16.10：从直播间返回后同步已结束状态
+      if (this.liveList.length > 0) {
+        this.refreshForEndedLives();
+      }
+    })
   }
 
   /** 顶部导航栏（返回 + 标题 + 排序选项） */
@@ -365,6 +388,18 @@ export struct LiveBrowse {
           .padding({ left: 8, right: 8, top: 4, bottom: 4 })
           .borderRadius(10)
           .backgroundColor('rgba(255,152,0,0.85)')
+          .position({ x: 12, y: 12 })
+        } else if (item.status === 'ended') {
+          // spec 16.10：直播结束后状态切换为"已结束"
+          Row({ space: 4 }) {
+            Text('已结束')
+              .fontSize(FontUtil.s(11, this.isElder()))
+              .fontColor(Color.White)
+              .fontWeight(FontWeight.Bold)
+          }
+          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+          .borderRadius(10)
+          .backgroundColor('rgba(150,150,150,0.85)')
           .position({ x: 12, y: 12 })
         }
 

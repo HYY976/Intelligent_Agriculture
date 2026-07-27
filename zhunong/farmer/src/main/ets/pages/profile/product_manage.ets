@@ -357,15 +357,15 @@ export struct ProductManage {
         // 顶部标题 + 关闭按钮
         Row() {
           Text(this.getEnlargedChartTitle())
-            .fontSize(18)
+            .fontSize(22)
             .fontColor(Color.White)
             .fontWeight(FontWeight.Bold)
             .layoutWeight(1)
           Text('×')
-            .fontSize(28)
+            .fontSize(32)
             .fontColor(Color.White)
-            .width(40)
-            .height(40)
+            .width(44)
+            .height(44)
             .textAlign(TextAlign.Center)
             .onClick(() => { this.enlargedChart = null; })
         }
@@ -376,15 +376,35 @@ export struct ProductManage {
         Column() {
           Scroll() {
             if (this.enlargedChart === 'sales_trend') {
-              SalesTrendChartCanvas({ points: this.salesTrend })
+              // spec 16.11：放大弹窗字号从 34 增大到 42
+              SalesTrendChartCanvas({
+                points: this.salesTrend,
+                canvasWidth: 680,
+                canvasHeight: 400,
+                labelFontSize: 42
+              })
                 .width(680)
-                .height(380)
+                .height(400)
             } else if (this.enlargedChart === 'radar') {
-              RadarChartCanvas({ dimensions: this.radarDimensions })
+              // spec 16.11：放大弹窗字号从 34/30 增大到 42/38
+              RadarChartCanvas({
+                dimensions: this.radarDimensions,
+                canvasWidth: 640,
+                canvasHeight: 560,
+                labelFontSize: 42,
+                valueFontSize: 38
+              })
                 .width(640)
-                .height(520)
+                .height(560)
             } else if (this.enlargedChart === 'donut') {
-              DonutChartCanvas({ segments: this.inventorySegments, totalCount: 48 })
+              // spec 16.11：放大弹窗字号从 40 增大到 48
+              DonutChartCanvas({
+                segments: this.inventorySegments,
+                totalCount: 48,
+                canvasWidth: 560,
+                canvasHeight: 560,
+                labelFontSize: 48
+              })
                 .width(560)
                 .height(560)
             }
@@ -394,12 +414,13 @@ export struct ProductManage {
           .width('100%')
         }
         .width('100%')
+        .layoutWeight(1)
         .padding(20)
         .borderRadius(16)
         .backgroundColor($r('app.color.color_bg_card'))
       }
       .width('92%')
-      .height('85%')
+      .height('88%')
       .padding(20)
     }
     .width('100%')
@@ -988,6 +1009,11 @@ export struct ProductManage {
 struct SalesTrendChartCanvas {
   /** 数据点 */
   @Param points: SalesTrendPoint[] = [];
+  /** spec 16.11：Canvas 尺寸（默认 330x140，放大弹窗可传更大尺寸 + 字号放大） */
+  @Param canvasWidth: number = 330;
+  @Param canvasHeight: number = 140;
+  /** spec 16.11：默认字号从 22 增大到 28，确保清晰可读 */
+  @Param labelFontSize: number = 28;
   /** Canvas 设置 */
   private settings: RenderingContextSettings = new RenderingContextSettings(true);
   /** Canvas 上下文 */
@@ -995,8 +1021,8 @@ struct SalesTrendChartCanvas {
 
   build() {
     Canvas(this.context)
-      .width(330)
-      .height(140)
+      .width(this.canvasWidth)
+      .height(this.canvasHeight)
       .onReady(() => {
         this.drawChart();
       })
@@ -1007,12 +1033,12 @@ struct SalesTrendChartCanvas {
     if (this.points.length === 0) {
       return;
     }
-    const w: number = 330;
-    const h: number = 140;
-    const padL: number = 14;
-    const padR: number = 14;
-    const padT: number = 16;
-    const padB: number = 26;
+    const w: number = this.canvasWidth;
+    const h: number = this.canvasHeight;
+    const padL: number = 30;
+    const padR: number = 20;
+    const padT: number = 20;
+    const padB: number = 36;
     const chartW: number = w - padL - padR;
     const chartH: number = h - padT - padB;
 
@@ -1090,13 +1116,20 @@ struct SalesTrendChartCanvas {
       ctx.stroke();
     });
 
-    // 5. X 轴标签（spec 16.9：放大字号到 16px 提升可读性）
-    ctx.fillStyle = '#999999';
-    ctx.font = '16px HarmonyOS Sans SC, sans-serif';
+    // 5. X 轴标签（spec 16.10：字号可配置，放大弹窗传更大字号）
+    ctx.fillStyle = '#666666';
+    ctx.font = `${this.labelFontSize}px HarmonyOS Sans SC, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     coords.forEach((c: SalesCoord) => {
-      ctx.fillText(c.label, c.x, h - padB + 6);
+      ctx.fillText(c.label, c.x, h - padB + 8);
+    });
+
+    // spec 16.10：数据点上方的数值标签
+    ctx.fillStyle = '#333333';
+    ctx.font = `700 ${this.labelFontSize}px HarmonyOS Sans SC, sans-serif`;
+    coords.forEach((c: SalesCoord) => {
+      ctx.fillText(`${c.value}`, c.x, c.y - this.labelFontSize - 4);
     });
   }
 }
@@ -1117,6 +1150,12 @@ interface SalesCoord {
 struct RadarChartCanvas {
   /** 维度数据 */
   @Param dimensions: RadarDimension[] = [];
+  /** spec 16.11：Canvas 尺寸 + 字号（放大弹窗可传更大值） */
+  @Param canvasWidth: number = 330;
+  @Param canvasHeight: number = 240;
+  /** spec 16.11：默认字号从 22/20 增大到 28/26，确保清晰可读 */
+  @Param labelFontSize: number = 28;
+  @Param valueFontSize: number = 26;
   /** Canvas 设置 */
   private settings: RenderingContextSettings = new RenderingContextSettings(true);
   /** Canvas 上下文 */
@@ -1124,8 +1163,8 @@ struct RadarChartCanvas {
 
   build() {
     Canvas(this.context)
-      .width(330)
-      .height(240)
+      .width(this.canvasWidth)
+      .height(this.canvasHeight)
       .onReady(() => {
         this.drawRadar();
       })
@@ -1136,11 +1175,12 @@ struct RadarChartCanvas {
     if (this.dimensions.length === 0) {
       return;
     }
-    const w: number = 330;
-    const h: number = 240;
+    const w: number = this.canvasWidth;
+    const h: number = this.canvasHeight;
     const cx: number = w / 2;
     const cy: number = h / 2 + 10;
-    const maxRadius: number = 88;
+    // spec 16.10：根据画布大小自适应最大半径
+    const maxRadius: number = Math.min(w, h) * 0.36;
     const n: number = this.dimensions.length;
     const angleStep: number = (Math.PI * 2) / n;
     const startAngle: number = -Math.PI / 2; // 顶部开始
@@ -1214,15 +1254,15 @@ struct RadarChartCanvas {
       ctx.stroke();
     }
 
-    // 5. 维度标签 + 数值（spec 16.9：放大字号提升可读性）
-    ctx.font = '700 17px HarmonyOS Sans SC, sans-serif';
+    // 5. 维度标签 + 数值（spec 16.10：字号可配置）
+    ctx.font = `700 ${this.labelFontSize}px HarmonyOS Sans SC, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     for (let i: number = 0; i < n; i++) {
       const dim: RadarDimension = this.dimensions[i];
       const angle: number = startAngle + angleStep * i;
-      const labelR: number = maxRadius + 22;
-      const valueR: number = maxRadius + 40;
+      const labelR: number = maxRadius + 28;
+      const valueR: number = maxRadius + 52;
       const lx: number = cx + labelR * Math.cos(angle);
       const ly: number = cy + labelR * Math.sin(angle);
       const vx: number = cx + valueR * Math.cos(angle);
@@ -1232,9 +1272,9 @@ struct RadarChartCanvas {
       ctx.fillText(dim.label, lx, ly);
       // 数值
       ctx.fillStyle = dim.color;
-      ctx.font = '700 16px HarmonyOS Sans SC, sans-serif';
+      ctx.font = `700 ${this.valueFontSize}px HarmonyOS Sans SC, sans-serif`;
       ctx.fillText(`${dim.value}`, vx, vy);
-      ctx.font = '700 17px HarmonyOS Sans SC, sans-serif';
+      ctx.font = `700 ${this.labelFontSize}px HarmonyOS Sans SC, sans-serif`;
     }
   }
 }
@@ -1249,6 +1289,11 @@ struct DonutChartCanvas {
   @Param segments: InventorySegment[] = [];
   /** 中心总数 */
   @Param totalCount: number = 0;
+  /** spec 16.11：Canvas 尺寸 + 字号（放大弹窗可传更大值） */
+  @Param canvasWidth: number = 150;
+  @Param canvasHeight: number = 150;
+  /** spec 16.11：默认字号从 32 增大到 38，确保清晰可读 */
+  @Param labelFontSize: number = 38;
   /** Canvas 设置 */
   private settings: RenderingContextSettings = new RenderingContextSettings(true);
   /** Canvas 上下文 */
@@ -1256,8 +1301,8 @@ struct DonutChartCanvas {
 
   build() {
     Canvas(this.context)
-      .width(150)
-      .height(150)
+      .width(this.canvasWidth)
+      .height(this.canvasHeight)
       .onReady(() => {
         this.drawDonut();
       })
@@ -1268,12 +1313,13 @@ struct DonutChartCanvas {
     if (this.segments.length === 0) {
       return;
     }
-    const w: number = 150;
-    const h: number = 150;
+    const w: number = this.canvasWidth;
+    const h: number = this.canvasHeight;
     const cx: number = w / 2;
     const cy: number = h / 2;
-    const radius: number = 56;
-    const lineWidth: number = 18;
+    // spec 16.10：根据画布大小自适应半径
+    const radius: number = Math.min(w, h) * 0.38;
+    const lineWidth: number = Math.min(w, h) * 0.12;
 
     // spec 16.8：先清空画布避免重绘叠加
     ctx.clearRect(0, 0, w, h);
@@ -1297,14 +1343,14 @@ struct DonutChartCanvas {
       startAngle += sweepAngle;
     });
 
-    // 3. 中心数字（spec 16.9：放大字号提升可读性）
+    // 3. 中心数字（spec 16.10：字号可配置）
     ctx.fillStyle = '#1A1A1A';
-    ctx.font = '800 32px HarmonyOS Sans SC, sans-serif';
+    ctx.font = `800 ${this.labelFontSize + 6}px HarmonyOS Sans SC, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`${this.totalCount}`, cx, cy - 10);
+    ctx.fillText(`${this.totalCount}`, cx, cy - 12);
     ctx.fillStyle = '#999999';
-    ctx.font = '600 15px HarmonyOS Sans SC, sans-serif';
-    ctx.fillText('SKU 总数', cx, cy + 16);
+    ctx.font = `600 ${this.labelFontSize - 4}px HarmonyOS Sans SC, sans-serif`;
+    ctx.fillText('SKU 总数', cx, cy + 22);
   }
 }

@@ -320,11 +320,11 @@ export struct ProductDetail {
   PriceCard() {
     Column({ space: 6 }) {
       Row({ space: 8 }) {
+        // spec 16.10：¥ 符号字号与价格数字一致
         Text('¥')
-          .fontSize(14)
+          .fontSize(32)
           .fontColor($r('app.color.color_price'))
           .fontWeight(FontWeight.Bold)
-          .baselineOffset(-8)
         Text(`${this.view!.price.toFixed(2)}`)
           .fontSize(32)
           .fontColor($r('app.color.color_price'))

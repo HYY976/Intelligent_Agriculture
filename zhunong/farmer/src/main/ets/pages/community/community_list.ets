@@ -262,15 +262,34 @@ export struct CommunityList {
   @Builder
   PostCard(post: Post) {
     Column({ space: 8 }) {
-      // 作者信息
+      // 作者信息（spec 16.11：使用不同 emoji 头像，每个用户显示不同）
       Row({ space: 8 }) {
-        Text('👤')
-          .fontSize(20)
-          .width(32)
-          .height(32)
-          .borderRadius(16)
-          .backgroundColor($r('app.color.color_card_yellow'))
-          .textAlign(TextAlign.Center)
+        if (post.authorAvatar && post.authorAvatar.length <= 4 && /[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(post.authorAvatar)) {
+          // emoji 头像：用 Text 渲染
+          Text(post.authorAvatar)
+            .fontSize(20)
+            .width(32)
+            .height(32)
+            .borderRadius(16)
+            .backgroundColor($r('app.color.color_card_yellow'))
+            .textAlign(TextAlign.Center)
+        } else if (post.authorAvatar && (post.authorAvatar.startsWith('file://') || post.authorAvatar.startsWith('http'))) {
+          // 图片头像：使用 URI 直接渲染
+          Image(post.authorAvatar)
+            .width(32)
+            .height(32)
+            .borderRadius(16)
+            .objectFit(ImageFit.Cover)
+        } else {
+          // 默认头像
+          Text('👤')
+            .fontSize(20)
+            .width(32)
+            .height(32)
+            .borderRadius(16)
+            .backgroundColor($r('app.color.color_card_yellow'))
+            .textAlign(TextAlign.Center)
+        }
         Column({ space: 2 }) {
           Row({ space: 4 }) {
             Text(post.authorNickname ?? '匿名')

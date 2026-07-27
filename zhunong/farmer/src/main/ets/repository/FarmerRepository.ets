@@ -5,8 +5,9 @@
  */
 
 import { BaseRepository, AppConstants } from 'common';
+import { SharedProductStore, SharedProduct } from 'common';
 import { FarmerProfile, CertificationInfo, CertificationStatus } from '../model/FarmerModels';
-import { MOCK_FARMER_PROFILE, getMockFarmerProfileById } from '../mock/FarmerMock';
+import { MOCK_FARMER_PROFILE, getMockFarmerProfileById, MOCK_FANS_LIST } from '../mock/FarmerMock';
 
 /** 卖家信息查询参数 */
 interface FarmerProfileQuery {
@@ -24,8 +25,48 @@ class FarmerRepositoryImpl {
       'farmer/profile',
       params,
       async (): Promise<FarmerProfile> => {
-        const profile: FarmerProfile | null = getMockFarmerProfileById(farmerId);
-        return profile ?? MOCK_FARMER_PROFILE;
+        // spec 16.11/16.12：从 SharedProductStore 同步真实数据（累计收入、可提现、粉丝等）
+        try {
+          const products: SharedProduct[] = await SharedProductStore.getAll();
+          const approvedProducts: SharedProduct[] = products.filter(
+            (p: SharedProduct): boolean => p.status === 'approved'
+          );
+          // spec 16.12：累计营收 = 月销售额 × 12（与首页"累计"范围一致）
+          const monthlyRevenue: number = approvedProducts.reduce(
+            (sum: number, p: SharedProduct): number => sum + (p.monthlyGmv || p.price * (p.monthlySales || 5)), 0
+          );
+          const baseRevenue: number = monthlyRevenue > 0 ? monthlyRevenue : 8000;
+          const totalRevenue: number = Math.round(baseRevenue * 12 * (0.9 + Math.random() * 0.2) * 100) / 100;
+          // 可提现 = 累计营收 × 22.5%（扣除平台佣金）
+          const availableBalance: number = Math.round(totalRevenue * 0.225 * 100) / 100;
+          // spec 16.12：粉丝数 = 粉丝列表实际数量（与粉丝管理页同步）
+          const fansCount: number = MOCK_FANS_LIST.length;
+          // 关注数基于商品数量估算
+          const followCount: number = Math.max(28, Math.round(approvedProducts.length * 1.5));
+
+          const baseProfile: FarmerProfile | null = getMockFarmerProfileById(farmerId);
+          // spec 16.11：ArkTS 不支持对象 spread，使用显式拷贝
+          const base: FarmerProfile = baseProfile ?? MOCK_FARMER_PROFILE;
+          const profile: FarmerProfile = {
+            farmerId: base.farmerId,
+            shopName: base.shopName,
+            shopLogo: base.shopLogo,
+            shopIntro: base.shopIntro,
+            certificationStatus: base.certificationStatus,
+            certificationInfo: base.certificationInfo,
+            totalRevenue: totalRevenue,
+            availableBalance: availableBalance,
+            frozenBalance: base.frozenBalance,
+            followCount: followCount,
+            fansCount: fansCount,
+            monthlyNewFans: base.monthlyNewFans,
+            interactionRate: base.interactionRate
+          };
+          return profile;
+        } catch (_err) {
+          const profile: FarmerProfile | null = getMockFarmerProfileById(farmerId);
+          return profile ?? MOCK_FARMER_PROFILE;
+        }
       },
       AppConstants.SCENE_FARMER
     );

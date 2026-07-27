@@ -8,7 +8,7 @@ import { PRESET_TOPICS } from '../model/FarmerCommunityModels';
 import { PaginatedResult } from '../model/FarmerModels';
 import { MOCK_FARMER_PROFILE } from './FarmerMock';
 
-/** 社区帖子 Mock（卖家发帖带"卖家"V标） */
+/** 社区帖子 Mock（卖家发帖带"卖家"V标，spec 16.11：每个用户使用不同 emoji 头像） */
 export const MOCK_POSTS: Post[] = [
   {
     postId: 'p001', authorId: 'f001', authorType: 'farmer', topicId: 't1',
@@ -17,7 +17,7 @@ export const MOCK_POSTS: Post[] = [
     images: ['post_farm_1', 'post_vegetable_1', 'post_soil_1'],
     likeCount: 286, commentCount: 32, favoriteCount: 58, shareCount: 12,
     status: 'normal', createdAt: 1736800000000,
-    authorNickname: '青禾农庄', authorAvatar: 'avatar_farmer_1', isSeller: true
+    authorNickname: '青禾农庄', authorAvatar: '👨‍🌾', isSeller: true
   },
   {
     postId: 'p002', authorId: 'u001', authorType: 'user', topicId: 't2',
@@ -26,7 +26,7 @@ export const MOCK_POSTS: Post[] = [
     images: ['post_orange_1'],
     likeCount: 158, commentCount: 56, favoriteCount: 28, shareCount: 8,
     status: 'normal', createdAt: 1736810000000,
-    authorNickname: '小马哥', authorAvatar: 'avatar_user_1', isSeller: false
+    authorNickname: '小马哥', authorAvatar: '🐴', isSeller: false
   },
   {
     postId: 'p003', authorId: 'f002', authorType: 'farmer', topicId: 't3',
@@ -35,7 +35,7 @@ export const MOCK_POSTS: Post[] = [
     images: ['post_farm_2', 'post_chicken_1', 'post_morning_1'],
     likeCount: 423, commentCount: 28, favoriteCount: 86, shareCount: 35,
     status: 'normal', createdAt: 1736820000000,
-    authorNickname: '山野好物', authorAvatar: 'avatar_farmer_2', isSeller: true
+    authorNickname: '山野好物', authorAvatar: '🏔️', isSeller: true
   },
   {
     postId: 'p004', authorId: 'u002', authorType: 'user', topicId: 't4',
@@ -44,7 +44,7 @@ export const MOCK_POSTS: Post[] = [
     images: ['post_tomato_1'],
     likeCount: 86, commentCount: 42, favoriteCount: 18, shareCount: 5,
     status: 'normal', createdAt: 1736830000000,
-    authorNickname: '阿芳', authorAvatar: 'avatar_user_2', isSeller: false
+    authorNickname: '阿芳', authorAvatar: '🌸', isSeller: false
   },
   {
     postId: 'p005', authorId: 'f003', authorType: 'farmer', topicId: 't1',
@@ -53,7 +53,7 @@ export const MOCK_POSTS: Post[] = [
     images: ['post_tea_1', 'post_pick_1', 'post_roast_1'],
     likeCount: 312, commentCount: 38, favoriteCount: 72, shareCount: 22,
     status: 'normal', createdAt: 1736840000000,
-    authorNickname: '田园牧歌', authorAvatar: 'avatar_farmer_3', isSeller: true
+    authorNickname: '田园牧歌', authorAvatar: '🍵', isSeller: true
   },
   {
     postId: 'p006', authorId: 'u003', authorType: 'user', topicId: 't3',
@@ -62,7 +62,7 @@ export const MOCK_POSTS: Post[] = [
     images: ['post_orchard_1', 'post_kids_1'],
     likeCount: 198, commentCount: 18, favoriteCount: 42, shareCount: 15,
     status: 'normal', createdAt: 1736850000000,
-    authorNickname: '阿强', authorAvatar: 'avatar_user_3', isSeller: false
+    authorNickname: '阿强', authorAvatar: '🧑‍🌾', isSeller: false
   }
 ];
 

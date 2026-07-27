@@ -28,6 +28,13 @@ interface DanmakuMessage {
   content: string;
 }
 
+/** spec 16.10：直播间自定义挂链接 */
+interface CustomLiveLink {
+  linkId: string;
+  title: string;
+  url: string;
+}
+
 /** 直播状态广播（spec 16.9：跨页面同步结束直播状态） */
 export class LiveStatusBroadcaster {
   static endedLiveIds: Set<string> = new Set<string>();
@@ -75,8 +82,22 @@ export struct LiveRoom {
   @Local cartEditOpen: boolean = false;
   /** 可选商品池（spec 16.9：链接编辑用） */
   @Local candidateProducts: FarmerProductItem[] = [];
+  /** spec 16.11：手动添加商品名称输入 */
+  @Local newProductName: string = '';
+  /** spec 16.11：手动添加商品价格输入 */
+  @Local newProductPrice: string = '';
+  /** spec 16.10：自定义挂链接输入弹窗是否展开 */
+  @Local linkDialogOpen: boolean = false;
+  /** spec 16.10：自定义链接标题输入 */
+  @Local linkTitleInput: string = '';
+  /** spec 16.10：自定义链接 URL 输入 */
+  @Local linkUrlInput: string = '';
+  /** spec 16.10：已挂载的自定义链接列表（外部展示用） */
+  @Local customLinks: CustomLiveLink[] = [];
   /** 弹幕推送定时器（Mock） */
   private danmakuTimer: number = -1;
+  /** spec 16.10：弹幕滚动控制器，自动滚到底部显示最新评论 */
+  private danmakuScroller: Scroller = new Scroller();
 
   async aboutToAppear(): Promise<void> {
     const params: Record<string, string> = NavigationHelper.getParam<Record<string, string>>() ?? {};
@@ -175,6 +196,8 @@ export struct LiveRoom {
       this.danmakuList = this.danmakuList.concat([newMsg]).slice(-50);
       // 观看人数 +1
       this.onlineCount++;
+      // spec 16.10：自动滚动到底部显示最新弹幕
+      this.scrollToDanmakuBottom();
     }, 5000);
   }
 
@@ -199,6 +222,19 @@ export struct LiveRoom {
     };
     this.danmakuList = this.danmakuList.concat([newMsg]).slice(-50);
     this.inputComment = '';
+    // spec 16.10：发送后自动滚动到底部
+    this.scrollToDanmakuBottom();
+  }
+
+  /** spec 16.10：弹幕滚动到底部 */
+  private scrollToDanmakuBottom(): void {
+    setTimeout(() => {
+      try {
+        this.danmakuScroller.scrollEdge(Edge.Bottom);
+      } catch (err) {
+        // 忽略滚动异常
+      }
+    }, 50);
   }
 
   /** 送礼物（观众端） */
@@ -246,6 +282,38 @@ export struct LiveRoom {
     }
   }
 
+  /** spec 16.11：手动输入内容上架商品到正在卖 */
+  private addManualProduct(): void {
+    const name: string = this.newProductName.trim();
+    const priceStr: string = this.newProductPrice.trim();
+    if (name.length === 0) {
+      ToastUtil.warning('请输入商品名称');
+      return;
+    }
+    const priceNum: number = parseFloat(priceStr);
+    if (isNaN(priceNum) || priceNum <= 0) {
+      ToastUtil.warning('请输入有效价格');
+      return;
+    }
+    // 构造临时商品对象上架
+    const manualProduct: FarmerProductItem = {
+      productId: `manual_${Date.now()}`,
+      title: name,
+      mainImage: 'prod_default',
+      price: priceNum,
+      stock: 999,
+      monthlySales: 0,
+      monthlyGmv: 0,
+      status: 'approved',
+      createdAt: Date.now()
+    };
+    this.cartProducts = this.cartProducts.concat([manualProduct]);
+    // 清空输入框
+    this.newProductName = '';
+    this.newProductPrice = '';
+    ToastUtil.success('已上架到正在卖');
+  }
+
   build() {
     NavDestination() {
       Stack() {
@@ -287,10 +355,8 @@ export struct LiveRoom {
           // 顶部主播信息栏（固定高度，不遮挡内容）
           this.TopAnchorBar()
 
-          // 中间区域：左侧弹幕 + 右侧操作按钮（水平分布）
+          // 中间区域：仅右侧操作按钮（垂直居中）
           Row() {
-            // 左侧弹幕区（占60%宽度）
-            this.DanmakuList()
             // 中间空白弹性区
             Column().layoutWeight(1).height('100%')
             // 右侧悬浮操作（固定宽度，垂直居中）
@@ -305,7 +371,10 @@ export struct LiveRoom {
         .width('100%')
         .height('100%')
 
-        // spec：小黄车（右下角显示正在卖的商品）
+        // spec 16.10：弹幕独立浮动层，绝对贴左下角，不与右侧按钮挤压
+        this.DanmakuList()
+
+        // spec：小黄车（右下角显示正在卖的商品，spec 16.11：支持编辑）
         if (this.cartProducts.length > 0) {
           this.SmallCart()
         }
@@ -396,42 +465,48 @@ export struct LiveRoom {
     .align(Alignment.Top)
   }
 
-  /** 弹幕区 spec 16.10：贴左下角，扩大可视区域避免遮挡弹幕内容 */
+  /** 弹幕区 spec 16.10：绝对贴左下角，独立浮动层，不遮盖任何信息 */
   @Builder
   DanmakuList() {
-    Column() {
-      Scroll() {
-        Column({ space: 6 }) {
-          ForEach(this.danmakuList, (msg: DanmakuMessage, _idx: number) => {
-            Row({ space: 6 }) {
-              Text(`${msg.nickname}:`)
-                .fontSize(13)
-                .fontColor($r('app.color.color_accent_gold'))
-                .fontWeight(FontWeight.Medium)
-              Text(msg.content)
-                .fontSize(13)
-                .fontColor(Color.White)
-                .layoutWeight(1)
-            }
-            .padding({ left: 10, right: 10, top: 5, bottom: 5 })
-            .backgroundColor('rgba(0,0,0,0.45)')
-            .borderRadius(12)
-          }, (msg: DanmakuMessage) => msg.commentId)
+    // 绝对定位弹幕容器：贴左下角，宽度 60%，避开顶部主播栏和底部互动栏
+    Stack() {
+      Column() {
+        Scroll(this.danmakuScroller) {
+          Column({ space: 6 }) {
+            ForEach(this.danmakuList, (msg: DanmakuMessage, _idx: number) => {
+              Row({ space: 6 }) {
+                Text(`${msg.nickname}:`)
+                  .fontSize(13)
+                  .fontColor($r('app.color.color_accent_gold'))
+                  .fontWeight(FontWeight.Medium)
+                Text(msg.content)
+                  .fontSize(13)
+                  .fontColor(Color.White)
+                  .layoutWeight(1)
+              }
+              .padding({ left: 10, right: 10, top: 5, bottom: 5 })
+              .backgroundColor('rgba(0,0,0,0.45)')
+              .borderRadius(12)
+            }, (msg: DanmakuMessage) => msg.commentId)
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
         }
         .width('100%')
-        .alignItems(HorizontalAlign.Start)
+        .height('100%')
+        .align(Alignment.Bottom)
+        .scrollable(ScrollDirection.Vertical)
+        .scrollBar(BarState.Off)
       }
-      .width('60%')
-      .layoutWeight(1)
-      .align(Alignment.Start)
+      .width('100%')
+      .height('100%')
+      .justifyContent(FlexAlign.End)
     }
-    .width('100%')
-    .height('100%')
-    // spec 16.10：贴左下角，top 减少到 80 避免弹幕被顶部主播信息遮挡，
-    // bottom 调到 130 让弹幕在底部互动栏上方完全可见
-    .padding({ left: 2, bottom: 130, top: 80 })
-    .justifyContent(FlexAlign.End)
-    .align(Alignment.Start)
+    .width('58%')
+    .height('35%')
+    // spec 16.11：y=52% 往下移动，x=2 往左贴边，不遮盖任何信息
+    .position({ x: 2, y: '52%' })
+    .alignContent(Alignment.BottomStart)
   }
 
   /** 右侧悬浮操作（垂直居中排列，参考抖音布局） */
@@ -451,26 +526,6 @@ export struct LiveRoom {
           .fontColor(Color.White)
       }
       .alignItems(HorizontalAlign.Center)
-
-      // 商品袋入口 spec 15.6.3：黄色购物车
-      Column({ space: 4 }) {
-        Text('🛒')
-          .fontSize(36)
-        Text(`${this.productBag.length}件`)
-          .fontSize(11)
-          .fontColor($r('app.color.color_text_primary'))
-      }
-      .alignItems(HorizontalAlign.Center)
-      .padding({ left: 8, right: 8, top: 6, bottom: 6 })
-      .borderRadius(24)
-      .backgroundColor($r('app.color.color_card_yellow'))
-      .onClick(() => {
-        if (this.role === 'broadcaster') {
-          this.bagPanelOpen = !this.bagPanelOpen;
-        } else {
-          ToastUtil.info('商品袋开发中');
-        }
-      })
 
       // 礼物（观众端）
       if (this.role === 'viewer') {
@@ -644,7 +699,7 @@ export struct LiveRoom {
   SmallCart() {
     Column() {
       if (this.cartExpanded) {
-        // 展开状态：显示商品列表
+        // 展开状态：显示商品列表（spec 16.11：支持滚动，避免商品多时被遮挡）
         Column({ space: 8 }) {
           // 标题栏（spec 16.9：主播端显示"管理"链接编辑入口）
           Row() {
@@ -671,48 +726,59 @@ export struct LiveRoom {
             this.CartEditPanel()
           }
 
-          // 商品列表
-          ForEach(this.cartProducts, (product: FarmerProductItem, _idx: number) => {
-            Row({ space: 8 }) {
-              Text('🌾')
-                .fontSize(24)
-                .width(40)
-                .height(40)
-                .borderRadius(6)
-                .backgroundColor('rgba(255,255,255,0.15)')
-                .textAlign(TextAlign.Center)
-              Column({ space: 2 }) {
-                Text(product.title)
-                  .fontSize(12)
-                  .fontColor(Color.White)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-                Text(`¥${product.price.toFixed(2)}`)
-                  .fontSize(13)
-                  .fontColor($r('app.color.color_price'))
-                  .fontWeight(FontWeight.Bold)
-              }
-              .alignItems(HorizontalAlign.Start)
-              .layoutWeight(1)
-              // spec 16.9：编辑模式下显示移除按钮
-              if (this.role === 'broadcaster' && this.cartEditOpen) {
-                Text('✕')
-                  .fontSize(12)
-                  .fontColor($r('app.color.color_error'))
-                  .width(20)
-                  .height(20)
-                  .textAlign(TextAlign.Center)
-                  .onClick(() => { this.removeCartProduct(product.productId); })
-              }
+          // spec 16.11：商品列表 - 用 Scroll 包裹支持上下滚动
+          Scroll() {
+            Column({ space: 4 }) {
+              ForEach(this.cartProducts, (product: FarmerProductItem, _idx: number) => {
+                Row({ space: 8 }) {
+                  Text('🌾')
+                    .fontSize(24)
+                    .width(40)
+                    .height(40)
+                    .borderRadius(6)
+                    .backgroundColor('rgba(255,255,255,0.15)')
+                    .textAlign(TextAlign.Center)
+                  Column({ space: 2 }) {
+                    Text(product.title)
+                      .fontSize(12)
+                      .fontColor(Color.White)
+                      .maxLines(1)
+                      .textOverflow({ overflow: TextOverflow.Ellipsis })
+                    Text(`¥${product.price.toFixed(2)}`)
+                      .fontSize(13)
+                      .fontColor($r('app.color.color_price'))
+                      .fontWeight(FontWeight.Bold)
+                  }
+                  .alignItems(HorizontalAlign.Start)
+                  .layoutWeight(1)
+                  // spec 16.9：编辑模式下显示移除按钮
+                  if (this.role === 'broadcaster' && this.cartEditOpen) {
+                    Text('✕')
+                      .fontSize(12)
+                      .fontColor($r('app.color.color_error'))
+                      .width(20)
+                      .height(20)
+                      .textAlign(TextAlign.Center)
+                      .onClick(() => { this.removeCartProduct(product.productId); })
+                  }
+                }
+                .width('100%')
+                .padding({ top: 4, bottom: 4 })
+              }, (product: FarmerProductItem) => product.productId)
             }
             .width('100%')
-            .padding({ top: 4, bottom: 4 })
-          }, (product: FarmerProductItem) => product.productId)
+          }
+          // spec 16.11：限制最大高度，超过 4 个商品时滚动
+          .layoutWeight(1)
+          .scrollable(ScrollDirection.Vertical)
+          .scrollBar(BarState.Auto)
+          .constraintSize({ maxHeight: 220 })
         }
         .width(180)
+        .height(this.cartEditOpen ? 380 : 260)
         .padding(10)
         .borderRadius(12)
-        .backgroundColor('rgba(0,0,0,0.8)')
+        .backgroundColor('rgba(0,0,0,0.85)')
       } else {
         // 收起状态：显示第一个商品的缩略信息
         if (this.cartProducts.length > 0) {
@@ -749,19 +815,238 @@ export struct LiveRoom {
     .position({ x: '52%', y: this.cartEditOpen ? '40%' : '74%' })
   }
 
-  /** spec 16.9：小黄车链接编辑面板（主播端，可添加候选商品到小黄车） */
+  /** spec 16.10：保存自定义挂链接 */
+  private saveCustomLink(): void {
+    const title: string = this.linkTitleInput.trim();
+    const url: string = this.linkUrlInput.trim();
+    if (title.length === 0 || url.length === 0) {
+      ToastUtil.warning('请填写链接标题和地址');
+      return;
+    }
+    const link: CustomLiveLink = {
+      linkId: `link_${Date.now()}`,
+      title: title,
+      url: url
+    };
+    this.customLinks = this.customLinks.concat([link]);
+    this.linkTitleInput = '';
+    this.linkUrlInput = '';
+    this.linkDialogOpen = false;
+    ToastUtil.success('链接已挂载');
+  }
+
+  /** spec 16.10：删除自定义挂链接 */
+  private removeCustomLink(linkId: string): void {
+    this.customLinks = this.customLinks.filter((l: CustomLiveLink): boolean => l.linkId !== linkId);
+  }
+
+  /** spec 16.10：自定义挂链接展示卡（直播间外部展示，可点击进入编辑） */
+  @Builder
+  CustomLinksCard() {
+    Column({ space: 6 }) {
+      // 链接列表
+      ForEach(this.customLinks, (link: CustomLiveLink, _idx: number) => {
+        Row({ space: 6 }) {
+          Text('🔗')
+            .fontSize(14)
+          Text(link.title)
+            .fontSize(11)
+            .fontColor($r('app.color.color_info'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .layoutWeight(1)
+          if (this.role === 'broadcaster') {
+            Text('✕')
+              .fontSize(11)
+              .fontColor($r('app.color.color_error'))
+              .width(18)
+              .height(18)
+              .textAlign(TextAlign.Center)
+              .onClick(() => { this.removeCustomLink(link.linkId); })
+          }
+        }
+        .width('100%')
+        .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+        .borderRadius(8)
+        .backgroundColor('rgba(0,0,0,0.7)')
+      }, (link: CustomLiveLink) => link.linkId)
+
+      // 主播端：挂链接按钮
+      if (this.role === 'broadcaster') {
+        Row({ space: 4 }) {
+          Text('➕')
+            .fontSize(12)
+          Text('挂链接')
+            .fontSize(11)
+            .fontColor($r('app.color.color_accent_gold'))
+        }
+        .width('100%')
+        .padding({ left: 8, right: 8, top: 5, bottom: 5 })
+        .borderRadius(8)
+        .backgroundColor('rgba(255,215,0,0.15)')
+        .border({ width: 1, color: 'rgba(255,215,0,0.4)' })
+        .onClick(() => { this.linkDialogOpen = true; })
+      }
+    }
+    .width(180)
+    .position({ x: '52%', y: this.customLinks.length > 0 ? '64%' : '68%' })
+  }
+
+  /** spec 16.10：挂链接输入弹窗 */
+  @Builder
+  LinkInputDialog() {
+    Stack() {
+      // 遮罩
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor('rgba(0,0,0,0.7)')
+        .onClick(() => { this.linkDialogOpen = false; })
+
+      // 弹窗主体
+      Column({ space: 12 }) {
+        Row() {
+          Text('挂载链接')
+            .fontSize(16)
+            .fontColor(Color.White)
+            .fontWeight(FontWeight.Bold)
+            .layoutWeight(1)
+          Text('×')
+            .fontSize(22)
+            .fontColor(Color.White)
+            .width(32)
+            .height(32)
+            .textAlign(TextAlign.Center)
+            .onClick(() => { this.linkDialogOpen = false; })
+        }
+        .width('100%')
+
+        // 链接标题输入
+        Column({ space: 4 }) {
+          Text('链接标题')
+            .fontSize(12)
+            .fontColor('rgba(255,255,255,0.7)')
+          TextInput({ text: this.linkTitleInput, placeholder: '例如：商品购买链接' })
+            .height(40)
+            .borderRadius(8)
+            .backgroundColor('rgba(255,255,255,0.95)')
+            .padding({ left: 12, right: 12 })
+            .fontSize(13)
+            .onChange((v: string) => { this.linkTitleInput = v; })
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Start)
+
+        // 链接 URL 输入
+        Column({ space: 4 }) {
+          Text('链接地址')
+            .fontSize(12)
+            .fontColor('rgba(255,255,255,0.7)')
+          TextInput({ text: this.linkUrlInput, placeholder: 'https:// 或商品 ID' })
+            .height(40)
+            .borderRadius(8)
+            .backgroundColor('rgba(255,255,255,0.95)')
+            .padding({ left: 12, right: 12 })
+            .fontSize(13)
+            .onChange((v: string) => { this.linkUrlInput = v; })
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Start)
+
+        // 确认按钮
+        Button('确认挂载')
+          .width('100%')
+          .height(42)
+          .borderRadius(21)
+          .backgroundColor($r('app.color.color_cta_black'))
+          .fontColor(Color.White)
+          .fontSize(14)
+          .onClick(() => { this.saveCustomLink(); })
+      }
+      .width('80%')
+      .padding(20)
+      .borderRadius(16)
+      .backgroundColor('rgba(20,20,20,0.95)')
+    }
+    .width('100%')
+    .height('100%')
+    .alignContent(Alignment.Center)
+  }
+
+  /** spec 16.9/16.11：小黄车链接编辑面板（主播端，可手动输入上架或选择候选商品） */
   @Builder
   CartEditPanel() {
     Column({ space: 6 }) {
-      Text('添加商品链接')
+      // 标题
+      Text('正在卖 - 管理商品')
         .fontSize(11)
-        .fontColor('rgba(255,255,255,0.8)')
+        .fontColor('rgba(255,255,255,0.9)')
         .alignSelf(ItemAlign.Start)
-      if (this.candidateProducts.length === 0) {
-        Text('暂无可选商品')
+
+      // spec 16.11：手动输入区域（输入商品名称和价格，点击上架）
+      Column({ space: 4 }) {
+        Text('📝 手动上架')
           .fontSize(10)
-          .fontColor('rgba(255,255,255,0.5)')
-      } else {
+          .fontColor($r('app.color.color_accent_gold'))
+          .alignSelf(ItemAlign.Start)
+
+        // 商品名称输入
+        TextInput({ text: this.newProductName, placeholder: '输入商品名称' })
+          .fontSize(11)
+          .fontColor(Color.White)
+          .placeholderColor('rgba(255,255,255,0.4)')
+          .placeholderFont({ size: 11 })
+          .height(28)
+          .padding({ left: 8, right: 8 })
+          .backgroundColor('rgba(255,255,255,0.1)')
+          .borderRadius(6)
+          .onChange((value: string) => { this.newProductName = value; })
+
+        // 价格输入
+        Row({ space: 6 }) {
+          TextInput({ text: this.newProductPrice, placeholder: '价格' })
+            .fontSize(11)
+            .fontColor(Color.White)
+            .placeholderColor('rgba(255,255,255,0.4)')
+            .placeholderFont({ size: 11 })
+            .height(28)
+            .width(70)
+            .padding({ left: 8, right: 8 })
+            .backgroundColor('rgba(255,255,255,0.1)')
+            .borderRadius(6)
+            .type(InputType.Number)
+            .onChange((value: string) => { this.newProductPrice = value; })
+
+          // 上架按钮
+          Text('上架')
+            .fontSize(11)
+            .fontColor(Color.White)
+            .fontWeight(FontWeight.Bold)
+            .height(28)
+            .padding({ left: 12, right: 12 })
+            .borderRadius(6)
+            .backgroundColor($r('app.color.color_cta_black'))
+            .textAlign(TextAlign.Center)
+            .onClick(() => { this.addManualProduct(); })
+        }
+      }
+      .width('100%')
+      .padding(6)
+      .borderRadius(8)
+      .backgroundColor('rgba(255,217,61,0.1)')
+
+      // 分割线
+      Divider()
+        .color('rgba(255,255,255,0.15)')
+        .strokeWidth(1)
+
+      // 候选商品列表（可选）
+      if (this.candidateProducts.length > 0) {
+        Text('📦 可选商品')
+          .fontSize(10)
+          .fontColor('rgba(255,255,255,0.7)')
+          .alignSelf(ItemAlign.Start)
+
         ForEach(this.candidateProducts, (product: FarmerProductItem, _idx: number) => {
           Row({ space: 6 }) {
             Text('🌾')
@@ -801,6 +1086,6 @@ export struct LiveRoom {
     .width('100%')
     .padding({ top: 6, bottom: 6, left: 6, right: 6 })
     .borderRadius(8)
-    .backgroundColor('rgba(255,255,255,0.08)')
+    .backgroundColor('rgba(0,0,0,0.7)')
   }
 }

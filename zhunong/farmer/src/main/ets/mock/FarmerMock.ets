@@ -303,29 +303,30 @@ export const MOCK_LIVE_MANAGE_LIST: LiveManageItem[] = [
   }
 ];
 
-/** 粉丝列表（spec 3.2.4.5，对齐设计稿 fans-list.html，spec 16.8：扩充至 20 条） */
+/** 粉丝列表（spec 3.2.4.5，对齐设计稿 fans-list.html，spec 16.11：每个粉丝使用不同头像） */
 export const MOCK_FANS_LIST: FanInfo[] = [
-  { userId: 'u001', nickname: '小叶子', avatar: 'avatar_customer', followedAt: Date.now() - 3 * 86400000, isMutual: true, isNew: true },
-  { userId: 'u002', nickname: '果园达人', avatar: 'avatar_user_2', followedAt: Date.now() - 7 * 86400000, isMutual: true, isNew: true },
-  { userId: 'u003', nickname: '美食家阿强', avatar: 'avatar_user_3', followedAt: Date.now() - 14 * 86400000, isMutual: true, isNew: true },
-  { userId: 'u004', nickname: '小雨', avatar: 'avatar_user_4', followedAt: Date.now() - 21 * 86400000, isMutual: false, isNew: false },
-  { userId: 'u005', nickname: '王老板', avatar: 'avatar_user_5', followedAt: Date.now() - 32 * 86400000, isMutual: true, isNew: false },
-  { userId: 'u006', nickname: '陈姐', avatar: 'avatar_user_6', followedAt: Date.now() - 45 * 86400000, isMutual: false, isNew: false },
-  { userId: 'u007', nickname: '田园爱好者', avatar: 'avatar_user_7', followedAt: Date.now() - 60 * 86400000, isMutual: true, isNew: false },
-  { userId: 'u008', nickname: '小镇青年', avatar: 'avatar_user_8', followedAt: Date.now() - 90 * 86400000, isMutual: false, isNew: false },
-  { userId: 'u009', nickname: '阿梅', avatar: 'avatar_user_9', followedAt: Date.now() - 1 * 86400000, isMutual: false, isNew: true },
-  { userId: 'u010', nickname: '山里人家', avatar: 'avatar_user_10', followedAt: Date.now() - 5 * 86400000, isMutual: true, isNew: true },
-  { userId: 'u011', nickname: '采菊东篱', avatar: 'avatar_user_11', followedAt: Date.now() - 10 * 86400000, isMutual: false, isNew: true },
-  { userId: 'u012', nickname: '岁月静好', avatar: 'avatar_user_12', followedAt: Date.now() - 18 * 86400000, isMutual: true, isNew: false },
-  { userId: 'u013', nickname: '农夫山泉', avatar: 'avatar_user_13', followedAt: Date.now() - 28 * 86400000, isMutual: false, isNew: false },
-  { userId: 'u014', nickname: '麦田守望', avatar: 'avatar_user_14', followedAt: Date.now() - 40 * 86400000, isMutual: true, isNew: false },
-  { userId: 'u015', nickname: '采茶姑娘', avatar: 'avatar_user_15', followedAt: Date.now() - 55 * 86400000, isMutual: false, isNew: false },
-  // spec 16.8：新增 5 条粉丝数据，丰富粉丝管理页内容
-  { userId: 'u016', nickname: '远方的客', avatar: 'avatar_user_16', followedAt: Date.now() - 2 * 86400000, isMutual: false, isNew: true },
-  { userId: 'u017', nickname: '市集小贩', avatar: 'avatar_user_17', followedAt: Date.now() - 8 * 86400000, isMutual: true, isNew: true },
-  { userId: 'u018', nickname: '云上游人', avatar: 'avatar_user_18', followedAt: Date.now() - 25 * 86400000, isMutual: false, isNew: false },
-  { userId: 'u019', nickname: '种菜小白', avatar: 'avatar_user_19', followedAt: Date.now() - 50 * 86400000, isMutual: true, isNew: false },
-  { userId: 'u020', nickname: '老饕餮', avatar: 'avatar_user_20', followedAt: Date.now() - 75 * 86400000, isMutual: false, isNew: false }
+  // spec 16.11：使用 emoji 作为不同头像，确保每个粉丝头像不一样
+  { userId: 'u001', nickname: '小叶子', avatar: '🍃', followedAt: Date.now() - 3 * 86400000, isMutual: true, isNew: true },
+  { userId: 'u002', nickname: '果园达人', avatar: '🍎', followedAt: Date.now() - 7 * 86400000, isMutual: true, isNew: true },
+  { userId: 'u003', nickname: '美食家阿强', avatar: '👨‍🍳', followedAt: Date.now() - 14 * 86400000, isMutual: true, isNew: true },
+  { userId: 'u004', nickname: '小雨', avatar: '🌧️', followedAt: Date.now() - 21 * 86400000, isMutual: false, isNew: false },
+  { userId: 'u005', nickname: '王老板', avatar: '👔', followedAt: Date.now() - 32 * 86400000, isMutual: true, isNew: false },
+  { userId: 'u006', nickname: '陈姐', avatar: '👩', followedAt: Date.now() - 45 * 86400000, isMutual: false, isNew: false },
+  { userId: 'u007', nickname: '田园爱好者', avatar: '🌾', followedAt: Date.now() - 60 * 86400000, isMutual: true, isNew: false },
+  { userId: 'u008', nickname: '小镇青年', avatar: '🧑', followedAt: Date.now() - 90 * 86400000, isMutual: false, isNew: false },
+  { userId: 'u009', nickname: '阿梅', avatar: '🌸', followedAt: Date.now() - 1 * 86400000, isMutual: false, isNew: true },
+  { userId: 'u010', nickname: '山里人家', avatar: '🏔️', followedAt: Date.now() - 5 * 86400000, isMutual: true, isNew: true },
+  { userId: 'u011', nickname: '采菊东篱', avatar: '🌼', followedAt: Date.now() - 10 * 86400000, isMutual: false, isNew: true },
+  { userId: 'u012', nickname: '岁月静好', avatar: '🕊️', followedAt: Date.now() - 18 * 86400000, isMutual: true, isNew: false },
+  { userId: 'u013', nickname: '农夫山泉', avatar: '💧', followedAt: Date.now() - 28 * 86400000, isMutual: false, isNew: false },
+  { userId: 'u014', nickname: '麦田守望', avatar: '🌾', followedAt: Date.now() - 40 * 86400000, isMutual: true, isNew: false },
+  { userId: 'u015', nickname: '采茶姑娘', avatar: '🍵', followedAt: Date.now() - 55 * 86400000, isMutual: false, isNew: false },
+  // spec 16.11：新增粉丝使用不同 emoji 头像
+  { userId: 'u016', nickname: '远方的客', avatar: '🧳', followedAt: Date.now() - 2 * 86400000, isMutual: false, isNew: true },
+  { userId: 'u017', nickname: '市集小贩', avatar: '🛒', followedAt: Date.now() - 8 * 86400000, isMutual: true, isNew: true },
+  { userId: 'u018', nickname: '云上游人', avatar: '☁️', followedAt: Date.now() - 25 * 86400000, isMutual: false, isNew: false },
+  { userId: 'u019', nickname: '种菜小白', avatar: '🥬', followedAt: Date.now() - 50 * 86400000, isMutual: true, isNew: false },
+  { userId: 'u020', nickname: '老饕餮', avatar: '🍖', followedAt: Date.now() - 75 * 86400000, isMutual: false, isNew: false }
 ];
 
 /**

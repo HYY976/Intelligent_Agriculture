@@ -33,6 +33,41 @@ interface CreateLiveBody {
   anchorAvatar: string;
 }
 
+/** spec 16.10：内存中保存用户已创建的直播（封面图/标题/状态等同步到列表） */
+class CreatedLiveStore {
+  static items: LiveListItem[] = [];
+  static add(item: LiveListItem): void {
+    // 去重：相同 liveId 不重复添加
+    const exists: boolean = CreatedLiveStore.items.some(
+      (it: LiveListItem): boolean => it.liveId === item.liveId
+    );
+    if (!exists) {
+      CreatedLiveStore.items.unshift(item);
+    }
+  }
+  static markEnded(liveId: string): void {
+    CreatedLiveStore.items = CreatedLiveStore.items.map((it: LiveListItem): LiveListItem => {
+      if (it.liveId === liveId) {
+        return {
+          liveId: it.liveId,
+          title: it.title,
+          coverImage: it.coverImage,
+          farmerName: it.farmerName,
+          farmerAvatar: it.farmerAvatar,
+          status: 'ended',
+          onlineCount: it.onlineCount,
+          totalViewUv: it.totalViewUv,
+          category: it.category
+        };
+      }
+      return it;
+    });
+  }
+  static getAll(): LiveListItem[] {
+    return CreatedLiveStore.items;
+  }
+}
+
 /** 结束直播请求体 */
 interface EndLiveBody {
   liveId: string;
@@ -90,6 +125,19 @@ class LiveManageRepositoryImpl {
       },
       AppConstants.SCENE_FARMER
     );
+    // spec 16.10：内存保存新建直播，同步封面图到浏览列表
+    const newItem: LiveListItem = {
+      liveId: result,
+      title: form.title,
+      coverImage: form.coverImage,
+      farmerName: anchorName,
+      farmerAvatar: anchorAvatar,
+      status: 'living',
+      onlineCount: 1,
+      totalViewUv: 0,
+      category: form.category
+    };
+    CreatedLiveStore.add(newItem);
     return result;
   }
 
@@ -105,6 +153,8 @@ class LiveManageRepositoryImpl {
       async (): Promise<boolean> => true,
       AppConstants.SCENE_FARMER
     );
+    // spec 16.10：同步内存中已创建直播的状态为 ended
+    CreatedLiveStore.markEnded(liveId);
     return result;
   }
 
@@ -119,9 +169,23 @@ class LiveManageRepositoryImpl {
       params,
       async (): Promise<PageResult<LiveListItem>> => {
         const mockResult = getMockLiveList(page, size, sortBy);
+        // spec 16.10：将内存中已创建的直播合并到列表头部（封面图/标题/状态实时同步）
+        const createdItems: LiveListItem[] = CreatedLiveStore.getAll();
+        let merged: LiveListItem[];
+        if (page === 1 && createdItems.length > 0) {
+          const mockIds: Set<string> = new Set<string>(mockResult.list.map(
+            (it: LiveListItem): string => it.liveId
+          ));
+          const dedup: LiveListItem[] = createdItems.filter(
+            (it: LiveListItem): boolean => !mockIds.has(it.liveId)
+          );
+          merged = dedup.concat(mockResult.list);
+        } else {
+          merged = mockResult.list;
+        }
         const result: PageResult<LiveListItem> = {
-          list: mockResult.list,
-          total: mockResult.total,
+          list: merged,
+          total: mockResult.total + createdItems.length,
           page: page,
           size: size,
           hasMore: mockResult.hasMore

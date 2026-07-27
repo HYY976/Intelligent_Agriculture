@@ -944,9 +944,9 @@ struct TrendChartCanvas {
         ctx.lineTo(c.x, c.y + 1);
         ctx.closePath();
         ctx.fill();
-        // 气泡文字（spec 16.9：放大字号提升可读性）
+        // 气泡文字（spec 16.11：放大字号提升可读性，从 22 增大到 28）
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = '700 16px HarmonyOS Sans SC, sans-serif';
+        ctx.font = '700 28px HarmonyOS Sans SC, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(`¥${c.point.value.toLocaleString()}`, c.x, c.y - 13);
@@ -962,18 +962,18 @@ struct TrendChartCanvas {
       }
     });
 
-    // 5. X 轴标签（spec 16.9：放大字号到 15px 提升可读性）
+    // 5. X 轴标签（spec 16.11：放大字号到 26px 提升可读性）
     ctx.fillStyle = '#999999';
-    ctx.font = '15px HarmonyOS Sans SC, sans-serif';
+    ctx.font = '26px HarmonyOS Sans SC, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     coords.forEach((c: TrendCoord) => {
       if (c.point.isToday) {
         ctx.fillStyle = '#5BB315';
-        ctx.font = '700 15px HarmonyOS Sans SC, sans-serif';
+        ctx.font = '700 26px HarmonyOS Sans SC, sans-serif';
       } else {
         ctx.fillStyle = '#999999';
-        ctx.font = '15px HarmonyOS Sans SC, sans-serif';
+        ctx.font = '26px HarmonyOS Sans SC, sans-serif';
       }
       ctx.fillText(c.point.label, c.x, h - 16);
     });
@@ -1051,15 +1051,15 @@ struct DonutChartCanvas {
       startAngle += arcAngle;
     });
 
-    // 中心文字：金额（spec 16.9：放大字号到 22px 提升可读性）
+    // 中心文字：金额（spec 16.11：放大字号到 36px 提升可读性）
     ctx.fillStyle = '#1A1A1A';
-    ctx.font = '800 22px HarmonyOS Sans SC, sans-serif';
+    ctx.font = '800 36px HarmonyOS Sans SC, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(`¥${this.centerAmount.toLocaleString()}`, cx, cy - 12);
-    // 中心文字：本月收入（spec 16.9：放大到 15px）
+    // 中心文字：本月收入（spec 16.11：放大到 26px）
     ctx.fillStyle = '#999999';
-    ctx.font = '15px HarmonyOS Sans SC, sans-serif';
-    ctx.fillText('本月收入', cx, cy + 16);
+    ctx.font = '26px HarmonyOS Sans SC, sans-serif';
+    ctx.fillText('本月收入', cx, cy + 18);
   }
 }

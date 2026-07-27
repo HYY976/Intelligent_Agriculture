@@ -205,13 +205,25 @@ export struct FansList {
   @Builder
   FanCard(fan: FanInfo) {
     Row({ space: 12 }) {
-      // 头像
-      Image(ImageUtil.get(fan.avatar))
-        .width(40)
-        .height(40)
-        .borderRadius(20)
-        .objectFit(ImageFit.Cover)
-        .backgroundColor($r('app.color.color_fill'))
+      // 头像（spec 16.11：支持 emoji 头像，每个粉丝显示不同头像）
+      if (fan.avatar && fan.avatar.length <= 4 && /[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(fan.avatar)) {
+        // emoji 头像：用 Text 渲染，圆形背景
+        Text(fan.avatar)
+          .fontSize(24)
+          .width(40)
+          .height(40)
+          .textAlign(TextAlign.Center)
+          .borderRadius(20)
+          .backgroundColor($r('app.color.color_fill'))
+      } else {
+        // 图片头像：使用 ImageUtil 加载
+        Image(ImageUtil.get(fan.avatar))
+          .width(40)
+          .height(40)
+          .borderRadius(20)
+          .objectFit(ImageFit.Cover)
+          .backgroundColor($r('app.color.color_fill'))
+      }
       // 中间信息
       Column({ space: 3 }) {
         Row({ space: 6 }) {

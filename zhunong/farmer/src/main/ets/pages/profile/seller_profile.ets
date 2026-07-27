@@ -156,6 +156,10 @@ export struct SellerProfile {
       .backgroundColor($r('app.color.color_cream'))
     }
     .hideTitleBar(true)
+    .onShown(() => {
+      // spec 16.10：从设置页返回后刷新，确保头像/姓名同步
+      this.loadUserInfo();
+    })
   }
 
   /** spec 16.7：黄色头部高度（老人模式加大，避免遮挡统计卡） */
