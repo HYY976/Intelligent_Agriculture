@@ -13,6 +13,8 @@ import { Logger, AppConstants, NavigationHelper, RouteName, PageResult, FontUtil
 import type { CurrentModeKey } from 'common';
 import { LiveListItem, LiveSortBy } from '../../model/FarmerLiveModels';
 import { LiveManageRepository } from '../../repository/LiveManageRepository';
+import { ImageUtil } from '../../utils/ImageUtil';
+import { LiveStatusBroadcaster } from './live_room';
 
 /** 排序选项 */
 interface SortOption {
@@ -68,6 +70,27 @@ export struct LiveBrowse {
     await this.loadList();
   }
 
+  /** spec 16.9：页面再次显示时刷新（主播结束直播后回到列表同步状态） */
+  onPageShow(): void {
+    if (this.liveList.length > 0) {
+      this.refreshForEndedLives();
+    }
+  }
+
+  /** spec 16.9：过滤掉已结束的直播，使列表与直播间结束状态同步 */
+  private refreshForEndedLives(): void {
+    const before: number = this.liveList.length;
+    this.liveList = this.liveList.filter(
+      (it: LiveListItem): boolean => !LiveStatusBroadcaster.isEnded(it.liveId)
+    );
+    if (this.liveList.length !== before) {
+      Logger.info(AppConstants.SCENE_FARMER, {
+        action: 'live_list_sync_ended',
+        msg: `before=${before},after=${this.liveList.length}`
+      });
+    }
+  }
+
   /** spec 16.6：当前是否老年大字模式 */
   private isElder(): boolean {
     return FontUtil.isElder(this.modeRef.value);
@@ -120,10 +143,10 @@ export struct LiveBrowse {
     NavDestination() {
       Column() {
         this.TopBar()
+        // spec 16.9：分类筛选条固定置顶（移出 Scroll），所有分类下内容顶部对齐
+        this.CategoryFilter()
         Scroll() {
           Column({ space: 12 }) {
-            // spec 16.7：分类筛选条置顶，开播横幅下移至分类下方
-            this.CategoryFilter()
             this.StartLiveBanner()
             this.LiveListArea()
           }
@@ -140,7 +163,7 @@ export struct LiveBrowse {
     .hideTitleBar(true)
   }
 
-  /** 顶部导航栏（返回 + 标题 + 排序选项 + 我要开播按钮） */
+  /** 顶部导航栏（返回 + 标题 + 排序选项） */
   @Builder
   TopBar() {
     Row() {
@@ -156,16 +179,6 @@ export struct LiveBrowse {
         .fontWeight(FontWeight.Bold)
         .layoutWeight(1)
         .margin({ left: 8 })
-      // 我要开播按钮（spec 16.5：顶部直接进入开播）
-      Text('＋开播')
-        .fontSize(FontUtil.s(13, this.isElder()))
-        .fontColor(Color.White)
-        .fontWeight(FontWeight.Bold)
-        .padding({ left: 12, right: 12, top: 6, bottom: 6 })
-        .backgroundColor($r('app.color.color_live'))
-        .borderRadius(14)
-        .margin({ right: 8 })
-        .onClick(() => NavigationHelper.push(RouteName.FARMER_LIVE_CREATE))
       ForEach(this.sortOptions, (opt: SortOption) => {
         Text(opt.label)
           .fontSize(FontUtil.s(12, this.isElder()))
@@ -179,8 +192,8 @@ export struct LiveBrowse {
       }, (opt: SortOption) => opt.value)
     }
     .width('100%')
-    .height(56)
-    .padding({ left: 12, right: 12 })
+    .height(44)
+    .padding({ left: 12, right: 12, top: 0, bottom: 0 })
     .backgroundColor($r('app.color.color_bg_card'))
     .alignItems(VerticalAlign.Center)
   }
@@ -224,7 +237,7 @@ export struct LiveBrowse {
     .alignItems(VerticalAlign.Center)
   }
 
-  /** 分类筛选条（spec 16.5：新增直播分类筛选） */
+  /** 分类筛选条（spec 16.9：固定置顶，所有标签等高对齐，横向可滚动） */
   @Builder
   CategoryFilter() {
     Scroll() {
@@ -234,17 +247,25 @@ export struct LiveBrowse {
             .fontSize(FontUtil.s(13, this.isElder()))
             .fontColor(this.currentCategory === opt.value ? Color.White : $r('app.color.color_text_secondary'))
             .fontWeight(this.currentCategory === opt.value ? FontWeight.Bold : FontWeight.Normal)
-            .padding({ left: 14, right: 14, top: 6, bottom: 6 })
+            .padding({ left: 14, right: 14, top: 8, bottom: 8 })
+            .height(36)
             .backgroundColor(this.currentCategory === opt.value ? $r('app.color.color_cta_black') : $r('app.color.color_bg_card'))
-            .borderRadius(16)
+            .borderRadius(18)
+            .textAlign(TextAlign.Center)
             .onClick(() => { this.onCategoryChange(opt.value); })
         }, (opt: CategoryOption) => opt.value)
       }
-      .padding({ left: 2, right: 2 })
+      .padding({ left: 16, right: 16 })
+      .height(36)
+      .alignItems(VerticalAlign.Center)
     }
     .scrollable(ScrollDirection.Horizontal)
     .scrollBar(BarState.Off)
     .width('100%')
+    .height(40)
+    .padding({ top: 0, bottom: 0 })
+    .align(Alignment.Start)
+    .backgroundColor($r('app.color.color_bg_page'))
   }
 
   /** 直播列表区域 */
@@ -307,19 +328,18 @@ export struct LiveBrowse {
     Column({ space: 0 }) {
       // 1. 封面区
       Stack() {
-        Column() {
-          Text('📹')
-            .fontSize(48)
-          Text(item.status === 'living' ? '直播中' : (item.status === 'preview' ? '预告' : '回放'))
-            .fontSize(FontUtil.s(14, this.isElder()))
-            .fontColor(Color.White)
-            .margin({ top: 8 })
+        // spec 16.8：显示封面图，若有 file:///http(s) URI 则渲染真实图片，否则使用 ImageUtil 解析 Mock 封面 key
+        if (item.coverImage.startsWith('file://') || item.coverImage.startsWith('http://') || item.coverImage.startsWith('https://')) {
+          Image(item.coverImage)
+            .width('100%')
+            .height(160)
+            .objectFit(ImageFit.Cover)
+        } else {
+          Image(ImageUtil.get(item.coverImage))
+            .width('100%')
+            .height(160)
+            .objectFit(ImageFit.Cover)
         }
-        .width('100%')
-        .height(160)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-        .backgroundColor(item.status === 'living' ? '#1A3A1A' : '#2A2A2A')
 
         // 直播状态标签（左上）
         if (item.status === 'living') {
@@ -334,6 +354,17 @@ export struct LiveBrowse {
           .padding({ left: 8, right: 8, top: 4, bottom: 4 })
           .borderRadius(10)
           .backgroundColor('rgba(244,67,54,0.85)')
+          .position({ x: 12, y: 12 })
+        } else if (item.status === 'preview') {
+          Row({ space: 4 }) {
+            Text('预告')
+              .fontSize(FontUtil.s(11, this.isElder()))
+              .fontColor(Color.White)
+              .fontWeight(FontWeight.Bold)
+          }
+          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+          .borderRadius(10)
+          .backgroundColor('rgba(255,152,0,0.85)')
           .position({ x: 12, y: 12 })
         }
 

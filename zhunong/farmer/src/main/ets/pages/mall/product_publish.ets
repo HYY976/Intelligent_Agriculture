@@ -26,6 +26,7 @@ import { ProductManageRepository } from '../../repository/ProductManageRepositor
 import { AiPosterClient } from '../../utils/AiPosterClient';
 import { BailianClient } from '../../utils/BailianClient';
 import { MOCK_FARMER_ID } from '../../mock/FarmerMock';
+import { ImagePickerUtil } from '../../utils/ImagePickerUtil';
 
 /** 类目选项 */
 interface CategoryOption {
@@ -141,19 +142,27 @@ export struct ProductPublish {
     return true;
   }
 
-  /** 添加主图（Mock：使用预设 key） */
+  /** spec 16.9：添加主图（从系统相册选择，支持真实 file:// URI） */
   private addImage(): void {
     if (this.mainImages.length >= 9) {
       ToastUtil.warning('最多上传 9 张图片');
       return;
     }
-    const imageKeys: string[] = [
-      'prod_vegetable_1', 'prod_vegetable_2', 'prod_rice_1', 'prod_fruit_1',
-      'prod_egg_1', 'prod_tea_1', 'prod_honey_1', 'prod_meat_1', 'prod_corn_1'
-    ];
-    const idx: number = this.mainImages.length;
-    const key: string = imageKeys[idx % imageKeys.length];
-    this.mainImages.push(key);
+    const remaining: number = 9 - this.mainImages.length;
+    ImagePickerUtil.pickMultipleImages(
+      remaining,
+      (uris: string[]) => {
+        this.mainImages = this.mainImages.concat(uris);
+        Logger.info(AppConstants.SCENE_FARMER, {
+          action: 'product_publish_add_images',
+          count: uris.length,
+          total: this.mainImages.length
+        });
+      },
+      (msg: string) => {
+        ToastUtil.warning(msg);
+      }
+    );
   }
 
   /** 删除主图 */
@@ -542,8 +551,17 @@ export struct ProductPublish {
         ForEach(this.mainImages, (imgKey: string, idx: number) => {
           GridItem() {
             Stack() {
-              Text('🌾')
-                .fontSize(28)
+              // spec 16.9：支持真实 file:// / http URI，否则显示占位
+              if (imgKey.startsWith('file://') || imgKey.startsWith('http://') || imgKey.startsWith('https://')) {
+                Image(imgKey)
+                  .width('100%')
+                  .height(96)
+                  .borderRadius(8)
+                  .objectFit(ImageFit.Cover)
+              } else {
+                Text('🌾')
+                  .fontSize(28)
+              }
               Text('×')
                 .fontSize(14)
                 .fontColor(Color.White)

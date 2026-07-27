@@ -7,7 +7,8 @@
  *  - 功能入口列表卡（7 行：商品/直播/提现/营收/粉丝/认证/设置）
  */
 
-import { Logger, AppConstants, NavigationHelper, RouteName, ModeStore, FontUtil } from 'common';
+import { Logger, AppConstants, NavigationHelper, RouteName, ModeStore, FontUtil, TokenStore } from 'common';
+import { UserInfo } from 'common';
 import type { CurrentModeKey } from 'common';
 import { FarmerProfile } from '../../model/FarmerModels';
 import { FarmerRepository } from '../../repository/FarmerRepository';
@@ -37,6 +38,10 @@ export struct SellerProfile {
   @Local profile: FarmerProfile | null = null;
   /** 是否正在加载 */
   @Local isLoading: boolean = false;
+  /** spec 16.10：用户昵称（来自 TokenStore，与设置页个人信息同步） */
+  @Local userNickname: string = '';
+  /** spec 16.10：用户头像 URI（来自 TokenStore，与设置页个人信息同步） */
+  @Local userAvatar: string = '';
   /** 当前模式（spec 16.6：老人模式字体放大） */
   @Local modeRef: CurrentModeKey = ModeStore.connectModeRef();
 
@@ -54,6 +59,25 @@ export struct SellerProfile {
   async aboutToAppear(): Promise<void> {
     Logger.info(AppConstants.SCENE_FARMER, { action: 'seller_profile_appear' });
     await this.loadProfile();
+    await this.loadUserInfo();
+  }
+
+  /** spec 16.10：从设置页返回后刷新，确保头像/姓名同步 */
+  onPageShow(): void {
+    this.loadUserInfo();
+  }
+
+  /** spec 16.10：从 TokenStore 加载用户头像和昵称（与设置页个人信息同步） */
+  private async loadUserInfo(): Promise<void> {
+    try {
+      const user: UserInfo | null = await TokenStore.getUserInfo();
+      if (user) {
+        this.userNickname = user.nickname && user.nickname.length > 0 ? user.nickname : '';
+        this.userAvatar = user.avatar;
+      }
+    } catch (err) {
+      Logger.error(AppConstants.SCENE_FARMER, { action: 'load_user_info_fail', error: (err as Error).message });
+    }
   }
 
   /** 加载卖家信息 */
@@ -211,8 +235,10 @@ export struct SellerProfile {
   @Builder
   SellerInfoRow() {
     Row({ space: 12 }) {
-      // 店铺 Logo（白边描边）
-      Image(ImageUtil.get(this.profile?.shopLogo ?? 'avatar_farmer'))
+      // spec 16.10：优先显示用户在设置页设置的头像，回退到店铺 Logo
+      Image(this.userAvatar && this.userAvatar.length > 0
+        ? this.userAvatar
+        : ImageUtil.get(this.profile?.shopLogo ?? 'avatar_farmer'))
         .width(64)
         .height(64)
         .borderRadius(32)
@@ -221,7 +247,10 @@ export struct SellerProfile {
       // 名称 + V 标 + 简介 + 已认证 pill
       Column({ space: 4 }) {
         Row({ space: 6 }) {
-          Text(this.profile?.shopName ?? '加载中...')
+          // spec 16.10：优先显示用户在设置页设置的姓名，回退到店铺名
+          Text(this.userNickname && this.userNickname.length > 0
+            ? this.userNickname
+            : (this.profile?.shopName ?? '加载中...'))
             .fontSize(FontUtil.s(20, this.isElder()))
             .fontColor(Color.White)
             .fontWeight(FontWeight.Bold)

@@ -10,8 +10,10 @@
  * spec 3.2.4.5：农户端直播管理专业版（含数据分析）
  */
 
-import { Logger, AppConstants, NavigationHelper, RouteName, LiveStatus } from 'common';
+import { Logger, AppConstants, NavigationHelper, RouteName, LiveStatus, FontUtil, ModeStore } from 'common';
+import type { CurrentModeKey } from 'common';
 import { ImageUtil } from '../../utils/ImageUtil';
+import { LiveStatusBroadcaster } from '../live/live_room';
 
 /** KPI 项 */
 interface LiveKpiItem {
@@ -61,6 +63,14 @@ interface ViewBar {
 
 @ComponentV2
 export struct LiveManage {
+  /** 当前模式（spec 16.6：老人模式字体放大） */
+  @Local modeRef: CurrentModeKey = ModeStore.connectModeRef();
+
+  /** spec 16.6：当前是否老年大字模式 */
+  private isElder(): boolean {
+    return FontUtil.isElder(this.modeRef.value);
+  }
+
   /** KPI 数据 */
   private kpiList: LiveKpiItem[] = [
     { label: '累计场次', value: '128', unit: '场', trend: '12.5%', icon: '📹', iconColor: 'red' },
@@ -80,8 +90,8 @@ export struct LiveManage {
     { label: '7/24', value: 2.8, isPeak: false }
   ];
 
-  /** 直播记录 */
-  private records: LiveRecordItem[] = [
+  /** 直播记录（spec 16.9：改为 @Local 以响应结束直播状态同步） */
+  @Local records: LiveRecordItem[] = [
     {
       liveId: 'l001',
       title: '草莓专场直播',
@@ -125,6 +135,40 @@ export struct LiveManage {
 
   aboutToAppear(): void {
     Logger.info(AppConstants.SCENE_FARMER, { action: 'live_manage_pro_appear' });
+    this.syncEndedLives();
+  }
+
+  /** spec 16.9：页面再次显示时同步结束直播状态 */
+  onPageShow(): void {
+    this.syncEndedLives();
+  }
+
+  /** spec 16.9：将已结束的直播状态从 living 改为 replay，与直播间结束动作同步 */
+  private syncEndedLives(): void {
+    let changed: number = 0;
+    this.records = this.records.map((r: LiveRecordItem): LiveRecordItem => {
+      if (r.status === 'living' && LiveStatusBroadcaster.isEnded(r.liveId)) {
+        changed++;
+        const updated: LiveRecordItem = {
+          liveId: r.liveId,
+          title: r.title,
+          coverKey: r.coverKey,
+          date: r.date,
+          viewCount: r.viewCount,
+          gmv: r.gmv,
+          status: 'replay',
+          duration: r.duration ?? '00:00'
+        };
+        return updated;
+      }
+      return r;
+    });
+    if (changed > 0) {
+      Logger.info(AppConstants.SCENE_FARMER, {
+        action: 'live_manage_sync_ended',
+        count: changed
+      });
+    }
   }
 
   /** 跳转开播 */
@@ -185,7 +229,7 @@ export struct LiveManage {
         .textAlign(TextAlign.Center)
         .onClick(() => NavigationHelper.pop())
       Text('直播管理')
-        .fontSize(18)
+        .fontSize(FontUtil.s(19, this.isElder()))
         .fontColor($r('app.color.color_text_primary'))
         .fontWeight(FontWeight.Medium)
         .layoutWeight(1)
@@ -198,7 +242,7 @@ export struct LiveManage {
           .borderRadius(4)
           .backgroundColor($r('app.color.color_live'))
         Text('开播')
-          .fontSize(12)
+          .fontSize(FontUtil.s(14, this.isElder()))
           .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Bold)
       }
@@ -238,14 +282,14 @@ export struct LiveManage {
     Column({ space: 8 }) {
       Row() {
         Text(kpi.label)
-          .fontSize(11)
+          .fontSize(FontUtil.s(14, this.isElder()))
           .fontColor($r('app.color.color_text_hint'))
           .layoutWeight(1)
         Text(kpi.icon)
-          .fontSize(14)
-          .width(28)
-          .height(28)
-          .borderRadius(14)
+          .fontSize(FontUtil.s(17, this.isElder()))
+          .width(32)
+          .height(32)
+          .borderRadius(16)
           .backgroundColor(this.kpiIconBg(kpi.iconColor))
           .textAlign(TextAlign.Center)
       }
@@ -254,12 +298,12 @@ export struct LiveManage {
 
       Row() {
         Text(kpi.value)
-          .fontSize(24)
+          .fontSize(FontUtil.s(26, this.isElder()))
           .fontColor($r('app.color.color_text_primary'))
           .fontWeight(FontWeight.Bold)
         if (kpi.unit.length > 0) {
           Text(kpi.unit)
-            .fontSize(11)
+            .fontSize(FontUtil.s(14, this.isElder()))
             .fontColor($r('app.color.color_text_hint'))
             .margin({ left: 2 })
         }
@@ -268,14 +312,14 @@ export struct LiveManage {
 
       Row({ space: 4 }) {
         Text('↑')
-          .fontSize(10)
+          .fontSize(FontUtil.s(12, this.isElder()))
           .fontColor($r('app.color.color_primary'))
           .fontWeight(FontWeight.Bold)
         Text(kpi.trend)
-          .fontSize(10)
+          .fontSize(FontUtil.s(12, this.isElder()))
           .fontColor($r('app.color.color_primary'))
         Text('同比')
-          .fontSize(10)
+          .fontSize(FontUtil.s(12, this.isElder()))
           .fontColor($r('app.color.color_text_hint'))
       }
     }
@@ -294,23 +338,23 @@ export struct LiveManage {
       // 标题行
       Row() {
         Text('直播概览')
-          .fontSize(14)
+          .fontSize(FontUtil.s(17, this.isElder()))
           .fontColor($r('app.color.color_text_primary'))
           .fontWeight(FontWeight.Bold)
           .layoutWeight(1)
         Row({ space: 4 }) {
           Text('健康分')
-            .fontSize(11)
+            .fontSize(FontUtil.s(14, this.isElder()))
             .fontColor($r('app.color.color_text_hint'))
           Text('86')
-            .fontSize(11)
+            .fontSize(FontUtil.s(14, this.isElder()))
             .fontColor($r('app.color.color_text_primary'))
             .fontWeight(FontWeight.Bold)
           Text('·')
-            .fontSize(11)
+            .fontSize(FontUtil.s(14, this.isElder()))
             .fontColor($r('app.color.color_text_hint'))
           Text('良好')
-            .fontSize(11)
+            .fontSize(FontUtil.s(14, this.isElder()))
             .fontColor($r('app.color.color_green_deep'))
             .fontWeight(FontWeight.Bold)
         }
@@ -325,14 +369,14 @@ export struct LiveManage {
           Stack() {
             Column() {
               Text('健康分')
-                .fontSize(9)
+                .fontSize(FontUtil.s(12, this.isElder()))
                 .fontColor($r('app.color.color_text_hint'))
               Text('86')
-                .fontSize(28)
+                .fontSize(FontUtil.s(28, this.isElder()))
                 .fontColor($r('app.color.color_text_primary'))
                 .fontWeight(FontWeight.Bold)
               Text('良好')
-                .fontSize(9)
+                .fontSize(FontUtil.s(12, this.isElder()))
                 .fontColor($r('app.color.color_green_deep'))
                 .fontWeight(FontWeight.Bold)
                 .padding({ left: 6, right: 6, top: 2, bottom: 2 })
@@ -349,7 +393,7 @@ export struct LiveManage {
           .border({ width: 8, color: $r('app.color.color_pill_sale') })
           .alignContent(Alignment.Center)
           Text('直播健康分')
-            .fontSize(10)
+            .fontSize(FontUtil.s(13, this.isElder()))
             .fontColor($r('app.color.color_text_hint'))
         }
         .alignItems(HorizontalAlign.Center)
@@ -358,12 +402,12 @@ export struct LiveManage {
         // 右：7天柱状图
         Column({ space: 6 }) {
           Text('近7天观看人数（万）')
-            .fontSize(10)
+            .fontSize(FontUtil.s(13, this.isElder()))
             .fontColor($r('app.color.color_text_hint'))
           BarChartCanvas({ bars: this.viewBars })
         }
         .layoutWeight(1.6)
-        .alignItems(HorizontalAlign.Start)
+        .alignItems(HorizontalAlign.Center)
       }
       .width('100%')
       .alignItems(VerticalAlign.Center)
@@ -382,12 +426,12 @@ export struct LiveManage {
       // 标题行
       Row() {
         Text('直播记录')
-          .fontSize(14)
+          .fontSize(FontUtil.s(17, this.isElder()))
           .fontColor($r('app.color.color_text_primary'))
           .fontWeight(FontWeight.Bold)
           .layoutWeight(1)
         Text('全部 ›')
-          .fontSize(11)
+          .fontSize(FontUtil.s(14, this.isElder()))
           .fontColor($r('app.color.color_text_hint'))
       }
       .width('100%')
@@ -425,7 +469,7 @@ export struct LiveManage {
               .borderRadius(3)
               .backgroundColor(Color.White)
             Text('LIVE')
-              .fontSize(9)
+              .fontSize(FontUtil.s(11, this.isElder()))
               .fontColor(Color.White)
               .fontWeight(FontWeight.Bold)
           }
@@ -436,7 +480,7 @@ export struct LiveManage {
         } else if (record.duration) {
           // 时长标
           Text(record.duration)
-            .fontSize(9)
+            .fontSize(FontUtil.s(11, this.isElder()))
             .fontColor(Color.White)
             .backgroundColor('rgba(0,0,0,0.6)')
             .padding({ left: 4, right: 4, top: 2, bottom: 2 })
@@ -450,28 +494,28 @@ export struct LiveManage {
       // 直播信息
       Column({ space: 6 }) {
         Text(record.title)
-          .fontSize(13)
+          .fontSize(FontUtil.s(15, this.isElder()))
           .fontColor($r('app.color.color_text_primary'))
           .fontWeight(FontWeight.Medium)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
         Row({ space: 6 }) {
           Text(record.date)
-            .fontSize(10)
+            .fontSize(FontUtil.s(12, this.isElder()))
             .fontColor($r('app.color.color_text_hint'))
           Text('·')
-            .fontSize(10)
+            .fontSize(FontUtil.s(12, this.isElder()))
             .fontColor($r('app.color.color_text_hint'))
           Text(record.viewCount)
-            .fontSize(10)
+            .fontSize(FontUtil.s(12, this.isElder()))
             .fontColor($r('app.color.color_text_hint'))
         }
         Row({ space: 4 }) {
           Text('成交')
-            .fontSize(10)
+            .fontSize(FontUtil.s(12, this.isElder()))
             .fontColor($r('app.color.color_text_hint'))
           Text(record.gmv)
-            .fontSize(11)
+            .fontSize(FontUtil.s(13, this.isElder()))
             .fontColor($r('app.color.color_price'))
             .fontWeight(FontWeight.Bold)
         }
@@ -483,7 +527,7 @@ export struct LiveManage {
       Column({ space: 8 }) {
         // 状态胶囊
         Text(record.status === 'living' ? '进行中' : '回放')
-          .fontSize(10)
+          .fontSize(FontUtil.s(12, this.isElder()))
           .fontColor(record.status === 'living' ? $r('app.color.color_live') : $r('app.color.color_text_secondary'))
           .fontWeight(FontWeight.Bold)
           .padding({ left: 8, right: 8, top: 2, bottom: 2 })
@@ -492,10 +536,10 @@ export struct LiveManage {
         // 数据按钮
         Row({ space: 4 }) {
           Text('数据')
-            .fontSize(10)
+            .fontSize(FontUtil.s(12, this.isElder()))
             .fontColor($r('app.color.color_text_secondary'))
           Text('›')
-            .fontSize(10)
+            .fontSize(FontUtil.s(12, this.isElder()))
             .fontColor($r('app.color.color_text_secondary'))
         }
         .padding({ left: 8, right: 8, top: 3, bottom: 3 })
@@ -527,8 +571,8 @@ struct BarChartCanvas {
 
   build() {
     Canvas(this.context)
-      .width('100%')
-      .height(132)
+      .width(220)
+      .height(140)
       .onReady(() => {
         this.drawBars();
       })
@@ -539,12 +583,12 @@ struct BarChartCanvas {
     if (this.bars.length === 0) {
       return;
     }
-    const w: number = 200;
-    const h: number = 132;
+    const w: number = 220;
+    const h: number = 140;
     const padL: number = 8;
     const padR: number = 8;
-    const padT: number = 20;
-    const padB: number = 22;
+    const padT: number = 22;
+    const padB: number = 24;
     const chartW: number = w - padL - padR;
     const chartH: number = h - padT - padB;
 
@@ -591,8 +635,8 @@ struct BarChartCanvas {
       // 峰值标注
       if (bar.isPeak) {
         // 黑色气泡
-        const bw: number = 56;
-        const bh: number = 14;
+        const bw: number = 64;
+        const bh: number = 18;
         const bx: number = x + barWidth / 2 - bw / 2;
         const by: number = y - bh - 4;
         ctx.fillStyle = '#1A1A1A';
@@ -609,7 +653,7 @@ struct BarChartCanvas {
         ctx.fill();
         // 气泡文字
         ctx.fillStyle = '#FFE234';
-        ctx.font = '800 9px HarmonyOS Sans SC, sans-serif';
+        ctx.font = '800 13px HarmonyOS Sans SC, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(`峰值 ${bar.value}万`, bx + bw / 2, by + bh / 2);
@@ -617,7 +661,7 @@ struct BarChartCanvas {
 
       // X 轴标签
       ctx.fillStyle = '#999999';
-      ctx.font = '600 9px HarmonyOS Sans SC, sans-serif';
+      ctx.font = '600 13px HarmonyOS Sans SC, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       ctx.fillText(bar.label, x + barWidth / 2, h - padB + 6);

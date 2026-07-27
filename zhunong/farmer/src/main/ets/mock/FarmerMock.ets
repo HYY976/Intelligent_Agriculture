@@ -234,43 +234,43 @@ export const MOCK_FARMER_PRODUCTS: FarmerProductItem[] = [
   {
     productId: 'p001', title: '有机青菜 500g 当季新鲜 直采直发', mainImage: 'prod_vegetable_1',
     price: 9.90, stock: 568, monthlySales: 5680, monthlyGmv: 56800,
-    status: 'approved', createdAt: 1736000000000
+    status: 'approved', createdAt: 1736000000000, categoryId: 'cat_vegetable'
   },
   {
     productId: 'p003', title: '农家大米5kg 当季新米 软糯香甜', mainImage: 'prod_rice_1',
     price: 59.00, stock: 480, monthlySales: 2180, monthlyGmv: 128620,
-    status: 'approved', createdAt: 1736200000000
+    status: 'approved', createdAt: 1736200000000, categoryId: 'cat_rice'
   },
   {
     productId: 'p007', title: '高山绿茶 250g 明前嫩芽 清香回甘', mainImage: 'prod_tea_1',
     price: 68.00, stock: 280, monthlySales: 980, monthlyGmv: 66640,
-    status: 'approved', createdAt: 1736600000000
+    status: 'approved', createdAt: 1736600000000, categoryId: 'cat_tea'
   },
   {
     productId: 'p010', title: '土猪肉 1kg 农家散养 黑猪肉', mainImage: 'prod_meat_1',
     price: 78.00, stock: 180, monthlySales: 890, monthlyGmv: 69420,
-    status: 'approved', createdAt: 1736900000000
+    status: 'approved', createdAt: 1736900000000, categoryId: 'cat_meat'
   },
   {
     productId: 'p013', title: '小米辣 250g 农家自种 辣味十足', mainImage: 'prod_chili_1',
     price: 8.80, stock: 680, monthlySales: 5230, monthlyGmv: 46024,
-    status: 'approved', createdAt: 1737200000000
+    status: 'approved', createdAt: 1737200000000, categoryId: 'cat_vegetable'
   },
   {
     productId: 'p016_draft', title: '紫薯 5kg 农家自种（待审核）', mainImage: 'prod_potato_1',
     price: 19.90, stock: 320, monthlySales: 0, monthlyGmv: 0,
-    status: 'pending_review', createdAt: 1737500000000
+    status: 'pending_review', createdAt: 1737500000000, categoryId: 'cat_vegetable'
   },
   {
     productId: 'p017_reject', title: '散养土鸡 1只（驳回示例）', mainImage: 'prod_chicken_1',
     price: 88.00, stock: 50, monthlySales: 0, monthlyGmv: 0,
     status: 'rejected', rejectReason: '商品主图不清晰，请重新上传',
-    createdAt: 1737400000000
+    createdAt: 1737400000000, categoryId: 'cat_meat'
   },
   {
     productId: 'p018_off', title: '红薯干 250g 农家自晒（已下架）', mainImage: 'prod_dried_1',
     price: 19.90, stock: 380, monthlySales: 0, monthlyGmv: 0,
-    status: 'off_shelf', createdAt: 1737000000000
+    status: 'off_shelf', createdAt: 1737000000000, categoryId: 'cat_vegetable'
   }
 ];
 
@@ -303,7 +303,7 @@ export const MOCK_LIVE_MANAGE_LIST: LiveManageItem[] = [
   }
 ];
 
-/** 粉丝列表（spec 3.2.4.5，对齐设计稿 fans-list.html） */
+/** 粉丝列表（spec 3.2.4.5，对齐设计稿 fans-list.html，spec 16.8：扩充至 20 条） */
 export const MOCK_FANS_LIST: FanInfo[] = [
   { userId: 'u001', nickname: '小叶子', avatar: 'avatar_customer', followedAt: Date.now() - 3 * 86400000, isMutual: true, isNew: true },
   { userId: 'u002', nickname: '果园达人', avatar: 'avatar_user_2', followedAt: Date.now() - 7 * 86400000, isMutual: true, isNew: true },
@@ -312,7 +312,20 @@ export const MOCK_FANS_LIST: FanInfo[] = [
   { userId: 'u005', nickname: '王老板', avatar: 'avatar_user_5', followedAt: Date.now() - 32 * 86400000, isMutual: true, isNew: false },
   { userId: 'u006', nickname: '陈姐', avatar: 'avatar_user_6', followedAt: Date.now() - 45 * 86400000, isMutual: false, isNew: false },
   { userId: 'u007', nickname: '田园爱好者', avatar: 'avatar_user_7', followedAt: Date.now() - 60 * 86400000, isMutual: true, isNew: false },
-  { userId: 'u008', nickname: '小镇青年', avatar: 'avatar_user_8', followedAt: Date.now() - 90 * 86400000, isMutual: false, isNew: false }
+  { userId: 'u008', nickname: '小镇青年', avatar: 'avatar_user_8', followedAt: Date.now() - 90 * 86400000, isMutual: false, isNew: false },
+  { userId: 'u009', nickname: '阿梅', avatar: 'avatar_user_9', followedAt: Date.now() - 1 * 86400000, isMutual: false, isNew: true },
+  { userId: 'u010', nickname: '山里人家', avatar: 'avatar_user_10', followedAt: Date.now() - 5 * 86400000, isMutual: true, isNew: true },
+  { userId: 'u011', nickname: '采菊东篱', avatar: 'avatar_user_11', followedAt: Date.now() - 10 * 86400000, isMutual: false, isNew: true },
+  { userId: 'u012', nickname: '岁月静好', avatar: 'avatar_user_12', followedAt: Date.now() - 18 * 86400000, isMutual: true, isNew: false },
+  { userId: 'u013', nickname: '农夫山泉', avatar: 'avatar_user_13', followedAt: Date.now() - 28 * 86400000, isMutual: false, isNew: false },
+  { userId: 'u014', nickname: '麦田守望', avatar: 'avatar_user_14', followedAt: Date.now() - 40 * 86400000, isMutual: true, isNew: false },
+  { userId: 'u015', nickname: '采茶姑娘', avatar: 'avatar_user_15', followedAt: Date.now() - 55 * 86400000, isMutual: false, isNew: false },
+  // spec 16.8：新增 5 条粉丝数据，丰富粉丝管理页内容
+  { userId: 'u016', nickname: '远方的客', avatar: 'avatar_user_16', followedAt: Date.now() - 2 * 86400000, isMutual: false, isNew: true },
+  { userId: 'u017', nickname: '市集小贩', avatar: 'avatar_user_17', followedAt: Date.now() - 8 * 86400000, isMutual: true, isNew: true },
+  { userId: 'u018', nickname: '云上游人', avatar: 'avatar_user_18', followedAt: Date.now() - 25 * 86400000, isMutual: false, isNew: false },
+  { userId: 'u019', nickname: '种菜小白', avatar: 'avatar_user_19', followedAt: Date.now() - 50 * 86400000, isMutual: true, isNew: false },
+  { userId: 'u020', nickname: '老饕餮', avatar: 'avatar_user_20', followedAt: Date.now() - 75 * 86400000, isMutual: false, isNew: false }
 ];
 
 /**

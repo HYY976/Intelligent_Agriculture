@@ -145,6 +145,8 @@ export interface FarmerProductItem {
   rejectReason?: string;
   /** 创建时间戳 */
   createdAt: number;
+  /** spec 16.10：类目 ID（用于搜索精准匹配） */
+  categoryId?: string;
 }
 
 /** 直播管理项（spec 3.2.4.5：历史直播列表+数据统计） */

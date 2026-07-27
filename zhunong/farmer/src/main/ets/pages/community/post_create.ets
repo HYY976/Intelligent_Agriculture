@@ -11,6 +11,8 @@ import { Topic } from '../../model/FarmerCommunityModels';
 import { CommunityRepository } from '../../repository/CommunityRepository';
 import { MOCK_FARMER_ID, MOCK_FARMER_PROFILE } from '../../mock/FarmerMock';
 import { PRESET_TOPICS } from '../../model/FarmerCommunityModels';
+import { ImagePickerUtil } from '../../utils/ImagePickerUtil';
+import { ImageUtil } from '../../utils/ImageUtil';
 
 @ComponentV2
 export struct PostCreate {
@@ -54,21 +56,39 @@ export struct PostCreate {
     }
   }
 
-  /** 图片预设 key */
+  /** 图片预设 key（图库不可用时的回退） */
   private imageKeys: string[] = [
     'post_farm_1', 'post_vegetable_1', 'post_soil_1',
     'post_orange_1', 'post_chicken_1', 'post_tomato_1',
     'post_tea_1', 'post_pick_1', 'post_orchard_1'
   ];
 
-  /** 添加图片 */
+  /** 添加图片（spec：从电脑/设备图库选择图片） */
   private addImage(): void {
     if (this.images.length >= 9) {
       ToastUtil.warning('最多 9 张图片');
       return;
     }
-    const idx: number = this.images.length;
-    this.images.push(this.imageKeys[idx % this.imageKeys.length]);
+    ImagePickerUtil.pickSingleImage(
+      (uri: string) => {
+        this.images.push(uri);
+        ToastUtil.success('图片已添加');
+        Logger.info(AppConstants.SCENE_FARMER, {
+          action: 'post_image_picked',
+          count: this.images.length
+        });
+      },
+      (msg: string) => {
+        Logger.warn(AppConstants.SCENE_FARMER, {
+          action: 'post_image_pick_fail',
+          error: msg
+        });
+        // 图库不可用时回退到 Mock 图片 key，保证流程可用
+        const idx: number = this.images.length;
+        this.images.push(this.imageKeys[idx % this.imageKeys.length]);
+        ToastUtil.warning(msg || '图库不可用，已使用默认图片');
+      }
+    );
   }
 
   /** 删除图片 */
@@ -270,7 +290,7 @@ export struct PostCreate {
     .backgroundColor($r('app.color.color_bg_card'))
   }
 
-  /** 图片 */
+  /** 图片（spec 16.8：支持真实图片 URI 和 Mock 图片 key 显示） */
   @Builder
   ImagesSection() {
     Column({ space: 12 }) {
@@ -288,8 +308,21 @@ export struct PostCreate {
         ForEach(this.images, (imgKey: string, idx: number) => {
           GridItem() {
             Stack() {
-              Text('🖼')
-                .fontSize(24)
+              // spec 16.8：若为 file:///http(s) URI 则渲染真实图片，否则使用 ImageUtil 解析 Mock 图片 key
+              if (imgKey.startsWith('file://') || imgKey.startsWith('http://') || imgKey.startsWith('https://')) {
+                Image(imgKey)
+                  .width('100%')
+                  .height(96)
+                  .objectFit(ImageFit.Cover)
+                  .borderRadius(8)
+              } else {
+                // 使用 ImageUtil 解析 Mock 图片 key（如 post_farm_1、post_vegetable_1 等）
+                Image(ImageUtil.get(imgKey))
+                  .width('100%')
+                  .height(96)
+                  .objectFit(ImageFit.Cover)
+                  .borderRadius(8)
+              }
               Text('×')
                 .fontSize(14)
                 .fontColor(Color.White)

@@ -13,6 +13,7 @@ import { CommunityRepository } from '../../repository/CommunityRepository';
 import { FarmerCommunityListDataSource } from '../../viewmodel/FarmerCommunityListDataSource';
 import { PRESET_TOPICS } from '../../model/FarmerCommunityModels';
 import { MOCK_FARMER_ID } from '../../mock/FarmerMock';
+import { ImageUtil } from '../../utils/ImageUtil';
 
 /** 排序选项 */
 interface SortOption {
@@ -314,14 +315,27 @@ export struct CommunityList {
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .width('100%')
 
-      // 图片网格（最多展示3张）
+      // 图片网格（最多展示3张，spec 16.8：支持真实图片 URI 和 Mock 图片 key）
       if (post.images.length > 0) {
         Grid() {
           ForEach(post.images.slice(0, 3), (img: string, idx: number) => {
             GridItem() {
               Stack() {
-                Text('🖼')
-                  .fontSize(20)
+                // spec 16.8：若为 file:///http(s) URI 则渲染真实图片，否则使用 ImageUtil 解析 Mock 图片 key
+                if (img.startsWith('file://') || img.startsWith('http://') || img.startsWith('https://')) {
+                  Image(img)
+                    .width('100%')
+                    .height(80)
+                    .objectFit(ImageFit.Cover)
+                    .borderRadius(6)
+                } else {
+                  // 使用 ImageUtil 解析 Mock 图片 key
+                  Image(ImageUtil.get(img))
+                    .width('100%')
+                    .height(80)
+                    .objectFit(ImageFit.Cover)
+                    .borderRadius(6)
+                }
                 if (idx === 2 && post.images.length > 3) {
                   Text(`+${post.images.length - 3}`)
                     .fontSize(12)

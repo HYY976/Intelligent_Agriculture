@@ -13,7 +13,8 @@
  * spec 3.2.4.5：农户端商品管理专业版（含数据分析）
  */
 
-import { Logger, AppConstants, NavigationHelper, RouteName } from 'common';
+import { Logger, AppConstants, NavigationHelper, RouteName, FontUtil, ModeStore, SharedProductStore, SharedProduct } from 'common';
+import type { CurrentModeKey } from 'common';
 import { ImageUtil } from '../../utils/ImageUtil';
 
 /** KPI 项 */
@@ -111,6 +112,17 @@ interface ProductEditParam {
 
 @ComponentV2
 export struct ProductManage {
+  /** 当前模式（spec 16.6：老人模式字体放大） */
+  @Local modeRef: CurrentModeKey = ModeStore.connectModeRef();
+
+  /** spec 16.10：放大查看的图表类型（null 表示不显示放大弹窗） */
+  @Local enlargedChart: string | null = null;
+
+  /** spec 16.6：当前是否老年大字模式 */
+  private isElder(): boolean {
+    return FontUtil.isElder(this.modeRef.value);
+  }
+
   /** KPI 数据 */
   private kpiList: KpiItem[] = [
     { label: '在售商品', value: '48', unit: '件', trend: '5.2% 同比', isDown: false, icon: '🛍', iconColor: 'yellow' },
@@ -155,8 +167,8 @@ export struct ProductManage {
     { rank: 5, name: '土蜂蜜', imageKey: 'prod_honey', sales: 142, progress: 34, progressColor: '#999999', isCrown: false }
   ];
 
-  /** 商品表现明细 */
-  private perfList: ProductPerfItem[] = [
+  /** 商品表现明细（spec 16.9：@Local 支持同步发布商品后刷新） */
+  @Local perfList: ProductPerfItem[] = [
     {
       productId: 'p001',
       name: '红颜草莓',
@@ -216,6 +228,57 @@ export struct ProductManage {
 
   aboutToAppear(): void {
     Logger.info(AppConstants.SCENE_FARMER, { action: 'product_manage_pro_appear' });
+    this.syncPublishedProducts();
+  }
+
+  onPageShow(): void {
+    // spec 16.9：从发布页返回后刷新，确保新发布商品立即显示
+    this.syncPublishedProducts();
+  }
+
+  /** spec 16.9：同步 SharedProductStore 中已发布商品到商品表现明细 */
+  private async syncPublishedProducts(): Promise<void> {
+    try {
+      const shared: SharedProduct[] = await SharedProductStore.getAll();
+      const existingIds: Set<string> = new Set<string>(this.perfList.map(
+        (p: ProductPerfItem): string => p.productId
+      ));
+      shared.forEach((p: SharedProduct) => {
+        if (!existingIds.has(p.productId)) {
+          const category: string = this.categoryIdToName(p.categoryId);
+          const isLow: boolean = p.stock < 50;
+          this.perfList.unshift({
+            productId: p.productId,
+            name: p.title,
+            category: category,
+            imageKey: p.mainImages.length > 0 ? p.mainImages[0] : 'prod_default',
+            sales: p.monthlySales,
+            stock: p.stock,
+            isLow: isLow,
+            conversion: 0,
+            conversionColor: '#FF9F1C'
+          });
+        }
+      });
+    } catch (err) {
+      Logger.error(AppConstants.SCENE_FARMER, {
+        action: 'product_manage_sync_fail',
+        error: (err as Error).message
+      });
+    }
+  }
+
+  /** spec 16.9：categoryId → 类目名映射（与发布页保持一致） */
+  private categoryIdToName(categoryId: string): string {
+    const map: Record<string, string> = {
+      'cat_vegetable': '新鲜果蔬',
+      'cat_fruit': '时令水果',
+      'cat_rice': '粮油调味',
+      'cat_tea': '茶饮冲调',
+      'cat_meat': '肉蛋禽类',
+      'cat_honey': '特产滋补'
+    };
+    return map[categoryId] ?? '其他';
   }
 
   /** 跳转新增商品 */
@@ -245,28 +308,115 @@ export struct ProductManage {
 
   build() {
     NavDestination() {
-      Column() {
-        this.TopBar()
-        Scroll() {
-          Column({ space: 16 }) {
-            this.KpiGrid()
-            this.SalesTrendCard()
-            this.RadarCard()
-            this.InventoryHealthCard()
-            this.TopProductsCard()
-            this.ProductPerfCard()
+      Stack() {
+        Column() {
+          this.TopBar()
+          Scroll() {
+            Column({ space: 16 }) {
+              this.KpiGrid()
+              this.SalesTrendCard()
+              this.RadarCard()
+              this.InventoryHealthCard()
+              this.TopProductsCard()
+              this.ProductPerfCard()
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16, top: 16, bottom: 24 })
           }
-          .width('100%')
-          .padding({ left: 16, right: 16, top: 16, bottom: 24 })
+          .layoutWeight(1)
+          .scrollBar(BarState.Off)
         }
-        .layoutWeight(1)
-        .scrollBar(BarState.Off)
+        .width('100%')
+        .height('100%')
+        .backgroundColor($r('app.color.color_bg_page'))
+
+        // spec 16.10：图表放大弹窗（点击图表卡片触发）
+        if (this.enlargedChart !== null) {
+          this.ChartEnlargedDialog()
+        }
       }
       .width('100%')
       .height('100%')
-      .backgroundColor($r('app.color.color_bg_page'))
     }
     .hideTitleBar(true)
+  }
+
+  /** spec 16.10：图表放大弹窗（全屏覆盖，重新绘制大尺寸图表） */
+  @Builder
+  ChartEnlargedDialog() {
+    Stack() {
+      // 遮罩
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor('rgba(0,0,0,0.85)')
+        .onClick(() => { this.enlargedChart = null; })
+
+      // 弹窗主体
+      Column({ space: 16 }) {
+        // 顶部标题 + 关闭按钮
+        Row() {
+          Text(this.getEnlargedChartTitle())
+            .fontSize(18)
+            .fontColor(Color.White)
+            .fontWeight(FontWeight.Bold)
+            .layoutWeight(1)
+          Text('×')
+            .fontSize(28)
+            .fontColor(Color.White)
+            .width(40)
+            .height(40)
+            .textAlign(TextAlign.Center)
+            .onClick(() => { this.enlargedChart = null; })
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
+
+        // 放大的图表区域（白色背景，便于阅读）
+        Column() {
+          Scroll() {
+            if (this.enlargedChart === 'sales_trend') {
+              SalesTrendChartCanvas({ points: this.salesTrend })
+                .width(680)
+                .height(380)
+            } else if (this.enlargedChart === 'radar') {
+              RadarChartCanvas({ dimensions: this.radarDimensions })
+                .width(640)
+                .height(520)
+            } else if (this.enlargedChart === 'donut') {
+              DonutChartCanvas({ segments: this.inventorySegments, totalCount: 48 })
+                .width(560)
+                .height(560)
+            }
+          }
+          .scrollable(ScrollDirection.Horizontal)
+          .scrollBar(BarState.Off)
+          .width('100%')
+        }
+        .width('100%')
+        .padding(20)
+        .borderRadius(16)
+        .backgroundColor($r('app.color.color_bg_card'))
+      }
+      .width('92%')
+      .height('85%')
+      .padding(20)
+    }
+    .width('100%')
+    .height('100%')
+    .alignContent(Alignment.Center)
+  }
+
+  /** spec 16.10：放大弹窗标题 */
+  private getEnlargedChartTitle(): string {
+    if (this.enlargedChart === 'sales_trend') {
+      return '近7天销量趋势（放大）';
+    } else if (this.enlargedChart === 'radar') {
+      return '商品竞争力雷达图（放大）';
+    } else if (this.enlargedChart === 'donut') {
+      return '库存健康分布（放大）';
+    }
+    return '图表放大';
   }
 
   /** 顶部导航栏：返回 + 标题 + 新增按钮 */
@@ -281,7 +431,7 @@ export struct ProductManage {
         .textAlign(TextAlign.Center)
         .onClick(() => NavigationHelper.pop())
       Text('商品管理')
-        .fontSize(18)
+        .fontSize(FontUtil.s(19, this.isElder()))
         .fontColor($r('app.color.color_text_primary'))
         .fontWeight(FontWeight.Medium)
         .layoutWeight(1)
@@ -289,11 +439,11 @@ export struct ProductManage {
       // 黄色新增按钮
       Row({ space: 4 }) {
         Text('+')
-          .fontSize(16)
+          .fontSize(FontUtil.s(17, this.isElder()))
           .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Bold)
         Text('新增')
-          .fontSize(12)
+          .fontSize(FontUtil.s(14, this.isElder()))
           .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Bold)
       }
@@ -334,14 +484,14 @@ export struct ProductManage {
       // 顶部行：标签 + 图标
       Row() {
         Text(kpi.label)
-          .fontSize(11)
+          .fontSize(FontUtil.s(14, this.isElder()))
           .fontColor($r('app.color.color_text_hint'))
           .layoutWeight(1)
         Text(kpi.icon)
-          .fontSize(14)
-          .width(28)
-          .height(28)
-          .borderRadius(14)
+          .fontSize(FontUtil.s(17, this.isElder()))
+          .width(32)
+          .height(32)
+          .borderRadius(16)
           .backgroundColor(this.kpiIconBg(kpi.iconColor))
           .textAlign(TextAlign.Center)
       }
@@ -351,12 +501,12 @@ export struct ProductManage {
       // 数值大字
       Row() {
         Text(kpi.value)
-          .fontSize(24)
+          .fontSize(FontUtil.s(26, this.isElder()))
           .fontColor($r('app.color.color_text_primary'))
           .fontWeight(FontWeight.Bold)
         if (kpi.unit.length > 0) {
           Text(kpi.unit)
-            .fontSize(11)
+            .fontSize(FontUtil.s(14, this.isElder()))
             .fontColor($r('app.color.color_text_hint'))
             .margin({ left: 2 })
         }
@@ -366,11 +516,11 @@ export struct ProductManage {
       // 趋势
       Row({ space: 4 }) {
         Text(kpi.isDown ? '↓' : '↑')
-          .fontSize(10)
+          .fontSize(FontUtil.s(12, this.isElder()))
           .fontColor(kpi.isDown ? $r('app.color.color_live') : $r('app.color.color_primary'))
           .fontWeight(FontWeight.Bold)
         Text(kpi.trend)
-          .fontSize(10)
+          .fontSize(FontUtil.s(12, this.isElder()))
           .fontColor(kpi.isDown ? $r('app.color.color_live') : $r('app.color.color_primary'))
       }
     }
@@ -389,16 +539,16 @@ export struct ProductManage {
       // 标题行
       Row() {
         Text('近7天销量趋势')
-          .fontSize(14)
+          .fontSize(FontUtil.s(17, this.isElder()))
           .fontColor($r('app.color.color_text_primary'))
           .fontWeight(FontWeight.Bold)
           .layoutWeight(1)
         Row({ space: 4 }) {
           Text('较上周')
-            .fontSize(11)
+            .fontSize(FontUtil.s(14, this.isElder()))
             .fontColor($r('app.color.color_text_hint'))
           Text('+9.4%')
-            .fontSize(11)
+            .fontSize(FontUtil.s(14, this.isElder()))
             .fontColor($r('app.color.color_green_deep'))
             .fontWeight(FontWeight.Bold)
         }
@@ -406,8 +556,16 @@ export struct ProductManage {
       .width('100%')
       .alignItems(VerticalAlign.Center)
 
-      // 折线图
-      SalesTrendChartCanvas({ points: this.salesTrend })
+      // 折线图（spec 16.8：固定宽度，支持横向滑动；spec 16.10：点击放大）
+      Scroll() {
+        SalesTrendChartCanvas({ points: this.salesTrend })
+          .width(380)
+          .height(160)
+      }
+      .scrollable(ScrollDirection.Horizontal)
+      .scrollBar(BarState.Off)
+      .width('100%')
+      .onClick(() => { this.enlargedChart = 'sales_trend'; })
     }
     .width('100%')
     .padding(16)
@@ -416,19 +574,19 @@ export struct ProductManage {
     .shadow(AppConstants.SHADOW_CARD)
   }
 
-  /** 商品竞争力雷达图卡 */
+  /** 商品竞争力雷达图卡（spec 16.8：横向滚动拓宽可用面积） */
   @Builder
   RadarCard() {
     Column({ space: 12 }) {
       // 标题行
       Row() {
         Text('商品竞争力')
-          .fontSize(14)
+          .fontSize(FontUtil.s(17, this.isElder()))
           .fontColor($r('app.color.color_text_primary'))
           .fontWeight(FontWeight.Bold)
           .layoutWeight(1)
         Text('综合 82')
-          .fontSize(11)
+          .fontSize(FontUtil.s(14, this.isElder()))
           .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Bold)
           .padding({ left: 8, right: 8, top: 2, bottom: 2 })
@@ -438,30 +596,44 @@ export struct ProductManage {
       .width('100%')
       .alignItems(VerticalAlign.Center)
 
-      // 雷达图
-      RadarChartCanvas({ dimensions: this.radarDimensions })
-
-      // 图例
-      Row() {
-        ForEach(this.radarDimensions, (dim: RadarDimension) => {
-          Row({ space: 4 }) {
-            Text('')
-              .width(8)
-              .height(8)
-              .borderRadius(4)
-              .backgroundColor(dim.color)
-            Text(dim.label)
-              .fontSize(10)
-              .fontColor($r('app.color.color_text_secondary'))
-            Text(`${dim.value}`)
-              .fontSize(10)
-              .fontColor($r('app.color.color_text_primary'))
-              .fontWeight(FontWeight.Bold)
-          }
-          .layoutWeight(1)
-          .justifyContent(FlexAlign.Center)
-        }, (dim: RadarDimension) => dim.label)
+      // 雷达图（spec 16.8：固定宽度，支持横向滑动；spec 16.10：点击放大）
+      Scroll() {
+        RadarChartCanvas({ dimensions: this.radarDimensions })
+          .width(360)
+          .height(260)
       }
+      .scrollable(ScrollDirection.Horizontal)
+      .scrollBar(BarState.Off)
+      .width('100%')
+      .onClick(() => { this.enlargedChart = 'radar'; })
+
+      // 图例（垂直排列，避免遮挡）
+      Scroll() {
+        Row({ space: 16 }) {
+          ForEach(this.radarDimensions, (dim: RadarDimension) => {
+            Column({ space: 4 }) {
+              Row({ space: 6 }) {
+                Text('')
+                  .width(14)
+                  .height(14)
+                  .borderRadius(7)
+                  .backgroundColor(dim.color)
+                Text(dim.label)
+                  .fontSize(FontUtil.s(14, this.isElder()))
+                  .fontColor($r('app.color.color_text_secondary'))
+              }
+              Text(`${dim.value}`)
+                .fontSize(FontUtil.s(15, this.isElder()))
+                .fontColor($r('app.color.color_text_primary'))
+                .fontWeight(FontWeight.Bold)
+            }
+            .alignItems(HorizontalAlign.Start)
+          }, (dim: RadarDimension) => dim.label)
+        }
+        .padding({ top: 4, bottom: 4 })
+      }
+      .scrollable(ScrollDirection.Horizontal)
+      .scrollBar(BarState.Off)
       .width('100%')
     }
     .width('100%')
@@ -478,61 +650,74 @@ export struct ProductManage {
       // 标题行
       Row() {
         Text('库存健康分布')
-          .fontSize(14)
+          .fontSize(FontUtil.s(17, this.isElder()))
           .fontColor($r('app.color.color_text_primary'))
           .fontWeight(FontWeight.Bold)
           .layoutWeight(1)
         Row({ space: 4 }) {
           Text('共')
-            .fontSize(11)
+            .fontSize(FontUtil.s(14, this.isElder()))
             .fontColor($r('app.color.color_text_hint'))
           Text('48')
-            .fontSize(11)
+            .fontSize(FontUtil.s(14, this.isElder()))
             .fontColor($r('app.color.color_text_primary'))
             .fontWeight(FontWeight.Bold)
           Text('SKU')
-            .fontSize(11)
+            .fontSize(FontUtil.s(14, this.isElder()))
             .fontColor($r('app.color.color_text_hint'))
         }
       }
       .width('100%')
       .alignItems(VerticalAlign.Center)
 
-      // 环形图 + 图例
-      Row({ space: 16 }) {
-        DonutChartCanvas({ segments: this.inventorySegments, totalCount: 48 })
-        // 图例列表
-        Column({ space: 8 }) {
-          ForEach(this.inventorySegments, (seg: InventorySegment) => {
-            Row() {
-              Text('')
-                .width(10)
-                .height(10)
-                .borderRadius(5)
-                .backgroundColor(seg.color)
-              Text(seg.name)
-                .fontSize(11)
-                .fontColor($r('app.color.color_text_secondary'))
-                .margin({ left: 6 })
-                .layoutWeight(1)
-              Text(`${seg.count}`)
-                .fontSize(11)
-                .fontColor($r('app.color.color_text_primary'))
-                .fontWeight(FontWeight.Bold)
-              Text(`·${seg.percent}%`)
-                .fontSize(10)
-                .fontColor($r('app.color.color_text_hint'))
-                .margin({ left: 2 })
-            }
-            .width('100%')
-            .alignItems(VerticalAlign.Center)
-          }, (seg: InventorySegment) => seg.name)
+      // 环形图 + 图例（spec 16.8：横向滚动避免标签遮挡；spec 16.10：点击放大）
+      Scroll() {
+        Row({ space: 20 }) {
+          DonutChartCanvas({ segments: this.inventorySegments, totalCount: 48 })
+          // 图例列表（垂直排列，确保不重叠）
+          Column({ space: 14 }) {
+            ForEach(this.inventorySegments, (seg: InventorySegment) => {
+              Column({ space: 6 }) {
+                // 第一行：色点 + 名称
+                Row({ space: 10 }) {
+                  Column()
+                    .width(16)
+                    .height(16)
+                    .borderRadius(8)
+                    .backgroundColor(seg.color)
+                  Text(seg.name)
+                    .fontSize(FontUtil.s(16, this.isElder()))
+                    .fontColor($r('app.color.color_text_secondary'))
+                    .fontWeight(FontWeight.Medium)
+                }
+                .width('100%')
+                .alignItems(VerticalAlign.Center)
+
+                // 第二行：数量 + 百分比
+                Row({ space: 6 }) {
+                  Text(`${seg.count}`)
+                    .fontSize(FontUtil.s(17, this.isElder()))
+                    .fontColor($r('app.color.color_text_primary'))
+                    .fontWeight(FontWeight.Bold)
+                  Text(`SKU · ${seg.percent}%`)
+                    .fontSize(FontUtil.s(14, this.isElder()))
+                    .fontColor($r('app.color.color_text_hint'))
+                }
+              }
+              .width(150)
+              .alignItems(HorizontalAlign.Start)
+              .padding({ bottom: 4 })
+            }, (seg: InventorySegment) => seg.name)
+          }
+          .alignItems(HorizontalAlign.Start)
+          .justifyContent(FlexAlign.Center)
         }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Start)
+        .padding({ left: 4, right: 4 })
       }
+      .onClick(() => { this.enlargedChart = 'donut'; })
+      .scrollable(ScrollDirection.Horizontal)
+      .scrollBar(BarState.Off)
       .width('100%')
-      .alignItems(VerticalAlign.Center)
     }
     .width('100%')
     .padding(16)
@@ -548,12 +733,12 @@ export struct ProductManage {
       // 标题行
       Row() {
         Text('商品销量 TOP5')
-          .fontSize(14)
+          .fontSize(FontUtil.s(17, this.isElder()))
           .fontColor($r('app.color.color_text_primary'))
           .fontWeight(FontWeight.Bold)
           .layoutWeight(1)
         Text('全部 ›')
-          .fontSize(11)
+          .fontSize(FontUtil.s(14, this.isElder()))
           .fontColor($r('app.color.color_text_hint'))
       }
       .width('100%')
@@ -577,7 +762,7 @@ export struct ProductManage {
     Row({ space: 10 }) {
       // 排名号
       Text(`${item.rank}`)
-        .fontSize(item.rank <= 3 ? 14 : 12)
+        .fontSize(item.rank <= 3 ? FontUtil.s(17, this.isElder()) : FontUtil.s(14, this.isElder()))
         .fontColor(item.rank === 1 ? '#FFD93D' : (item.rank === 2 ? '#7ED321' : (item.rank === 3 ? '#FF9F1C' : '#999999')))
         .fontWeight(FontWeight.Bold)
         .width(24)
@@ -585,13 +770,13 @@ export struct ProductManage {
       // 商品图（含皇冠标）
       Stack() {
         Image(ImageUtil.get(item.imageKey))
-          .width(36)
-          .height(36)
+          .width(40)
+          .height(40)
           .borderRadius(8)
           .objectFit(ImageFit.Cover)
         if (item.isCrown) {
           Text('冠')
-            .fontSize(8)
+            .fontSize(FontUtil.s(10, this.isElder()))
             .fontColor($r('app.color.color_ink'))
             .fontWeight(FontWeight.Bold)
             .backgroundColor($r('app.color.color_yellow'))
@@ -600,12 +785,12 @@ export struct ProductManage {
             .position({ x: -4, y: -4 })
         }
       }
-      .width(36)
-      .height(36)
+      .width(40)
+      .height(40)
       // 商品名 + 进度条
       Column({ space: 4 }) {
         Text(item.name)
-          .fontSize(12)
+          .fontSize(FontUtil.s(14, this.isElder()))
           .fontColor($r('app.color.color_text_primary'))
           .fontWeight(FontWeight.Medium)
         // 进度条
@@ -613,29 +798,29 @@ export struct ProductManage {
           // 底层灰轨
           Column()
             .width('100%')
-            .height(4)
+            .height(5)
             .borderRadius(2)
             .backgroundColor($r('app.color.color_bg_page'))
           // 上层彩色进度
           Column()
             .width(`${item.progress}%`)
-            .height(4)
+            .height(5)
             .borderRadius(2)
             .backgroundColor(item.progressColor)
         }
         .width('100%')
-        .height(4)
+        .height(5)
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
       // 销量
       Row() {
         Text(`${item.sales}`)
-          .fontSize(12)
+          .fontSize(FontUtil.s(14, this.isElder()))
           .fontColor($r('app.color.color_text_primary'))
           .fontWeight(FontWeight.Bold)
         Text('件')
-          .fontSize(9)
+          .fontSize(FontUtil.s(11, this.isElder()))
           .fontColor($r('app.color.color_text_hint'))
       }
       .alignItems(VerticalAlign.Bottom)
@@ -651,12 +836,12 @@ export struct ProductManage {
       // 标题行
       Row() {
         Text('商品表现明细')
-          .fontSize(14)
+          .fontSize(FontUtil.s(17, this.isElder()))
           .fontColor($r('app.color.color_text_primary'))
           .fontWeight(FontWeight.Bold)
           .layoutWeight(1)
         Text('全部 ›')
-          .fontSize(11)
+          .fontSize(FontUtil.s(14, this.isElder()))
           .fontColor($r('app.color.color_text_hint'))
       }
       .width('100%')
@@ -665,21 +850,21 @@ export struct ProductManage {
       // 表头
       Row() {
         Text('商品')
-          .fontSize(10)
+          .fontSize(FontUtil.s(13, this.isElder()))
           .fontColor($r('app.color.color_text_hint'))
           .layoutWeight(2)
         Text('销量')
-          .fontSize(10)
+          .fontSize(FontUtil.s(13, this.isElder()))
           .fontColor($r('app.color.color_text_hint'))
           .layoutWeight(1)
           .textAlign(TextAlign.Center)
         Text('库存')
-          .fontSize(10)
+          .fontSize(FontUtil.s(13, this.isElder()))
           .fontColor($r('app.color.color_text_hint'))
           .layoutWeight(1)
           .textAlign(TextAlign.Center)
         Text('转化率')
-          .fontSize(10)
+          .fontSize(FontUtil.s(13, this.isElder()))
           .fontColor($r('app.color.color_text_hint'))
           .layoutWeight(1.5)
           .textAlign(TextAlign.Center)
@@ -709,19 +894,19 @@ export struct ProductManage {
       // 商品列（图 + 名 + 类目）
       Row({ space: 8 }) {
         Image(ImageUtil.get(item.imageKey))
-          .width(32)
-          .height(32)
+          .width(36)
+          .height(36)
           .borderRadius(6)
           .objectFit(ImageFit.Cover)
         Column({ space: 2 }) {
           Text(item.name)
-            .fontSize(11)
+            .fontSize(FontUtil.s(13, this.isElder()))
             .fontColor($r('app.color.color_text_primary'))
             .fontWeight(FontWeight.Medium)
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
           Text(item.category)
-            .fontSize(9)
+            .fontSize(FontUtil.s(11, this.isElder()))
             .fontColor($r('app.color.color_text_hint'))
         }
         .alignItems(HorizontalAlign.Start)
@@ -731,7 +916,7 @@ export struct ProductManage {
 
       // 销量
       Text(`${item.sales}`)
-        .fontSize(11)
+        .fontSize(FontUtil.s(13, this.isElder()))
         .fontColor($r('app.color.color_text_primary'))
         .fontWeight(FontWeight.Medium)
         .layoutWeight(1)
@@ -740,12 +925,12 @@ export struct ProductManage {
       // 库存（紧缺时红色）
       Row() {
         Text(`${item.stock}`)
-          .fontSize(11)
+          .fontSize(FontUtil.s(13, this.isElder()))
           .fontColor(item.isLow ? $r('app.color.color_live') : $r('app.color.color_text_primary'))
           .fontWeight(item.isLow ? FontWeight.Bold : FontWeight.Medium)
         if (item.isLow) {
           Text('紧缺')
-            .fontSize(8)
+            .fontSize(FontUtil.s(10, this.isElder()))
             .fontColor(Color.White)
             .backgroundColor($r('app.color.color_live'))
             .padding({ left: 3, right: 3, top: 1, bottom: 1 })
@@ -762,19 +947,19 @@ export struct ProductManage {
         Stack({ alignContent: Alignment.Start }) {
           Column()
             .width('100%')
-            .height(3)
+            .height(4)
             .borderRadius(2)
             .backgroundColor($r('app.color.color_bg_page'))
           Column()
             .width(`${item.conversion}%`)
-            .height(3)
+            .height(4)
             .borderRadius(2)
             .backgroundColor(item.conversionColor)
         }
         .width('100%')
-        .height(3)
+        .height(4)
         Text(`${item.conversion}%`)
-          .fontSize(9)
+          .fontSize(FontUtil.s(11, this.isElder()))
           .fontColor($r('app.color.color_text_hint'))
       }
       .layoutWeight(1.5)
@@ -782,7 +967,7 @@ export struct ProductManage {
 
       // 编辑按钮
       Text('✎')
-        .fontSize(14)
+        .fontSize(FontUtil.s(16, this.isElder()))
         .fontColor($r('app.color.color_text_secondary'))
         .layoutWeight(0.6)
         .textAlign(TextAlign.Center)
@@ -810,8 +995,8 @@ struct SalesTrendChartCanvas {
 
   build() {
     Canvas(this.context)
-      .width('100%')
-      .height(132)
+      .width(330)
+      .height(140)
       .onReady(() => {
         this.drawChart();
       })
@@ -823,11 +1008,11 @@ struct SalesTrendChartCanvas {
       return;
     }
     const w: number = 330;
-    const h: number = 132;
+    const h: number = 140;
     const padL: number = 14;
     const padR: number = 14;
     const padT: number = 16;
-    const padB: number = 24;
+    const padB: number = 26;
     const chartW: number = w - padL - padR;
     const chartH: number = h - padT - padB;
 
@@ -905,9 +1090,9 @@ struct SalesTrendChartCanvas {
       ctx.stroke();
     });
 
-    // 5. X 轴标签
+    // 5. X 轴标签（spec 16.9：放大字号到 16px 提升可读性）
     ctx.fillStyle = '#999999';
-    ctx.font = '10px HarmonyOS Sans SC, sans-serif';
+    ctx.font = '16px HarmonyOS Sans SC, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     coords.forEach((c: SalesCoord) => {
@@ -939,8 +1124,8 @@ struct RadarChartCanvas {
 
   build() {
     Canvas(this.context)
-      .width('100%')
-      .height(220)
+      .width(330)
+      .height(240)
       .onReady(() => {
         this.drawRadar();
       })
@@ -952,10 +1137,10 @@ struct RadarChartCanvas {
       return;
     }
     const w: number = 330;
-    const h: number = 220;
+    const h: number = 240;
     const cx: number = w / 2;
-    const cy: number = h / 2 + 8;
-    const maxRadius: number = 80;
+    const cy: number = h / 2 + 10;
+    const maxRadius: number = 88;
     const n: number = this.dimensions.length;
     const angleStep: number = (Math.PI * 2) / n;
     const startAngle: number = -Math.PI / 2; // 顶部开始
@@ -1029,15 +1214,15 @@ struct RadarChartCanvas {
       ctx.stroke();
     }
 
-    // 5. 维度标签 + 数值
-    ctx.font = '700 11px HarmonyOS Sans SC, sans-serif';
+    // 5. 维度标签 + 数值（spec 16.9：放大字号提升可读性）
+    ctx.font = '700 17px HarmonyOS Sans SC, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     for (let i: number = 0; i < n; i++) {
       const dim: RadarDimension = this.dimensions[i];
       const angle: number = startAngle + angleStep * i;
-      const labelR: number = maxRadius + 18;
-      const valueR: number = maxRadius + 32;
+      const labelR: number = maxRadius + 22;
+      const valueR: number = maxRadius + 40;
       const lx: number = cx + labelR * Math.cos(angle);
       const ly: number = cy + labelR * Math.sin(angle);
       const vx: number = cx + valueR * Math.cos(angle);
@@ -1047,9 +1232,9 @@ struct RadarChartCanvas {
       ctx.fillText(dim.label, lx, ly);
       // 数值
       ctx.fillStyle = dim.color;
-      ctx.font = '700 10px HarmonyOS Sans SC, sans-serif';
+      ctx.font = '700 16px HarmonyOS Sans SC, sans-serif';
       ctx.fillText(`${dim.value}`, vx, vy);
-      ctx.font = '700 11px HarmonyOS Sans SC, sans-serif';
+      ctx.font = '700 17px HarmonyOS Sans SC, sans-serif';
     }
   }
 }
@@ -1071,8 +1256,8 @@ struct DonutChartCanvas {
 
   build() {
     Canvas(this.context)
-      .width(120)
-      .height(120)
+      .width(150)
+      .height(150)
       .onReady(() => {
         this.drawDonut();
       })
@@ -1083,12 +1268,15 @@ struct DonutChartCanvas {
     if (this.segments.length === 0) {
       return;
     }
-    const w: number = 120;
-    const h: number = 120;
+    const w: number = 150;
+    const h: number = 150;
     const cx: number = w / 2;
     const cy: number = h / 2;
-    const radius: number = 45;
-    const lineWidth: number = 14;
+    const radius: number = 56;
+    const lineWidth: number = 18;
+
+    // spec 16.8：先清空画布避免重绘叠加
+    ctx.clearRect(0, 0, w, h);
 
     // 1. 背景环
     ctx.strokeStyle = '#F6F6F4';
@@ -1109,14 +1297,14 @@ struct DonutChartCanvas {
       startAngle += sweepAngle;
     });
 
-    // 3. 中心数字
+    // 3. 中心数字（spec 16.9：放大字号提升可读性）
     ctx.fillStyle = '#1A1A1A';
-    ctx.font = '800 22px HarmonyOS Sans SC, sans-serif';
+    ctx.font = '800 32px HarmonyOS Sans SC, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`${this.totalCount}`, cx, cy - 6);
+    ctx.fillText(`${this.totalCount}`, cx, cy - 10);
     ctx.fillStyle = '#999999';
-    ctx.font = '600 9px HarmonyOS Sans SC, sans-serif';
-    ctx.fillText('SKU 总数', cx, cy + 12);
+    ctx.font = '600 15px HarmonyOS Sans SC, sans-serif';
+    ctx.fillText('SKU 总数', cx, cy + 16);
   }
 }

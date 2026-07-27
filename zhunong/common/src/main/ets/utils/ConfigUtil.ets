@@ -91,9 +91,10 @@ class ConfigUtilImpl {
 
   /** spec 16.7：阿里云百炼直播开播介绍优化智能体配置（农户端创建直播页 AI 优化按钮） */
   private readonly bailianLiveIntroConfig: BailianLiveIntroConfig = {
-    // 阿里云百炼应用调用 API 端点（apps，非控制台页面路径 applications）
+    // 使用华北2-北京业务空间专属域名（API Host），性能更好、稳定性更高
+    // 专属域名格式：https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com/api/v1/apps
     // 实际请求 URL：{baseUrl}/{appId}/completion
-    baseUrl: 'https://dashscope.aliyuncs.com/api/v1/apps',
+    baseUrl: 'https://llm-rybx4hw7nil2ekgl.cn-beijing.maas.aliyuncs.com/api/v1/apps',
     appId: '38c6f2e6d0a74cc38081b07872ecac5f',
     apiKey: 'sk-ws-H.EIDXEHY.0yN1.MEUCIQCGLsoRoygKGO0EwHgKnjHfgqFfnNpql8OjjHxdnzWGMgIgCPKEVyj1huJEFKkR4jcsYamh6L1ViV3aGK1eWjG8Hf8'
   };

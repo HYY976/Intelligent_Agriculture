@@ -263,6 +263,8 @@ export class RouteName {
   static readonly FARMER_PRODUCT_PUBLISH: string = 'product_publish';
   /** 商品编辑 */
   static readonly FARMER_PRODUCT_EDIT: string = 'product_edit';
+  /** spec 16.10：商品详情购买页（淘宝式） */
+  static readonly FARMER_PRODUCT_DETAIL: string = 'product_detail';
   /** 直播浏览（顶导） */
   static readonly FARMER_LIVE_BROWSE: string = 'live_browse';
   /** 开播表单 */

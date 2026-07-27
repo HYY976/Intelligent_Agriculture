@@ -1,4 +1,4 @@
-﻿/**
+/**
  * seller_mall_page - 卖家商城页（spec 3.2.1）
  *
  * 上下分段结构：
@@ -8,7 +8,7 @@
  * 上部表单可折叠，下滑区域展示推荐流
  */
 
-import { Logger, AppConstants, FarmerRoutes, NavigationHelper, RouteName, PageResult } from 'common';
+import { Logger, AppConstants, FarmerRoutes, NavigationHelper, RouteName, PageResult, SharedProductStore, SharedProduct } from 'common';
 import { FarmerProductItem } from '../../model/FarmerModels';
 import { ProductManageRepository } from '../../repository/ProductManageRepository';
 import { MOCK_FARMER_ID } from '../../mock/FarmerMock';
@@ -55,11 +55,45 @@ export struct SellerMallPage {
 
   async aboutToAppear(): Promise<void> {
     Logger.info(AppConstants.SCENE_FARMER, { action: 'seller_mall_page_appear' });
+    await this.refreshData();
+  }
+
+  onPageShow(): void {
+    // spec 16.9：从发布页返回后刷新，确保新发布商品立即显示在推荐流
+    this.refreshData();
+  }
+
+  /** spec 16.9：合并自家已发布商品到推荐流顶部 */
+  private async refreshData(): Promise<void> {
     try {
       const result: PageResult<FarmerProductItem> = await ProductManageRepository.getMyProducts(MOCK_FARMER_ID, 1, 50, 'approved');
       this.myOnSaleCount = result.list.filter((p: FarmerProductItem): boolean => p.status === 'approved').length;
     } catch (err) {
       Logger.error(AppConstants.SCENE_FARMER, { action: 'load_my_count_fail', error: (err as Error).message });
+    }
+    // spec 16.9：同步 SharedProductStore 中已发布商品到推荐流头部
+    try {
+      const shared: SharedProduct[] = await SharedProductStore.getAll();
+      const mockIds: Set<string> = new Set<string>(MOCK_RECOMMEND_LIST.map(
+        (p: RecommendProduct): string => p.productId
+      ));
+      const mine: RecommendProduct[] = shared
+        .filter((p: SharedProduct): boolean => p.status === 'approved')
+        .map((p: SharedProduct): RecommendProduct => {
+          const item: RecommendProduct = {
+            productId: p.productId,
+            title: p.title,
+            price: p.price,
+            imageUrl: p.mainImages.length > 0 ? p.mainImages[0] : 'rp_default',
+            monthlySales: p.monthlySales,
+            farmerName: p.farmerName
+          };
+          return item;
+        })
+        .filter((p: RecommendProduct): boolean => !mockIds.has(p.productId));
+      this.recommendList = mine.concat(MOCK_RECOMMEND_LIST.slice());
+    } catch (err) {
+      Logger.error(AppConstants.SCENE_FARMER, { action: 'sync_shared_products_fail', error: (err as Error).message });
     }
   }
 
@@ -74,11 +108,11 @@ export struct SellerMallPage {
     NavigationHelper.push(RouteName.FARMER_PRODUCT_PUBLISH);
   }
 
-  /** 跳转商品编辑页 */
+  /** spec 16.10：跳转商品详情购买页（不再跳编辑页） */
   private gotoProductEdit(productId: string): void {
-    Logger.info(AppConstants.SCENE_FARMER, { action: 'goto_product_edit', productId });
+    Logger.info(AppConstants.SCENE_FARMER, { action: 'goto_product_detail', productId });
     const param: ProductEditParam = { productId: productId };
-    NavigationHelper.push(RouteName.FARMER_PRODUCT_EDIT, param);
+    NavigationHelper.push(RouteName.FARMER_PRODUCT_DETAIL, param);
   }
 
   build() {
@@ -236,8 +270,17 @@ export struct SellerMallPage {
   RecommendCard(item: RecommendProduct) {
     Column({ space: 8 }) {
       Stack() {
-        Text('🌾')
-          .fontSize(40)
+        // spec 16.9：支持真实 file:// / http URI，否则显示占位
+        if (item.imageUrl.startsWith('file://') || item.imageUrl.startsWith('http://') || item.imageUrl.startsWith('https://')) {
+          Image(item.imageUrl)
+            .width('100%')
+            .height(140)
+            .borderRadius(8)
+            .objectFit(ImageFit.Cover)
+        } else {
+          Text('🌾')
+            .fontSize(40)
+        }
       }
       .width('100%')
       .height(140)

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * search_page - 搜索页（spec 3.2.1）
  *
  * 与用户端搜索页完全一致（含双榜单）
@@ -11,7 +11,7 @@
  *  - 搜索结果（商品列表，spec 3.1.4.2）
  */
 
-import { Logger, AppConstants, ToastUtil, NavigationHelper, ListStateView } from 'common';
+import { Logger, AppConstants, ToastUtil, NavigationHelper, RouteName, ListStateView } from 'common';
 import { FarmerSearchResultDataSource, FarmerProductRankItem } from '../../viewmodel/FarmerSearchResultDataSource';
 
 /** 热门搜索词 */
@@ -27,6 +27,11 @@ interface LiveRankItem {
   farmerName: string;
   totalViewUv: number;
   status: string;
+}
+
+/** spec 16.7：商品编辑页跳转参数（与 product_manage.ets 保持结构一致） */
+interface ProductEditParam {
+  productId: string;
 }
 
 @ComponentV2
@@ -68,12 +73,12 @@ export struct SearchPage {
   /** 加载双榜单 Mock 数据 */
   private async loadRankList(): Promise<void> {
     this.productRankList = [
-      { productId: 'rk001', title: '陕西洛川苹果 5斤 脆甜多汁', price: 39.90, monthlySales: 9850, farmerName: '洛川果园' },
-      { productId: 'rk002', title: '红心蜜柚 5斤装 福建平和', price: 29.90, monthlySales: 8620, farmerName: '平和果农' },
-      { productId: 'rk003', title: '新疆灰枣 500g 一级骏枣', price: 25.80, monthlySales: 6580, farmerName: '丝路枣农' },
-      { productId: 'rk004', title: '云南小黄姜 2斤 现挖', price: 19.90, monthlySales: 5630, farmerName: '滇南农场' },
-      { productId: 'rk005', title: '内蒙古土豆 10斤 沙土地', price: 26.80, monthlySales: 4520, farmerName: '草原牧歌' },
-      { productId: 'rk006', title: '广西百香果 3斤 紫皮', price: 22.50, monthlySales: 4280, farmerName: '桂南果场' }
+      { productId: 'rk001', title: '陕西洛川苹果 5斤 脆甜多汁', price: 39.90, monthlySales: 9850, farmerName: '洛川果园', imageUrl: 'prod_apple', categoryId: 'cat_fruit', shipFrom: '陕西洛川' },
+      { productId: 'rk002', title: '红心蜜柚 5斤装 福建平和', price: 29.90, monthlySales: 8620, farmerName: '平和果农', imageUrl: 'prod_pomelo', categoryId: 'cat_fruit', shipFrom: '福建平和' },
+      { productId: 'rk003', title: '新疆灰枣 500g 一级骏枣', price: 25.80, monthlySales: 6580, farmerName: '丝路枣农', imageUrl: 'prod_date', categoryId: 'cat_honey', shipFrom: '新疆' },
+      { productId: 'rk004', title: '云南小黄姜 2斤 现挖', price: 19.90, monthlySales: 5630, farmerName: '滇南农场', imageUrl: 'prod_ginger', categoryId: 'cat_vegetable', shipFrom: '云南' },
+      { productId: 'rk005', title: '内蒙古土豆 10斤 沙土地', price: 26.80, monthlySales: 4520, farmerName: '草原牧歌', imageUrl: 'prod_potato', categoryId: 'cat_vegetable', shipFrom: '内蒙古' },
+      { productId: 'rk006', title: '广西百香果 3斤 紫皮', price: 22.50, monthlySales: 4280, farmerName: '桂南果场', imageUrl: 'prod_passion', categoryId: 'cat_fruit', shipFrom: '广西' }
     ];
     this.liveRankList = [
       { liveId: 'lk001', title: '高山有机青菜采摘直播', farmerName: '青禾农庄', totalViewUv: 1286, status: 'ended' },
@@ -114,6 +119,17 @@ export struct SearchPage {
   /** 切换榜单 Tab */
   private switchRankTab(idx: number): void {
     this.rankTab = idx;
+  }
+
+  /** spec 16.10：点击搜索结果项，跳转到商品详情购买页 */
+  private gotoProductEdit(item: FarmerProductRankItem): void {
+    const param: ProductEditParam = { productId: item.productId };
+    Logger.info(AppConstants.SCENE_FARMER, {
+      action: 'search_result_click',
+      productId: item.productId,
+      msg: this.keyword
+    });
+    NavigationHelper.push(RouteName.FARMER_PRODUCT_DETAIL, param);
   }
 
   /** 返回 */
@@ -391,7 +407,7 @@ export struct SearchPage {
     .padding({ top: 8, bottom: 8 })
   }
 
-  /** 搜索结果列表 */
+  /** 搜索结果列表（spec 16.9：2 列网格布局，与商城排版一致） */
   @Builder
   SearchResultList() {
     if (this.searchDataSource.getLoadFailed()) {
@@ -411,21 +427,94 @@ export struct SearchPage {
       .justifyContent(FlexAlign.Center)
       .alignItems(HorizontalAlign.Center)
     } else {
-      List({ space: 8 }) {
+      // spec 16.9：改为 2 列 Grid，对齐商城推荐流排版
+      Grid() {
         LazyForEach(this.searchDataSource, (item: FarmerProductRankItem, idx: number) => {
-          ListItem() {
-            this.ProductRankCard(item, idx)
+          GridItem() {
+            this.ProductGridCard(item, idx)
           }
+          .onClick(() => this.gotoProductEdit(item))
         }, (item: FarmerProductRankItem) => `${item.productId}_${item.monthlySales}_${item.price}`)
       }
+      .columnsTemplate('1fr 1fr')
+      .columnsGap(10)
+      .rowsGap(10)
       .width('100%')
       .layoutWeight(1)
-      .padding({ left: 16, right: 16, top: 8 })
+      .padding({ left: 16, right: 16, top: 8, bottom: 8 })
       .scrollBar(BarState.Off)
       .cachedCount(AppConstants.LIST_CACHED_COUNT)
       .onReachEnd(() => {
         this.searchDataSource.loadMore();
       })
     }
+  }
+
+  /** spec 16.9：搜索结果网格卡片（与商城 RecommendCard 排版一致） */
+  @Builder
+  ProductGridCard(item: FarmerProductRankItem, idx: number) {
+    Column({ space: 8 }) {
+      Stack({ alignContent: Alignment.TopStart }) {
+        // spec 16.10：支持真实 file:// / http URI，否则显示占位 emoji
+        if (item.imageUrl.startsWith('file://') || item.imageUrl.startsWith('http://') || item.imageUrl.startsWith('https://')) {
+          Image(item.imageUrl)
+            .width('100%')
+            .height(140)
+            .borderRadius(8)
+            .objectFit(ImageFit.Cover)
+        } else {
+          Text('🌾')
+            .fontSize(40)
+        }
+        // 排名角标（前 3 名突出显示）
+        if (idx < 3) {
+          Text(`${idx + 1}`)
+            .fontSize(11)
+            .fontColor(Color.White)
+            .fontWeight(FontWeight.Bold)
+            .width(20)
+            .height(20)
+            .borderRadius(10)
+            .backgroundColor($r('app.color.color_cta_black'))
+            .textAlign(TextAlign.Center)
+            .position({ x: 6, y: 6 })
+        }
+      }
+      .width('100%')
+      .height(140)
+      .borderRadius(8)
+      .backgroundColor($r('app.color.color_card_yellow'))
+      .alignContent(Alignment.Center)
+
+      Text(item.title)
+        .fontSize(13)
+        .fontColor($r('app.color.color_text_primary'))
+        .maxLines(2)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .width('100%')
+
+      Text(item.farmerName)
+        .fontSize(11)
+        .fontColor($r('app.color.color_text_hint'))
+        .width('100%')
+
+      Row() {
+        Text(`¥${item.price.toFixed(2)}`)
+          .fontSize(14)
+          .fontColor($r('app.color.color_price'))
+          .fontWeight(FontWeight.Bold)
+          .layoutWeight(1)
+        Text(`月销 ${item.monthlySales}`)
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_hint'))
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+    }
+    .width('100%')
+    .padding(10)
+    .borderRadius(AppConstants.RADIUS_LG)
+    .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
   }
 }

@@ -3,24 +3,20 @@
  *
  * 对齐设计稿 pages/farmer-setting.html：
  *  - 顶部导航（圆形返回键 + 居中标题 + 占位）
- *  - 主题模式卡（segmented control: 跟随系统 / 浅色 / 深色）
- *  - 字号模式卡（segmented control: 标准 / 老年大字 + 提示文案）
+ *  - 个人信息卡（spec 16.9：头像/姓名可修改，从相册选头像）
+ *  - 字号模式卡（segmented control: 标准 / 老年大字 + 提示文案，全局生效）
  *  - 其他设置卡（清除缓存 / 意见反馈 / 关于我们，彩色图标）
  *  - 退出登录按钮（白底卡片 + 红字）
  *  - 退出确认弹窗（居中 + 遮罩）
  *
- * spec 10.18：@Local themeRef / modeRef 持有 AppStorageV2 共享 ref，@Trace value 变更自动刷新
+ * spec 10.18：@Local modeRef 持有 AppStorageV2 共享 ref，@Trace value 变更自动刷新
  * spec 10.16：方案 C 自建模态（@Local show + Stack + @Builder）
+ * spec 16.9：移除主题模式卡；内容上移贴顶；字号切换通过 ModeStore 广播全局生效
  */
 
-import { Logger, AppConstants, ToastUtil, ModeStore, ThemeStore, TokenStore, NavigationHelper, RouteName, FontUtil } from 'common';
-import type { CurrentModeKey, CurrentThemeKey } from 'common';
-
-/** 主题选项 */
-interface ThemeOption {
-  value: string;
-  label: string;
-}
+import { Logger, AppConstants, ToastUtil, ModeStore, TokenStore, NavigationHelper, RouteName, FontUtil } from 'common';
+import type { CurrentModeKey, UserInfo } from 'common';
+import { ImagePickerUtil } from '../../utils/ImagePickerUtil';
 
 /** 字号选项 */
 interface FontSizeOption {
@@ -49,21 +45,20 @@ interface SettingItem {
 
 @ComponentV2
 export struct Setting {
-  /** 当前主题 — spec 10.18：@Local themeRef 持有 AppStorageV2 共享 ref */
-  @Local themeRef: CurrentThemeKey = ThemeStore.connectThemeRef();
-  /** 当前模式 — spec 10.18：@Local modeRef 持有 AppStorageV2 共享 ref */
+  /** 当前模式 — spec 10.18：@Local modeRef 持有 AppStorageV2 共享 ref（spec 16.9：移除主题模式） */
   @Local modeRef: CurrentModeKey = ModeStore.connectModeRef();
   /** 版本号 */
   @Local readonly version: string = 'v1.0.0';
   /** 缓存大小 */
   @Local cacheSize: string = '23.5MB';
 
-  /** 主题选项 */
-  private themeOptions: ThemeOption[] = [
-    { value: 'system', label: '跟随系统' },
-    { value: 'light', label: '浅色' },
-    { value: 'dark', label: '深色' }
-  ];
+  /** spec 16.9：个人信息（姓名/头像），从 TokenStore 读取 */
+  @Local userName: string = '';
+  @Local avatarUrl: string = '';
+  /** 姓名编辑输入框临时值 */
+  @Local nameInput: string = '';
+  /** 姓名编辑弹窗 */
+  @Local showNameDialog: boolean = false;
 
   /** 字号选项 */
   private fontSizeOptions: FontSizeOption[] = [
@@ -83,6 +78,90 @@ export struct Setting {
 
   async aboutToAppear(): Promise<void> {
     Logger.info(AppConstants.SCENE_FARMER, { action: 'setting_appear' });
+    await this.loadUserInfo();
+  }
+
+  /** spec 16.9：加载注册用户信息（姓名/头像） */
+  private async loadUserInfo(): Promise<void> {
+    try {
+      const user: UserInfo | null = await TokenStore.getUserInfo();
+      if (user) {
+        this.userName = user.nickname && user.nickname.length > 0 ? user.nickname : '未设置';
+        this.avatarUrl = user.avatar;
+        this.nameInput = user.nickname ?? '';
+      }
+    } catch (err) {
+      Logger.error(AppConstants.SCENE_FARMER, { action: 'load_user_info_fail', error: (err as Error).message });
+    }
+  }
+
+  /** spec 16.9：保存姓名到 TokenStore */
+  private async saveUserName(): Promise<void> {
+    const trimmed: string = this.nameInput.trim();
+    if (trimmed.length === 0) {
+      ToastUtil.warning('请输入姓名');
+      return;
+    }
+    try {
+      const user: UserInfo | null = await TokenStore.getUserInfo();
+      if (user) {
+        const updated: UserInfo = {
+          userId: user.userId,
+          phone: user.phone,
+          nickname: trimmed,
+          avatar: this.avatarUrl,
+          userType: user.userType,
+          status: user.status,
+          createdAt: user.createdAt,
+          lastLoginAt: user.lastLoginAt
+        };
+        await TokenStore.setUserInfo(updated);
+        this.userName = trimmed;
+        this.showNameDialog = false;
+        ToastUtil.success('姓名已更新');
+        Logger.info(AppConstants.SCENE_FARMER, { action: 'user_name_updated', name: trimmed });
+      }
+    } catch (err) {
+      Logger.error(AppConstants.SCENE_FARMER, { action: 'save_user_name_fail', error: (err as Error).message });
+      ToastUtil.error('保存失败');
+    }
+  }
+
+  /** spec 16.9：从相册选择头像 */
+  private pickAvatar(): void {
+    ImagePickerUtil.pickSingleImage(
+      (uri: string) => {
+        this.avatarUrl = uri;
+        this.persistAvatar(uri);
+      },
+      (msg: string) => {
+        ToastUtil.warning(msg);
+      }
+    );
+  }
+
+  /** spec 16.9：保存头像 URI 到 TokenStore */
+  private async persistAvatar(uri: string): Promise<void> {
+    try {
+      const user: UserInfo | null = await TokenStore.getUserInfo();
+      if (user) {
+        const updated: UserInfo = {
+          userId: user.userId,
+          phone: user.phone,
+          nickname: user.nickname,
+          avatar: uri,
+          userType: user.userType,
+          status: user.status,
+          createdAt: user.createdAt,
+          lastLoginAt: user.lastLoginAt
+        };
+        await TokenStore.setUserInfo(updated);
+        ToastUtil.success('头像已更新');
+        Logger.info(AppConstants.SCENE_FARMER, { action: 'avatar_updated' });
+      }
+    } catch (err) {
+      Logger.error(AppConstants.SCENE_FARMER, { action: 'save_avatar_fail', error: (err as Error).message });
+    }
   }
 
   /** spec 16.6：当前是否老年大字模式 */
@@ -90,17 +169,7 @@ export struct Setting {
     return FontUtil.isElder(this.modeRef.value);
   }
 
-  /** 切换主题 */
-  private async onThemeChange(theme: string): Promise<void> {
-    if (theme === this.themeRef.value) {
-      return;
-    }
-    this.themeRef.value = theme;
-    Logger.info(AppConstants.SCENE_FARMER, { action: 'theme_change', theme });
-    ToastUtil.success('主题已切换');
-  }
-
-  /** 切换字号模式 */
+  /** 切换字号模式（spec 16.9：全局生效，ModeStore 通过 AppStorageV2 广播到所有页面） */
   private async onModeChange(mode: string): Promise<void> {
     if (mode === this.modeRef.value) {
       return;
@@ -186,13 +255,14 @@ export struct Setting {
           this.TopBar()
           Scroll() {
             Column({ space: 12 }) {
-              this.ThemeCard()
+              // spec 16.9：个人信息卡置顶（姓名/头像可修改），原主题模式卡已移除
+              this.PersonalInfoCard()
               this.FontSizeCard()
               this.OtherSettingsCard()
               this.LogoutButton()
             }
             .width('100%')
-            .padding({ left: 16, right: 16, top: 12, bottom: 16 })
+            .padding({ left: 16, right: 16, top: 0, bottom: 16 })
           }
           .layoutWeight(1)
           .scrollBar(BarState.Off)
@@ -205,11 +275,149 @@ export struct Setting {
         if (this.showLogoutDialog) {
           this.LogoutConfirmDialog()
         }
+        // spec 16.9：姓名编辑弹窗
+        if (this.showNameDialog) {
+          this.NameEditDialog()
+        }
       }
       .width('100%')
       .height('100%')
     }
     .hideTitleBar(true)
+  }
+
+  /** spec 16.9：个人信息卡（姓名/头像修改） */
+  @Builder
+  PersonalInfoCard() {
+    Column({ space: 14 }) {
+      Row() {
+        Text('个人信息')
+          .fontSize(FontUtil.s(16, this.isElder()))
+          .fontColor($r('app.color.color_ink_2'))
+          .fontWeight(FontWeight.Medium)
+          .layoutWeight(1)
+      }
+      .width('100%')
+
+      // 头像行
+      Row({ space: 12 }) {
+        Text('头像')
+          .fontSize(FontUtil.s(15, this.isElder()))
+          .fontColor($r('app.color.color_text_2'))
+          .layoutWeight(1)
+        Row({ space: 10 }) {
+          if (this.avatarUrl.length > 0 &&
+              (this.avatarUrl.startsWith('file://') || this.avatarUrl.startsWith('http'))) {
+            Image(this.avatarUrl)
+              .width(48)
+              .height(48)
+              .borderRadius(24)
+          } else {
+            Text('👤')
+              .fontSize(24)
+              .width(48)
+              .height(48)
+              .fontColor($r('app.color.color_text_3'))
+              .backgroundColor($r('app.color.color_fill'))
+              .borderRadius(24)
+              .textAlign(TextAlign.Center)
+          }
+          Text('更换')
+            .fontSize(FontUtil.s(14, this.isElder()))
+            .fontColor($r('app.color.color_cta_black'))
+            .onClick(() => { this.pickAvatar(); })
+        }
+        .alignItems(VerticalAlign.Center)
+      }
+      .width('100%')
+
+      Divider().strokeWidth(1).color($r('app.color.color_line'))
+
+      // 姓名行
+      Row({ space: 12 }) {
+        Text('姓名')
+          .fontSize(FontUtil.s(15, this.isElder()))
+          .fontColor($r('app.color.color_text_2'))
+          .layoutWeight(1)
+        Text(this.userName)
+          .fontSize(FontUtil.s(15, this.isElder()))
+          .fontColor($r('app.color.color_text_3'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .constraintSize({ maxWidth: 160 })
+        Text('编辑')
+          .fontSize(FontUtil.s(14, this.isElder()))
+          .fontColor($r('app.color.color_cta_black'))
+          .onClick(() => {
+            this.nameInput = this.userName === '未设置' ? '' : this.userName;
+            this.showNameDialog = true;
+          })
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+    }
+    .width('100%')
+    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+    .borderRadius(AppConstants.RADIUS_LG)
+    .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
+  }
+
+  /** spec 16.9：姓名编辑弹窗 */
+  @Builder
+  NameEditDialog() {
+    Stack() {
+      // 遮罩
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor('rgba(0,0,0,0.5)')
+        .onClick(() => { this.showNameDialog = false; })
+
+      // 弹窗主体
+      Column({ space: 16 }) {
+        Text('修改姓名')
+          .fontSize(FontUtil.s(17, this.isElder()))
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+
+        TextInput({ text: this.nameInput })
+          .width('100%')
+          .height(44)
+          .borderRadius(8)
+          .backgroundColor($r('app.color.color_bg_page'))
+          .padding({ left: 12, right: 12 })
+          .fontSize(FontUtil.s(15, this.isElder()))
+          .onChange((v: string) => { this.nameInput = v; })
+
+        Row({ space: 12 }) {
+          Button('取消')
+            .layoutWeight(1)
+            .height(40)
+            .borderRadius(20)
+            .backgroundColor($r('app.color.color_fill'))
+            .fontColor($r('app.color.color_text_2'))
+            .fontSize(FontUtil.s(14, this.isElder()))
+            .onClick(() => { this.showNameDialog = false; })
+          Button('保存')
+            .layoutWeight(1)
+            .height(40)
+            .borderRadius(20)
+            .backgroundColor($r('app.color.color_cta_black'))
+            .fontColor(Color.White)
+            .fontSize(FontUtil.s(14, this.isElder()))
+            .onClick(() => { this.saveUserName(); })
+        }
+        .width('100%')
+      }
+      .width('80%')
+      .padding(20)
+      .borderRadius(16)
+      .backgroundColor($r('app.color.color_bg_card'))
+    }
+    .width('100%')
+    .height('100%')
+    .alignContent(Alignment.Center)
   }
 
   /** 顶部导航（圆形返回键 + 居中标题 + 占位） */
@@ -238,47 +446,12 @@ export struct Setting {
         .height(32)
     }
     .width('100%')
-    .height(48)
-    .padding({ left: 16, right: 16, bottom: 10 })
+    .height(44)
+    .padding({ left: 16, right: 16, top: 0, bottom: 0 })
     .alignItems(VerticalAlign.Center)
   }
 
-  /** 主题模式卡（segmented control） */
-  @Builder
-  ThemeCard() {
-    Row() {
-      Text('主题模式')
-        .fontSize(FontUtil.s(16, this.isElder()))
-        .fontColor($r('app.color.color_ink_2'))
-        .fontWeight(FontWeight.Medium)
-      Blank()
-      // 胶囊分段选项组
-      Row({ space: 0 }) {
-        ForEach(this.themeOptions, (opt: ThemeOption) => {
-          Text(opt.label)
-            .fontSize(FontUtil.s(13, this.isElder()))
-            .fontColor(this.themeRef.value === opt.value ? $r('app.color.color_ink') : $r('app.color.color_text_3'))
-            .backgroundColor(this.themeRef.value === opt.value ? $r('app.color.color_yellow') : Color.Transparent)
-            .fontWeight(this.themeRef.value === opt.value ? FontWeight.Bold : FontWeight.Medium)
-            .padding({ left: 12, right: 12, top: 5, bottom: 5 })
-            .borderRadius(AppConstants.RADIUS_PILL)
-            .onClick(() => { this.onThemeChange(opt.value); })
-        }, (opt: ThemeOption) => opt.value)
-      }
-      .padding(2)
-      .borderRadius(AppConstants.RADIUS_PILL)
-      .backgroundColor($r('app.color.color_fill'))
-    }
-    .width('100%')
-    .height(56)
-    .padding({ left: 16, right: 16 })
-    .borderRadius(AppConstants.RADIUS_LG)
-    .backgroundColor($r('app.color.color_bg_card'))
-    .shadow(AppConstants.SHADOW_CARD)
-    .alignItems(VerticalAlign.Center)
-  }
-
-  /** 字号模式卡（segmented control + 提示文案） */
+  /** 字号模式卡（segmented control + 提示文案，spec 16.9：全局生效） */
   @Builder
   FontSizeCard() {
     Column({ space: 8 }) {

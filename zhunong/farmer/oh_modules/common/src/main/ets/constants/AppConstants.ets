@@ -28,7 +28,8 @@ export class AppConstants {
 
   /** HTTP 超时（毫秒，spec 2.2.4） */
   static readonly HTTP_TIMEOUT_DEFAULT: number = 15000;
-  static readonly HTTP_TIMEOUT_AI: number = 60000;
+  /** spec 16.7：AI 智能体调用首请求可能涉及冷启动 + LLM 推理，超时放宽至 120s */
+  static readonly HTTP_TIMEOUT_AI: number = 120000;
 
   /** 分页默认值（spec 3.1.3.1） */
   static readonly PAGE_SIZE_DEFAULT: number = 20;

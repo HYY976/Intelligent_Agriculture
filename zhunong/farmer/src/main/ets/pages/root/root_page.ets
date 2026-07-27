@@ -25,6 +25,7 @@ import { RevenueDetail } from '../home/revenue_detail';
 import { SellerMallPage } from '../mall/seller_mall_page';
 import { ProductPublish } from '../mall/product_publish';
 import { ProductEdit } from '../mall/product_edit';
+import { ProductDetail } from '../mall/product_detail';
 import { MarketQuote } from '../market/market_quote';
 
 // 直播
@@ -92,6 +93,8 @@ struct RootPage {
       ProductPublish()
     } else if (name === RouteName.FARMER_PRODUCT_EDIT) {
       ProductEdit()
+    } else if (name === RouteName.FARMER_PRODUCT_DETAIL) {
+      ProductDetail()
     } else if (name === RouteName.FARMER_MARKET_QUOTE) {
       MarketQuote()
     } else if (name === RouteName.FARMER_LIVE_BROWSE) {

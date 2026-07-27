@@ -10,6 +10,7 @@ import { Logger, AppConstants, ToastUtil, NavigationHelper, RouteName, TokenStor
 import { Post, Comment } from '../../model/FarmerCommunityModels';
 import { CommunityRepository } from '../../repository/CommunityRepository';
 import { MOCK_FARMER_ID, MOCK_FARMER_PROFILE } from '../../mock/FarmerMock';
+import { ImageUtil } from '../../utils/ImageUtil';
 
 /** 扁平化评论项（递归渲染用） */
 interface FlatCommentItem {
@@ -283,14 +284,27 @@ export struct PostDetail {
         .fontColor($r('app.color.color_text_primary'))
         .width('100%')
 
-      // 图片网格
+      // 图片网格（spec 16.8：支持真实图片 URI 和 Mock 图片 key）
       if (this.post && this.post.images.length > 0) {
         Grid() {
           ForEach(this.post.images, (img: string, idx: number) => {
             GridItem() {
               Stack() {
-                Text('🖼')
-                  .fontSize(28)
+                // spec 16.8：若为 file:///http(s) URI 则渲染真实图片，否则使用 ImageUtil 解析 Mock 图片 key
+                if (img.startsWith('file://') || img.startsWith('http://') || img.startsWith('https://')) {
+                  Image(img)
+                    .width('100%')
+                    .height(100)
+                    .objectFit(ImageFit.Cover)
+                    .borderRadius(6)
+                } else {
+                  // 使用 ImageUtil 解析 Mock 图片 key
+                  Image(ImageUtil.get(img))
+                    .width('100%')
+                    .height(100)
+                    .objectFit(ImageFit.Cover)
+                    .borderRadius(6)
+                }
               }
               .width('100%')
               .height(100)

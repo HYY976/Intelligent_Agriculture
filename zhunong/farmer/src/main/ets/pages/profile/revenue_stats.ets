@@ -12,7 +12,8 @@
  * spec 3.2.4.5 / 4.2.2
  */
 
-import { Logger, AppConstants, NavigationHelper, RouteName } from 'common';
+import { Logger, AppConstants, NavigationHelper, RouteName, FontUtil, ModeStore } from 'common';
+import type { CurrentModeKey } from 'common';
 import { FarmerProfile, IncomeComposition, IncomeTrendPoint, IncomeSegment, RevenueRecord } from '../../model/FarmerModels';
 import { FarmerRepository } from '../../repository/FarmerRepository';
 import { RevenueRepository } from '../../repository/RevenueRepository';
@@ -66,6 +67,10 @@ export struct RevenueStats {
   @Local growthRate: number = 15.3;
   /** 日均收入 */
   @Local dailyAvg: number = 428;
+  /** spec 16.10：放大查看的图表类型（null 表示不显示放大弹窗） */
+  @Local enlargedChart: string | null = null;
+  /** 当前模式（spec 16.6：老人模式字体放大） */
+  @Local modeRef: CurrentModeKey = ModeStore.connectModeRef();
 
   /** 时段选项（对齐设计稿 qn-segment） */
   private segmentOptions: SegmentOption[] = [
@@ -77,6 +82,11 @@ export struct RevenueStats {
   async aboutToAppear(): Promise<void> {
     Logger.info(AppConstants.SCENE_FARMER, { action: 'revenue_stats_appear' });
     await this.loadData();
+  }
+
+  /** spec 16.6：当前是否老年大字模式 */
+  private isElder(): boolean {
+    return FontUtil.isElder(this.modeRef.value);
   }
 
   /** 加载数据 */
@@ -185,37 +195,154 @@ export struct RevenueStats {
 
   build() {
     NavDestination() {
-      Column() {
-        // 1. 顶部栏
-        this.TopBar()
-        // 2. 内容滚动区
-        Scroll() {
-          Column({ space: 12 }) {
-            // a) 黄色总收入英雄卡
-            this.IncomeHeroCard()
-            // b) 时段切换
-            this.SegmentBar()
-            // c) 趋势折线图卡
-            this.TrendChartCard()
-            // d) 收入构成卡
-            this.CompositionCard()
-            // e) 最近收入卡
-            this.RecentIncomeCard()
+      Stack() {
+        Column() {
+          // 1. 顶部栏
+          this.TopBar()
+          // 2. 内容滚动区
+          Scroll() {
+            Column({ space: 12 }) {
+              // a) 黄色总收入英雄卡
+              this.IncomeHeroCard()
+              // b) 时段切换
+              this.SegmentBar()
+              // c) 趋势折线图卡
+              this.TrendChartCard()
+              // d) 收入构成卡
+              this.CompositionCard()
+              // e) 最近收入卡
+              this.RecentIncomeCard()
+            }
+            .width('100%')
+            .padding({ left: 16, right: 16, top: 12, bottom: 80 })
           }
           .width('100%')
-          .padding({ left: 16, right: 16, top: 12, bottom: 80 })
+          .layoutWeight(1)
+          .scrollBar(BarState.Off)
+          // 3. 底部 5 Tab
+          this.BottomTabBar()
         }
         .width('100%')
-        .layoutWeight(1)
-        .scrollBar(BarState.Off)
-        // 3. 底部 5 Tab
-        this.BottomTabBar()
+        .height('100%')
+        .backgroundColor($r('app.color.color_bg_page'))
+
+        // spec 16.10：图表放大弹窗
+        if (this.enlargedChart !== null) {
+          this.ChartEnlargedDialog()
+        }
       }
       .width('100%')
       .height('100%')
-      .backgroundColor($r('app.color.color_bg_page'))
     }
     .hideTitleBar(true)
+  }
+
+  /** spec 16.10：图表放大弹窗（全屏覆盖，重新绘制大尺寸图表） */
+  @Builder
+  ChartEnlargedDialog() {
+    Stack() {
+      // 遮罩
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor('rgba(0,0,0,0.85)')
+        .onClick(() => { this.enlargedChart = null; })
+
+      // 弹窗主体
+      Column({ space: 16 }) {
+        // 顶部标题 + 关闭按钮
+        Row() {
+          Text(this.getEnlargedChartTitle())
+            .fontSize(18)
+            .fontColor(Color.White)
+            .fontWeight(FontWeight.Bold)
+            .layoutWeight(1)
+          Text('×')
+            .fontSize(28)
+            .fontColor(Color.White)
+            .width(40)
+            .height(40)
+            .textAlign(TextAlign.Center)
+            .onClick(() => { this.enlargedChart = null; })
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
+
+        // 放大的图表区域（白色背景，便于阅读）
+        Column() {
+          Scroll() {
+            if (this.enlargedChart === 'trend') {
+              TrendChartCanvas({ points: this.trendPoints })
+                .width(680)
+                .height(380)
+            } else if (this.enlargedChart === 'composition') {
+              Row({ space: 30 }) {
+                DonutChartCanvas({ composition: this.composition, centerAmount: this.monthRevenue })
+                  .width(480)
+                  .height(480)
+                Column({ space: 16 }) {
+                  ForEach(this.composition, (item: IncomeComposition) => {
+                    Column({ space: 6 }) {
+                      Row({ space: 10 }) {
+                        Column()
+                          .width(20)
+                          .height(20)
+                          .borderRadius(10)
+                          .backgroundColor(item.color)
+                        Text(item.label)
+                          .fontSize(18)
+                          .fontColor($r('app.color.color_text_2'))
+                          .fontWeight(FontWeight.Medium)
+                        Text(`${item.percent}%`)
+                          .fontSize(18)
+                          .fontColor($r('app.color.color_accent_gold'))
+                          .fontWeight(FontWeight.Bold)
+                      }
+                      .width('100%')
+                      .alignItems(VerticalAlign.Center)
+                      Text(`¥${item.amount.toLocaleString()}`)
+                        .fontSize(20)
+                        .fontColor($r('app.color.color_ink'))
+                        .fontWeight(FontWeight.Bold)
+                        .width('100%')
+                    }
+                    .width(220)
+                    .alignItems(HorizontalAlign.Start)
+                    .padding({ bottom: 6 })
+                  }, (item: IncomeComposition) => item.type)
+                }
+                .alignItems(HorizontalAlign.Start)
+                .justifyContent(FlexAlign.Center)
+              }
+              .padding(20)
+            }
+          }
+          .scrollable(ScrollDirection.Horizontal)
+          .scrollBar(BarState.Off)
+          .width('100%')
+        }
+        .width('100%')
+        .padding(20)
+        .borderRadius(16)
+        .backgroundColor($r('app.color.color_bg_card'))
+      }
+      .width('92%')
+      .height('85%')
+      .padding(20)
+    }
+    .width('100%')
+    .height('100%')
+    .alignContent(Alignment.Center)
+  }
+
+  /** spec 16.10：放大弹窗标题 */
+  private getEnlargedChartTitle(): string {
+    if (this.enlargedChart === 'trend') {
+      return '收入趋势（放大）';
+    } else if (this.enlargedChart === 'composition') {
+      return '收入构成（放大）';
+    }
+    return '图表放大';
   }
 
   /** 顶部栏（对齐 qn-topbar：标题 + 黄色提现按钮） */
@@ -223,21 +350,21 @@ export struct RevenueStats {
   TopBar() {
     Row() {
       Text('收入统计')
-        .fontSize(18)
+        .fontSize(FontUtil.s(18, this.isElder()))
         .fontColor($r('app.color.color_ink'))
         .fontWeight(FontWeight.Bold)
         .letterSpacing(0.5)
       Blank()
       Row({ space: 5 }) {
         Text('💳')
-          .fontSize(13)
+          .fontSize(FontUtil.s(15, this.isElder()))
         Text('提现')
-          .fontSize(13)
+          .fontSize(FontUtil.s(15, this.isElder()))
           .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Bold)
       }
-      .height(32)
-      .padding({ left: 14, right: 14 })
+      .height(36)
+      .padding({ left: 16, right: 16 })
       .borderRadius(AppConstants.RADIUS_PILL)
       .backgroundColor($r('app.color.color_yellow'))
       .alignItems(VerticalAlign.Center)
@@ -277,17 +404,17 @@ export struct RevenueStats {
         // 顶部行：累计总收入 + 钱包图标
         Row() {
           Text('累计总收入')
-            .fontSize(13)
+            .fontSize(FontUtil.s(15, this.isElder()))
             .fontColor($r('app.color.color_ink_2'))
             .fontWeight(FontWeight.Medium)
           Blank()
           Row() {
             Text('💰')
-              .fontSize(16)
+              .fontSize(FontUtil.s(18, this.isElder()))
           }
-          .width(32)
-          .height(32)
-          .borderRadius(16)
+          .width(36)
+          .height(36)
+          .borderRadius(18)
           .backgroundColor('rgba(255,255,255,0.55)')
           .justifyContent(FlexAlign.Center)
           .alignItems(VerticalAlign.Center)
@@ -297,12 +424,12 @@ export struct RevenueStats {
         // 总金额大字
         Row() {
           Text('¥')
-            .fontSize(20)
+            .fontSize(FontUtil.s(22, this.isElder()))
             .fontColor($r('app.color.color_ink'))
             .fontWeight(FontWeight.Bold)
             .margin({ right: 2 })
           Text(this.formatAmount(this.totalRevenue))
-            .fontSize(32)
+            .fontSize(FontUtil.s(34, this.isElder()))
             .fontColor($r('app.color.color_ink'))
             .fontWeight(FontWeight.Bold)
             .letterSpacing(-0.5)
@@ -313,22 +440,22 @@ export struct RevenueStats {
         Row({ space: 10 }) {
           Row() {
             Text('本月 ')
-              .fontSize(13)
+              .fontSize(FontUtil.s(15, this.isElder()))
               .fontColor($r('app.color.color_ink_2'))
               .fontWeight(FontWeight.Medium)
             Text(`¥${this.monthRevenue.toLocaleString()}`)
-              .fontSize(13)
+              .fontSize(FontUtil.s(15, this.isElder()))
               .fontColor($r('app.color.color_ink'))
               .fontWeight(FontWeight.Bold)
           }
           // 增长率胶囊（绿色 + ↑）
           Row({ space: 2 }) {
             Text('↑')
-              .fontSize(10)
+              .fontSize(FontUtil.s(12, this.isElder()))
               .fontColor($r('app.color.color_green_deep'))
               .fontWeight(FontWeight.Bold)
             Text(`${this.growthRate}%`)
-              .fontSize(11)
+              .fontSize(FontUtil.s(13, this.isElder()))
               .fontColor($r('app.color.color_green_deep'))
               .fontWeight(FontWeight.Bold)
           }
@@ -338,11 +465,11 @@ export struct RevenueStats {
           .alignItems(VerticalAlign.Center)
           Row() {
             Text('可提现 ')
-              .fontSize(13)
+              .fontSize(FontUtil.s(15, this.isElder()))
               .fontColor($r('app.color.color_ink_2'))
               .fontWeight(FontWeight.Medium)
             Text(`¥${this.availableAmount.toLocaleString()}`)
-              .fontSize(13)
+              .fontSize(FontUtil.s(15, this.isElder()))
               .fontColor($r('app.color.color_ink'))
               .fontWeight(FontWeight.Bold)
           }
@@ -368,12 +495,12 @@ export struct RevenueStats {
     Row() {
       ForEach(this.segmentOptions, (opt: SegmentOption) => {
         Text(opt.label)
-          .fontSize(13)
+          .fontSize(FontUtil.s(15, this.isElder()))
           .fontColor(this.segment === opt.value ? Color.White : $r('app.color.color_text_2'))
           .fontWeight(this.segment === opt.value ? FontWeight.Bold : FontWeight.Medium)
           .backgroundColor(this.segment === opt.value ? $r('app.color.color_ink') : Color.Transparent)
           .layoutWeight(1)
-          .height(34)
+          .height(38)
           .textAlign(TextAlign.Center)
           .borderRadius(AppConstants.RADIUS_PILL)
           .onClick(() => { this.onSegmentChange(opt.value); })
@@ -385,34 +512,40 @@ export struct RevenueStats {
     .backgroundColor($r('app.color.color_fill'))
   }
 
-  /** 趋势折线图卡（对齐 qn-card：收入趋势 + 日均¥428 + 折线图） */
+  /** 趋势折线图卡（对齐 qn-card：收入趋势 + 日均 + 折线图，spec 16.8：横向滚动拓宽可用面积） */
   @Builder
   TrendChartCard() {
     Column() {
       // 标题行
       Row() {
         Text('收入趋势')
-          .fontSize(16)
+          .fontSize(FontUtil.s(18, this.isElder()))
           .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Bold)
         Blank()
         Row() {
           Text('日均 ')
-            .fontSize(12)
+            .fontSize(FontUtil.s(15, this.isElder()))
             .fontColor($r('app.color.color_text_2'))
           Text(`¥${this.dailyAvg}`)
-            .fontSize(12)
+            .fontSize(FontUtil.s(15, this.isElder()))
             .fontColor($r('app.color.color_ink'))
             .fontWeight(FontWeight.Bold)
         }
       }
       .width('100%')
-      .padding({ bottom: 6 })
+      .padding({ bottom: 8 })
 
-      // Canvas 折线图
-      TrendChartCanvas({ points: this.trendPoints })
-        .width('100%')
-        .height(140)
+      // Canvas 折线图（spec 16.8：固定宽度，支持横向滑动；spec 16.10：点击放大）
+      Scroll() {
+        TrendChartCanvas({ points: this.trendPoints })
+          .width(400)
+          .height(160)
+      }
+      .scrollable(ScrollDirection.Horizontal)
+      .scrollBar(BarState.Off)
+      .width('100%')
+      .onClick(() => { this.enlargedChart = 'trend'; })
     }
     .width('100%')
     .padding(16)
@@ -421,56 +554,66 @@ export struct RevenueStats {
     .shadow(AppConstants.SHADOW_CARD)
   }
 
-  /** 收入构成卡（对齐 qn-card：环形图 + 图例） */
+  /** 收入构成卡（对齐 qn-card：环形图 + 图例，spec 16.8：横向滚动避免遮挡） */
   @Builder
   CompositionCard() {
-    Row({ space: 16 }) {
-      // 环形图（Canvas）
-      DonutChartCanvas({ composition: this.composition, centerAmount: this.monthRevenue })
-        .width(116)
-        .height(116)
+    Scroll() {
+      Row({ space: 20 }) {
+        // 环形图（Canvas）固定尺寸
+        DonutChartCanvas({ composition: this.composition, centerAmount: this.monthRevenue })
+          .width(180)
+          .height(180)
 
-      // 图例列表
-      Column({ space: 10 }) {
-        ForEach(this.composition, (item: IncomeComposition) => {
-          Row() {
-            // 色点
-            Column()
-              .width(10)
-              .height(10)
-              .borderRadius(5)
-              .backgroundColor(item.color)
-            // 名称
-            Text(item.label)
-              .fontSize(12)
-              .fontColor($r('app.color.color_text_2'))
-              .margin({ left: 6 })
-              .layoutWeight(1)
-            // 金额
-            Text(`¥${item.amount.toLocaleString()}`)
-              .fontSize(12)
-              .fontColor($r('app.color.color_ink'))
-              .fontWeight(FontWeight.Medium)
-            // 百分比
-            Text(`${item.percent}%`)
-              .fontSize(12)
-              .fontColor($r('app.color.color_text_3'))
-              .margin({ left: 8 })
-          }
-          .width('100%')
-          .alignItems(VerticalAlign.Center)
-        }, (item: IncomeComposition) => item.type)
+        // 图例列表（垂直排列，确保不重叠）
+        Column({ space: 16 }) {
+          ForEach(this.composition, (item: IncomeComposition) => {
+            Column({ space: 6 }) {
+              // 第一行：色点 + 名称 + 百分比
+              Row({ space: 10 }) {
+                // 色点
+                Column()
+                  .width(16)
+                  .height(16)
+                  .borderRadius(8)
+                  .backgroundColor(item.color)
+                // 名称
+                Text(item.label)
+                  .fontSize(FontUtil.s(16, this.isElder()))
+                  .fontColor($r('app.color.color_text_2'))
+                  .fontWeight(FontWeight.Medium)
+                // 百分比
+                Text(`${item.percent}%`)
+                  .fontSize(FontUtil.s(16, this.isElder()))
+                  .fontColor($r('app.color.color_accent_gold'))
+                  .fontWeight(FontWeight.Bold)
+              }
+              .width('100%')
+              .alignItems(VerticalAlign.Center)
+
+              // 第二行：金额
+              Text(`¥${item.amount.toLocaleString()}`)
+                .fontSize(FontUtil.s(18, this.isElder()))
+                .fontColor($r('app.color.color_ink'))
+                .fontWeight(FontWeight.Bold)
+                .width('100%')
+            }
+            .width(160)
+            .alignItems(HorizontalAlign.Start)
+            .padding({ bottom: 4 })
+          }, (item: IncomeComposition) => item.type)
+        }
+        .alignItems(HorizontalAlign.Start)
+        .justifyContent(FlexAlign.Center)
       }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
-      .justifyContent(FlexAlign.Center)
+      .padding(16)
     }
+    .scrollable(ScrollDirection.Horizontal)
+    .scrollBar(BarState.Off)
     .width('100%')
-    .padding(16)
     .borderRadius(AppConstants.RADIUS_LG)
     .backgroundColor($r('app.color.color_bg_card'))
     .shadow(AppConstants.SHADOW_CARD)
-    .alignItems(VerticalAlign.Center)
+    .onClick(() => { this.enlargedChart = 'composition'; })
   }
 
   /** 最近收入卡（对齐 qn-card：5条收入记录） */
@@ -480,16 +623,16 @@ export struct RevenueStats {
       // 标题行
       Row() {
         Text('最近收入')
-          .fontSize(16)
+          .fontSize(FontUtil.s(18, this.isElder()))
           .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Bold)
         Blank()
         Row() {
           Text('查看全部')
-            .fontSize(12)
+            .fontSize(FontUtil.s(14, this.isElder()))
             .fontColor($r('app.color.color_text_3'))
           Text('›')
-            .fontSize(12)
+            .fontSize(FontUtil.s(14, this.isElder()))
             .fontColor($r('app.color.color_text_3'))
         }
         .onClick(() => {
@@ -506,10 +649,10 @@ export struct RevenueStats {
           // 图标圆形背景
           Row() {
             Text(item.icon)
-              .fontSize(16)
+              .fontSize(FontUtil.s(18, this.isElder()))
           }
-          .width(36)
-          .height(36)
+          .width(40)
+          .height(40)
           .borderRadius(AppConstants.RADIUS_PILL)
           .backgroundColor(this.getIconBgColor(item.iconColor))
           .justifyContent(FlexAlign.Center)
@@ -518,14 +661,14 @@ export struct RevenueStats {
           // 名称 + 类型胶囊
           Column({ space: 4 }) {
             Text(item.name)
-              .fontSize(13)
+              .fontSize(FontUtil.s(15, this.isElder()))
               .fontColor($r('app.color.color_ink'))
               .fontWeight(FontWeight.Medium)
               .maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
             Row() {
               Text(item.typeLabel)
-                .fontSize(10)
+                .fontSize(FontUtil.s(12, this.isElder()))
                 .fontColor(this.getTypeTextColor(item.typeColor))
                 .fontWeight(FontWeight.Medium)
                 .padding({ left: 8, right: 8, top: 2, bottom: 2 })
@@ -539,11 +682,11 @@ export struct RevenueStats {
           // 金额 + 时间
           Column({ space: 2 }) {
             Text(item.amountText)
-              .fontSize(13)
+              .fontSize(FontUtil.s(15, this.isElder()))
               .fontColor($r('app.color.color_live'))
               .fontWeight(FontWeight.Bold)
             Text(item.timeText)
-              .fontSize(11)
+              .fontSize(FontUtil.s(12, this.isElder()))
               .fontColor($r('app.color.color_text_3'))
           }
           .alignItems(HorizontalAlign.End)
@@ -671,6 +814,12 @@ struct TrendChartCanvas {
   /** Canvas 渲染上下文 */
   private context: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.settings);
 
+  /** spec 修复：数据加载后重绘折线图 */
+  @Monitor('points')
+  onPointsChange(monitor: IMonitor): void {
+    this.drawChart();
+  }
+
   build() {
     Canvas(this.context)
       .width('100%')
@@ -795,9 +944,9 @@ struct TrendChartCanvas {
         ctx.lineTo(c.x, c.y + 1);
         ctx.closePath();
         ctx.fill();
-        // 气泡文字
+        // 气泡文字（spec 16.9：放大字号提升可读性）
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = '700 11px HarmonyOS Sans SC, sans-serif';
+        ctx.font = '700 16px HarmonyOS Sans SC, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(`¥${c.point.value.toLocaleString()}`, c.x, c.y - 13);
@@ -813,20 +962,20 @@ struct TrendChartCanvas {
       }
     });
 
-    // 5. X 轴标签
+    // 5. X 轴标签（spec 16.9：放大字号到 15px 提升可读性）
     ctx.fillStyle = '#999999';
-    ctx.font = '10px HarmonyOS Sans SC, sans-serif';
+    ctx.font = '15px HarmonyOS Sans SC, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     coords.forEach((c: TrendCoord) => {
       if (c.point.isToday) {
         ctx.fillStyle = '#5BB315';
-        ctx.font = '700 10px HarmonyOS Sans SC, sans-serif';
+        ctx.font = '700 15px HarmonyOS Sans SC, sans-serif';
       } else {
         ctx.fillStyle = '#999999';
-        ctx.font = '10px HarmonyOS Sans SC, sans-serif';
+        ctx.font = '15px HarmonyOS Sans SC, sans-serif';
       }
-      ctx.fillText(c.point.label, c.x, h - 14);
+      ctx.fillText(c.point.label, c.x, h - 16);
     });
   }
 }
@@ -834,6 +983,7 @@ struct TrendChartCanvas {
 /**
  * DonutChartCanvas - 收入构成环形图（Canvas 自绘）
  * 对齐设计稿 svg 环形图：3段弧 + 中心文字
+ * spec 16.8：放大图表尺寸与字号，修复统计无法正常显示问题
  */
 @ComponentV2
 struct DonutChartCanvas {
@@ -846,10 +996,16 @@ struct DonutChartCanvas {
   /** Canvas 渲染上下文 */
   private context: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.settings);
 
+  /** spec 修复：数据加载后重绘环形图 */
+  @Monitor('composition')
+  onCompositionChange(monitor: IMonitor): void {
+    this.drawDonut();
+  }
+
   build() {
     Canvas(this.context)
-      .width(116)
-      .height(116)
+      .width(180)
+      .height(180)
       .onReady(() => {
         this.drawDonut();
       })
@@ -858,12 +1014,15 @@ struct DonutChartCanvas {
   /** 绘制环形图 */
   private drawDonut(): void {
     const ctx: CanvasRenderingContext2D = this.context;
-    const w: number = 116;
-    const h: number = 116;
+    const w: number = 180;
+    const h: number = 180;
     const cx: number = w / 2;
     const cy: number = h / 2;
-    const radius: number = 40;
-    const lineWidth: number = 14;
+    const radius: number = 64;
+    const lineWidth: number = 22;
+
+    // spec 16.8：先清空画布，避免重绘叠加导致显示异常
+    ctx.clearRect(0, 0, w, h);
 
     // 背景圆环
     ctx.strokeStyle = '#F6F6F4';
@@ -872,9 +1031,15 @@ struct DonutChartCanvas {
     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
     ctx.stroke();
 
-    // 绘制各段弧
+    // 绘制各段弧（spec 16.8：使用 round 线帽避免段间缝隙）
+    if (this.composition.length === 0) {
+      return;
+    }
     let startAngle: number = -Math.PI / 2;
     const total: number = this.composition.reduce((s: number, c: IncomeComposition): number => s + c.percent, 0);
+    if (total <= 0) {
+      return;
+    }
     this.composition.forEach((item: IncomeComposition) => {
       const arcAngle: number = (item.percent / total) * Math.PI * 2;
       ctx.strokeStyle = item.color;
@@ -886,15 +1051,15 @@ struct DonutChartCanvas {
       startAngle += arcAngle;
     });
 
-    // 中心文字：金额
+    // 中心文字：金额（spec 16.9：放大字号到 22px 提升可读性）
     ctx.fillStyle = '#1A1A1A';
-    ctx.font = '800 12px HarmonyOS Sans SC, sans-serif';
+    ctx.font = '800 22px HarmonyOS Sans SC, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`¥${this.centerAmount.toLocaleString()}`, cx, cy - 6);
-    // 中心文字：本月收入
+    ctx.fillText(`¥${this.centerAmount.toLocaleString()}`, cx, cy - 12);
+    // 中心文字：本月收入（spec 16.9：放大到 15px）
     ctx.fillStyle = '#999999';
-    ctx.font = '8.5px HarmonyOS Sans SC, sans-serif';
-    ctx.fillText('本月收入', cx, cy + 10);
+    ctx.font = '15px HarmonyOS Sans SC, sans-serif';
+    ctx.fillText('本月收入', cx, cy + 16);
   }
 }

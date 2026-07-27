@@ -12,18 +12,31 @@
  *  - role=viewer：观众端，仅观看
  */
 
-import { Logger, AppConstants, ToastUtil, NavigationHelper, RouteName } from 'common';
-import { LiveManageItem } from '../../model/FarmerModels';
+import { Logger, AppConstants, ToastUtil, NavigationHelper, RouteName, TokenStore } from 'common';
+import { UserInfo } from 'common';
+import { LiveManageItem, FarmerProductItem } from '../../model/FarmerModels';
 import { LiveComment, Gift } from '../../model/FarmerLiveModels';
 import { LiveManageRepository } from '../../repository/LiveManageRepository';
-import { MOCK_LIVE_MANAGE_LIST } from '../../mock/FarmerMock';
+import { MOCK_LIVE_MANAGE_LIST, MOCK_FARMER_PRODUCTS } from '../../mock/FarmerMock';
 import { MOCK_LIVE_COMMENTS, MOCK_GIFTS } from '../../mock/FarmerLiveMock';
+import { ImageUtil } from '../../utils/ImageUtil';
 
 /** 弹幕消息本地存储 */
 interface DanmakuMessage {
   commentId: string;
   nickname: string;
   content: string;
+}
+
+/** 直播状态广播（spec 16.9：跨页面同步结束直播状态） */
+export class LiveStatusBroadcaster {
+  static endedLiveIds: Set<string> = new Set<string>();
+  static markEnded(liveId: string): void {
+    LiveStatusBroadcaster.endedLiveIds.add(liveId);
+  }
+  static isEnded(liveId: string): boolean {
+    return LiveStatusBroadcaster.endedLiveIds.has(liveId);
+  }
 }
 
 @ComponentV2
@@ -34,6 +47,10 @@ export struct LiveRoom {
   @Local role: 'broadcaster' | 'viewer' = 'viewer';
   /** 直播信息 */
   @Local liveInfo: LiveManageItem | null = null;
+  /** 主播昵称（spec 16.9：同步注册用户信息） */
+  @Local anchorName: string = '主播';
+  /** 主播头像 URI（spec 16.9：同步注册用户信息） */
+  @Local anchorAvatar: string = '';
   /** 实时观看人数 */
   @Local onlineCount: number = 0;
   /** 实时累计收入（礼物 + 订单） */
@@ -50,6 +67,14 @@ export struct LiveRoom {
   @Local gifts: Gift[] = MOCK_GIFTS;
   /** 商品袋 */
   @Local productBag: string[] = [];
+  /** 小黄车商品列表（spec：右下角显示正在卖的商品，spec 16.9：支持修改） */
+  @Local cartProducts: FarmerProductItem[] = [];
+  /** 小黄车是否展开 */
+  @Local cartExpanded: boolean = false;
+  /** 小黄车编辑面板是否展开（spec 16.9：链接可修改） */
+  @Local cartEditOpen: boolean = false;
+  /** 可选商品池（spec 16.9：链接编辑用） */
+  @Local candidateProducts: FarmerProductItem[] = [];
   /** 弹幕推送定时器（Mock） */
   private danmakuTimer: number = -1;
 
@@ -59,6 +84,7 @@ export struct LiveRoom {
     const roleParam: string = params?.role ?? 'viewer';
     this.role = roleParam === 'broadcaster' ? 'broadcaster' : 'viewer';
     Logger.info(AppConstants.SCENE_FARMER, { action: 'live_room_appear', liveId: this.liveId, role: this.role });
+    await this.loadAnchorInfo();
     await this.loadLiveInfo();
     await this.loadComments();
     await this.loadGifts();
@@ -66,6 +92,19 @@ export struct LiveRoom {
       this.startMockIncome();
     }
     this.startMockDanmaku();
+  }
+
+  /** spec 16.9：加载注册用户信息作为主播昵称/头像 */
+  private async loadAnchorInfo(): Promise<void> {
+    try {
+      const user: UserInfo | null = await TokenStore.getUserInfo();
+      if (user) {
+        this.anchorName = user.nickname && user.nickname.length > 0 ? user.nickname : '主播';
+        this.anchorAvatar = user.avatar;
+      }
+    } catch (err) {
+      Logger.error(AppConstants.SCENE_FARMER, { action: 'load_anchor_info_fail', error: (err as Error).message });
+    }
   }
 
   aboutToDisappear(): void {
@@ -86,6 +125,12 @@ export struct LiveRoom {
       this.totalIncome = found.totalGiftIncome + found.totalOrderIncome;
       this.productBag = [];
     }
+    // spec 16.9：可选商品池（已上架商品），用于链接编辑
+    this.candidateProducts = MOCK_FARMER_PRODUCTS.filter(
+      (p: FarmerProductItem): boolean => p.status === 'approved'
+    );
+    // spec：加载小黄车商品（默认取前 3 件已上架商品作为直播间售卖商品）
+    this.cartProducts = this.candidateProducts.slice(0, 3);
   }
 
   /** 加载评论 */
@@ -149,7 +194,7 @@ export struct LiveRoom {
     }
     const newMsg: DanmakuMessage = {
       commentId: `me_${Date.now()}`,
-      nickname: this.role === 'broadcaster' ? '主播' : '我',
+      nickname: this.role === 'broadcaster' ? this.anchorName : '我',
       content: this.inputComment
     };
     this.danmakuList = this.danmakuList.concat([newMsg]).slice(-50);
@@ -166,10 +211,11 @@ export struct LiveRoom {
     }
   }
 
-  /** 结束直播（主播端） */
+  /** 结束直播（主播端，spec 16.9：同步状态广播，使直播列表页刷新） */
   private async endLive(): Promise<void> {
     try {
       await LiveManageRepository.endLive(this.liveId);
+      LiveStatusBroadcaster.markEnded(this.liveId);
       ToastUtil.success('直播已结束');
       Logger.info(AppConstants.SCENE_FARMER, { action: 'live_end_success', liveId: this.liveId });
       NavigationHelper.pop();
@@ -179,17 +225,56 @@ export struct LiveRoom {
     }
   }
 
+  /** spec 16.9：从小黄车移除商品链接 */
+  private removeCartProduct(productId: string): void {
+    this.cartProducts = this.cartProducts.filter((p: FarmerProductItem): boolean => p.productId !== productId);
+  }
+
+  /** spec 16.9：向小黄车添加商品链接 */
+  private addCartProduct(productId: string): void {
+    const exists: boolean = this.cartProducts.some((p: FarmerProductItem): boolean => p.productId === productId);
+    if (exists) {
+      ToastUtil.info('该商品已在小黄车');
+      return;
+    }
+    const target: FarmerProductItem | undefined = this.candidateProducts.find(
+      (p: FarmerProductItem): boolean => p.productId === productId
+    );
+    if (target) {
+      this.cartProducts = this.cartProducts.concat([target]);
+      ToastUtil.success('已添加到小黄车');
+    }
+  }
+
   build() {
     NavDestination() {
       Stack() {
-        // 直播画面背景（全屏黑底）
+        // 直播画面背景（spec：显示封面图，支持真实图片 URI 和 Mock 图片 key）
         Column() {
-          Text('📹')
-            .fontSize(120)
-          Text(this.liveInfo?.title ?? '直播间')
-            .fontSize(16)
-            .fontColor(Color.White)
-            .margin({ top: 12 })
+          if (this.liveInfo && this.liveInfo.coverImage) {
+            // spec 16.8：支持 file:// / http(s):// 真实 URI 或 Mock 图片 key
+            if (this.liveInfo.coverImage.startsWith('file://') ||
+                this.liveInfo.coverImage.startsWith('http://') ||
+                this.liveInfo.coverImage.startsWith('https://')) {
+              Image(this.liveInfo.coverImage)
+                .width('100%')
+                .height('100%')
+                .objectFit(ImageFit.Cover)
+            } else {
+              // 使用 ImageUtil 解析 Mock 封面 key
+              Image(ImageUtil.get(this.liveInfo.coverImage))
+                .width('100%')
+                .height('100%')
+                .objectFit(ImageFit.Cover)
+            }
+          } else {
+            Text('📹')
+              .fontSize(120)
+            Text(this.liveInfo?.title ?? '直播间')
+              .fontSize(16)
+              .fontColor(Color.White)
+              .margin({ top: 12 })
+          }
         }
         .width('100%')
         .height('100%')
@@ -219,6 +304,11 @@ export struct LiveRoom {
         }
         .width('100%')
         .height('100%')
+
+        // spec：小黄车（右下角显示正在卖的商品）
+        if (this.cartProducts.length > 0) {
+          this.SmallCart()
+        }
       }
       .width('100%')
       .height('100%')
@@ -238,19 +328,28 @@ export struct LiveRoom {
           .fontColor(Color.White)
           .onClick(() => NavigationHelper.pop())
 
-        // 主播头像
-        Text('👤')
-          .fontSize(20)
-          .fontColor(Color.White)
-          .width(40)
-          .height(40)
-          .borderRadius(20)
-          .backgroundColor($r('app.color.color_cta_black'))
-          .textAlign(TextAlign.Center)
+        // 主播头像（spec 16.9：同步注册用户头像）
+        if (this.anchorAvatar.length > 0 &&
+            (this.anchorAvatar.startsWith('file://') || this.anchorAvatar.startsWith('http'))) {
+          Image(this.anchorAvatar)
+            .width(40)
+            .height(40)
+            .borderRadius(20)
+            .border({ width: 1, color: 'rgba(255,255,255,0.6)' })
+        } else {
+          Text('👤')
+            .fontSize(20)
+            .fontColor(Color.White)
+            .width(40)
+            .height(40)
+            .borderRadius(20)
+            .backgroundColor($r('app.color.color_cta_black'))
+            .textAlign(TextAlign.Center)
+        }
 
-        // 昵称 + 在线人数
+        // 昵称 + 在线人数（spec 16.9：主播名同步注册用户昵称）
         Column({ space: 2 }) {
-          Text(this.liveInfo?.title ?? '主播')
+          Text(this.anchorName)
             .fontSize(13)
             .fontColor(Color.White)
             .fontWeight(FontWeight.Medium)
@@ -297,7 +396,7 @@ export struct LiveRoom {
     .align(Alignment.Top)
   }
 
-  /** 弹幕区 spec 15.6.2：左侧竖排 */
+  /** 弹幕区 spec 16.10：贴左下角，扩大可视区域避免遮挡弹幕内容 */
   @Builder
   DanmakuList() {
     Column() {
@@ -306,27 +405,32 @@ export struct LiveRoom {
           ForEach(this.danmakuList, (msg: DanmakuMessage, _idx: number) => {
             Row({ space: 6 }) {
               Text(`${msg.nickname}:`)
-                .fontSize(12)
+                .fontSize(13)
                 .fontColor($r('app.color.color_accent_gold'))
+                .fontWeight(FontWeight.Medium)
               Text(msg.content)
-                .fontSize(12)
+                .fontSize(13)
                 .fontColor(Color.White)
                 .layoutWeight(1)
             }
-            .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-            .backgroundColor('rgba(0,0,0,0.3)')
-            .borderRadius(10)
+            .padding({ left: 10, right: 10, top: 5, bottom: 5 })
+            .backgroundColor('rgba(0,0,0,0.45)')
+            .borderRadius(12)
           }, (msg: DanmakuMessage) => msg.commentId)
         }
         .width('100%')
+        .alignItems(HorizontalAlign.Start)
       }
       .width('60%')
-      .height('40%')
+      .layoutWeight(1)
       .align(Alignment.Start)
     }
     .width('100%')
     .height('100%')
-    .padding({ left: 12, bottom: 80, top: 120 })
+    // spec 16.10：贴左下角，top 减少到 80 避免弹幕被顶部主播信息遮挡，
+    // bottom 调到 130 让弹幕在底部互动栏上方完全可见
+    .padding({ left: 2, bottom: 130, top: 80 })
+    .justifyContent(FlexAlign.End)
     .align(Alignment.Start)
   }
 
@@ -533,5 +637,170 @@ export struct LiveRoom {
     .padding(12)
     .borderRadius(12)
     .backgroundColor('rgba(0,0,0,0.7)')
+  }
+
+  /** spec：小黄车（右下角显示正在卖的商品，类似抖音直播间） */
+  @Builder
+  SmallCart() {
+    Column() {
+      if (this.cartExpanded) {
+        // 展开状态：显示商品列表
+        Column({ space: 8 }) {
+          // 标题栏（spec 16.9：主播端显示"管理"链接编辑入口）
+          Row() {
+            Text('正在卖')
+              .fontSize(13)
+              .fontColor(Color.White)
+              .fontWeight(FontWeight.Bold)
+            Blank()
+            if (this.role === 'broadcaster') {
+              Text('✏️ 管理')
+                .fontSize(11)
+                .fontColor($r('app.color.color_accent_gold'))
+                .onClick(() => { this.cartEditOpen = !this.cartEditOpen; })
+            }
+            Text('✕')
+              .fontSize(14)
+              .fontColor(Color.White)
+              .onClick(() => { this.cartExpanded = false; })
+          }
+          .width('100%')
+
+          // spec 16.9：链接编辑面板（主播端，可增删小黄车商品链接）
+          if (this.role === 'broadcaster' && this.cartEditOpen) {
+            this.CartEditPanel()
+          }
+
+          // 商品列表
+          ForEach(this.cartProducts, (product: FarmerProductItem, _idx: number) => {
+            Row({ space: 8 }) {
+              Text('🌾')
+                .fontSize(24)
+                .width(40)
+                .height(40)
+                .borderRadius(6)
+                .backgroundColor('rgba(255,255,255,0.15)')
+                .textAlign(TextAlign.Center)
+              Column({ space: 2 }) {
+                Text(product.title)
+                  .fontSize(12)
+                  .fontColor(Color.White)
+                  .maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+                Text(`¥${product.price.toFixed(2)}`)
+                  .fontSize(13)
+                  .fontColor($r('app.color.color_price'))
+                  .fontWeight(FontWeight.Bold)
+              }
+              .alignItems(HorizontalAlign.Start)
+              .layoutWeight(1)
+              // spec 16.9：编辑模式下显示移除按钮
+              if (this.role === 'broadcaster' && this.cartEditOpen) {
+                Text('✕')
+                  .fontSize(12)
+                  .fontColor($r('app.color.color_error'))
+                  .width(20)
+                  .height(20)
+                  .textAlign(TextAlign.Center)
+                  .onClick(() => { this.removeCartProduct(product.productId); })
+              }
+            }
+            .width('100%')
+            .padding({ top: 4, bottom: 4 })
+          }, (product: FarmerProductItem) => product.productId)
+        }
+        .width(180)
+        .padding(10)
+        .borderRadius(12)
+        .backgroundColor('rgba(0,0,0,0.8)')
+      } else {
+        // 收起状态：显示第一个商品的缩略信息
+        if (this.cartProducts.length > 0) {
+          Row({ space: 8 }) {
+            Text('🛒')
+              .fontSize(20)
+            Column({ space: 1 }) {
+              Text(this.cartProducts[0].title)
+                .fontSize(11)
+                .fontColor(Color.White)
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+                .constraintSize({ maxWidth: 100 })
+              Text(`¥${this.cartProducts[0].price.toFixed(2)}`)
+                .fontSize(12)
+                .fontColor($r('app.color.color_price'))
+                .fontWeight(FontWeight.Bold)
+            }
+            .alignItems(HorizontalAlign.Start)
+            // 展开提示
+            Text('▾')
+              .fontSize(12)
+              .fontColor(Color.White)
+          }
+          .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+          .borderRadius(20)
+          .backgroundColor('rgba(0,0,0,0.7)')
+          .alignItems(VerticalAlign.Center)
+          .onClick(() => { this.cartExpanded = true; })
+        }
+      }
+    }
+    // spec 16.9：小黄车下移到 y: '74%'，编辑面板展开时上移避免遮挡
+    .position({ x: '52%', y: this.cartEditOpen ? '40%' : '74%' })
+  }
+
+  /** spec 16.9：小黄车链接编辑面板（主播端，可添加候选商品到小黄车） */
+  @Builder
+  CartEditPanel() {
+    Column({ space: 6 }) {
+      Text('添加商品链接')
+        .fontSize(11)
+        .fontColor('rgba(255,255,255,0.8)')
+        .alignSelf(ItemAlign.Start)
+      if (this.candidateProducts.length === 0) {
+        Text('暂无可选商品')
+          .fontSize(10)
+          .fontColor('rgba(255,255,255,0.5)')
+      } else {
+        ForEach(this.candidateProducts, (product: FarmerProductItem, _idx: number) => {
+          Row({ space: 6 }) {
+            Text('🌾')
+              .fontSize(16)
+              .width(24)
+              .height(24)
+              .textAlign(TextAlign.Center)
+            Text(product.title)
+              .fontSize(11)
+              .fontColor(Color.White)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .layoutWeight(1)
+            Text(`¥${product.price.toFixed(2)}`)
+              .fontSize(10)
+              .fontColor($r('app.color.color_price'))
+            Text(this.cartProducts.some((p: FarmerProductItem): boolean => p.productId === product.productId) ? '✓' : '+')
+              .fontSize(12)
+              .fontColor(this.cartProducts.some((p: FarmerProductItem): boolean => p.productId === product.productId)
+                ? $r('app.color.color_text_secondary') : $r('app.color.color_accent_gold'))
+              .width(20)
+              .height(20)
+              .textAlign(TextAlign.Center)
+              .onClick(() => {
+                if (this.cartProducts.some((p: FarmerProductItem): boolean => p.productId === product.productId)) {
+                  this.removeCartProduct(product.productId);
+                } else {
+                  this.addCartProduct(product.productId);
+                }
+              })
+          }
+          .width('100%')
+          .padding({ top: 3, bottom: 3 })
+        }, (product: FarmerProductItem) => product.productId)
+      }
+    }
+    .width('100%')
+    .padding({ top: 6, bottom: 6, left: 6, right: 6 })
+    .borderRadius(8)
+    .backgroundColor('rgba(255,255,255,0.08)')
   }
 }

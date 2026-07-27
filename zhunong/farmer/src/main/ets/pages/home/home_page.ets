@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿/**
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿/**
  * home_page - 农户卖家端首页
  * 对齐设计稿 pages/farmer-home.html：
  *  - 顶部 4 入口导航栏（商城/直播/智能体/搜索）白底圆角18浮卡 56vp
@@ -12,7 +12,7 @@
  * spec 3.2.1 / 3.2.3 / 3.2.4 / 6.6.1
  */
 
-import { TokenStore, Logger, AppConstants, ModeStore, NavigationHelper, RouteName, FontUtil } from 'common';
+import { TokenStore, Logger, AppConstants, ModeStore, NavigationHelper, RouteName, FontUtil, SharedProductStore, SharedProduct } from 'common';
 import { UserInfo } from 'common';
 import type { CurrentModeKey } from 'common';
 import { FarmerProfile, RevenueSummary, RevenueRange, FarmerProductItem } from '../../model/FarmerModels';
@@ -23,6 +23,11 @@ import { ImageUtil } from '../../utils/ImageUtil';
 
 /** 跳转商品编辑页的路由参数（spec 10.12：ArkTS 严格模式要求具体 interface） */
 interface ProductEditParam {
+  productId: string;
+}
+
+/** spec 16.10：跳转商品详情购买页的路由参数 */
+interface ProductDetailParam {
   productId: string;
 }
 
@@ -38,6 +43,10 @@ export struct FarmerHomePage {
   @Local currentTab: number = 0;
   /** 卖家信息 */
   @Local profile: FarmerProfile | null = null;
+  /** spec 16.10：用户昵称（与设置页个人信息同步） */
+  @Local userNickname: string = '';
+  /** spec 16.10：用户头像 URI（与设置页个人信息同步） */
+  @Local userAvatar: string = '';
   /** 当前模式（标准/老年大字）—— spec 10.18：@Local modeRef 持有 AppStorageV2 共享 ref */
   @Local modeRef: CurrentModeKey = ModeStore.connectModeRef();
   /** 营收时间范围 */
@@ -63,6 +72,26 @@ export struct FarmerHomePage {
   async aboutToAppear(): Promise<void> {
     Logger.info(AppConstants.SCENE_FARMER, { action: 'home_page_appear', mode: this.modeRef.value });
     await this.loadData();
+    await this.loadUserInfo();
+  }
+
+  /** spec 16.10：从发布页/设置页返回后刷新，确保新发布商品立即显示在"我的商品"，并同步用户头像/姓名 */
+  onPageShow(): void {
+    this.syncPublishedProducts();
+    this.loadUserInfo();
+  }
+
+  /** spec 16.10：从 TokenStore 加载用户头像和昵称（与设置页个人信息同步） */
+  private async loadUserInfo(): Promise<void> {
+    try {
+      const user: UserInfo | null = await TokenStore.getUserInfo();
+      if (user) {
+        this.userNickname = user.nickname && user.nickname.length > 0 ? user.nickname : '';
+        this.userAvatar = user.avatar;
+      }
+    } catch (err) {
+      Logger.error(AppConstants.SCENE_FARMER, { action: 'home_load_user_info_fail', error: (err as Error).message });
+    }
   }
 
   /** 加载数据 */
@@ -71,10 +100,44 @@ export struct FarmerHomePage {
       this.profile = await FarmerRepository.getMyProfile(MOCK_FARMER_ID);
       this.revenueData = await RevenueRepository.getRevenueSummary(MOCK_FARMER_ID, this.revenueRange);
       this.productList = getMockHomeProducts();
+      // spec 16.10：同步 SharedProductStore 中已发布商品到首页"我的商品"
+      await this.syncPublishedProducts();
     } catch (err) {
       Logger.error(AppConstants.SCENE_FARMER, { action: 'home_load_fail', error: (err as Error).message });
       // 兜底 Mock
       this.productList = getMockHomeProducts();
+    }
+  }
+
+  /** spec 16.10：合并 SharedProductStore 中已发布商品到首页"我的商品"列表头部 */
+  private async syncPublishedProducts(): Promise<void> {
+    try {
+      const shared: SharedProduct[] = await SharedProductStore.getAll();
+      const existingIds: Set<string> = new Set<string>(this.productList.map(
+        (p: FarmerProductItem): string => p.productId
+      ));
+      const mine: FarmerProductItem[] = shared
+        .filter((p: SharedProduct): boolean => p.status === 'approved')
+        .map((p: SharedProduct): FarmerProductItem => {
+          const item: FarmerProductItem = {
+            productId: p.productId,
+            title: p.title,
+            mainImage: p.mainImages.length > 0 ? p.mainImages[0] : 'prod_default',
+            price: p.price,
+            stock: p.stock,
+            monthlySales: p.monthlySales,
+            monthlyGmv: p.monthlyGmv,
+            status: p.status,
+            createdAt: p.createdAt
+          };
+          return item;
+        })
+        .filter((p: FarmerProductItem): boolean => !existingIds.has(p.productId));
+      if (mine.length > 0) {
+        this.productList = mine.concat(this.productList);
+      }
+    } catch (err) {
+      Logger.error(AppConstants.SCENE_FARMER, { action: 'home_sync_products_fail', error: (err as Error).message });
     }
   }
 
@@ -282,15 +345,19 @@ export struct FarmerHomePage {
           .color('rgba(255,215,0,0.3)')
           .margin({ top: 16, bottom: 16 })
 
-        // 卖家名称行（对齐 qn-rev-seller：头像 + 店铺名 + V徽章）
+        // 卖家名称行（对齐 qn-rev-seller：头像 + 店铺名 + V徽章；spec 16.10：同步设置页头像/姓名）
         Row({ space: 10 }) {
-          Image($r('app.media.avatar_farmer'))
+          Image(this.userAvatar && this.userAvatar.length > 0
+            ? this.userAvatar
+            : $r('app.media.avatar_farmer'))
             .width(32)
             .height(32)
             .borderRadius(16)
             .objectFit(ImageFit.Cover)
             .border({ width: 2, color: 'rgba(255,217,61,0.4)' })
-          Text(this.profile?.shopName ?? '助农卖家')
+          Text(this.userNickname && this.userNickname.length > 0
+            ? this.userNickname
+            : (this.profile?.shopName ?? '助农卖家'))
             .fontSize(this.isElderMode() ? 15 : 13)
             .fontColor(Color.White)
             .fontWeight(FontWeight.Bold)
@@ -463,8 +530,9 @@ export struct FarmerHomePage {
     .alignItems(HorizontalAlign.Start)
     .onClick(() => {
       Logger.info(AppConstants.SCENE_FARMER, { action: 'product_card_click', productId: product.productId });
-      const param: ProductEditParam = { productId: product.productId };
-      NavigationHelper.push(RouteName.FARMER_PRODUCT_EDIT, param);
+      // spec 16.10：所有商品点击进入详情购买页
+      const param: ProductDetailParam = { productId: product.productId };
+      NavigationHelper.push(RouteName.FARMER_PRODUCT_DETAIL, param);
     })
   }
 
