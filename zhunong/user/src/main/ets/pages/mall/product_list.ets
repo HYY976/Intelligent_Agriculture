@@ -10,6 +10,7 @@ import { RouteName, NavigationHelper, Logger, AppConstants } from 'common';
 import { ProductListItem, ProductSortBy } from '../../model/ProductModels';
 import { ProductListDataSource } from '../../viewmodel/ProductListDataSource';
 import { ImageUtil } from '../../utils/ImageUtil';
+import { ReplaceableImage } from '../../components/ReplaceableImage';
 
 /** 排序选项配置 */
 interface SortOption {
@@ -267,12 +268,7 @@ export struct ProductList {
   ProductRowCard(item: ProductListItem) {
     Row({ space: 12 }) {
       // 主图（80×80 圆角，对齐设计稿 qn-prod-img）
-      Image(ImageUtil.get(item.mainImage))
-        .width(80)
-        .height(80)
-        .borderRadius(AppConstants.RADIUS_MD)
-        .objectFit(ImageFit.Cover)
-        .backgroundColor($r('app.color.color_fill'))
+      ReplaceableImage({ imageKey: item.mainImage, imgWidth: 80, imgHeight: 80, imgRadius: AppConstants.RADIUS_MD, imgFit: ImageFit.Cover })
 
       // 信息区（对齐设计稿 qn-prod-info：标题 + 卖家 + 价格行）
       Column() {

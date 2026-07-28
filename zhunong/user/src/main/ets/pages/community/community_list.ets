@@ -15,6 +15,7 @@ import { Topic, PostListItem, PostSortBy } from '../../model/CommunityModels';
 import { MOCK_TOPICS } from '../../mock/CommunityMock';
 import { CommunityDataSource } from '../../viewmodel/CommunityDataSource';
 import { ImageUtil } from '../../utils/ImageUtil';
+import { ReplaceableImage } from '../../components/ReplaceableImage';
 
 /** 跳转帖子详情的路由参数（spec 10.12：ArkTS 严格模式要求具体 interface） */
 interface PostDetailParam {
@@ -315,11 +316,7 @@ export struct CommunityContent {
           ForEach(post.images.slice(0, 3), (img: string, idx: number) => {
             GridItem() {
               Stack() {
-                Image(ImageUtil.get(img))
-                  .width('100%')
-                  .height(80)
-                  .objectFit(ImageFit.Cover)
-                  .borderRadius(6)
+                ReplaceableImage({ imageKey: img, imgWidth: '100%', imgHeight: 80, imgRadius: 6, imgFit: ImageFit.Cover })
                 if (idx === 2 && post.images.length > 3) {
                   Text(`+${post.images.length - 3}`)
                     .fontSize(12)

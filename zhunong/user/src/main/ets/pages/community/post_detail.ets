@@ -16,6 +16,7 @@ import {
   toggleMockCommentLike, addMockComment, addMockReply, submitMockReport
 } from '../../mock/CommunityMock';
 import { ImageUtil } from '../../utils/ImageUtil';
+import { ReplaceableImage } from '../../components/ReplaceableImage';
 
 /** 帖子详情路由参数（ArkTS 严格模式要求具体 interface） */
 interface PostDetailParam {
@@ -415,10 +416,7 @@ export struct PostDetailPage {
     Column({ space: 8 }) {
       if (images.length === 1) {
         // 单图：大图展示（对齐设计稿 pd-image）
-        Image(ImageUtil.get(images[0]))
-          .width('100%')
-          .borderRadius(AppConstants.RADIUS_MD)
-          .objectFit(ImageFit.Cover)
+        ReplaceableImage({ imageKey: images[0], imgWidth: '100%', imgHeight: 220, imgRadius: AppConstants.RADIUS_MD, imgFit: ImageFit.Cover })
           .margin({ top: 12 })
           .onClick(() => {
             this.onImageClick(0);
@@ -428,11 +426,7 @@ export struct PostDetailPage {
         Grid() {
           ForEach(images, (imgKey: string, idx: number) => {
             GridItem() {
-              Image(ImageUtil.get(imgKey))
-                .width('100%')
-                .height('100%')
-                .borderRadius(AppConstants.RADIUS_SM)
-                .objectFit(ImageFit.Cover)
+              ReplaceableImage({ imageKey: imgKey, imgWidth: '100%', imgHeight: '100%', imgRadius: AppConstants.RADIUS_SM, imgFit: ImageFit.Cover })
                 .onClick(() => {
                   this.onImageClick(idx);
                 })
@@ -691,9 +685,7 @@ export struct PostDetailPage {
       // 图片滑动查看
       Swiper() {
         ForEach(this.post ? this.post.images : [], (imgKey: string, idx: number) => {
-          Image(ImageUtil.get(imgKey))
-            .width('100%')
-            .objectFit(ImageFit.Contain)
+          ReplaceableImage({ imageKey: imgKey, imgWidth: '100%', imgHeight: '100%', imgFit: ImageFit.Contain })
         }, (imgKey: string, idx: number) => `${imgKey}_${idx}`)
       }
       .index(this.currentImageIndex)

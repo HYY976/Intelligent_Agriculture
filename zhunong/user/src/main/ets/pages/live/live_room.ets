@@ -12,6 +12,7 @@ import { RouteName, NavigationHelper, Logger, AppConstants, ToastUtil } from 'co
 import { LiveInfo, LiveComment, LiveGift, LiveBagItem } from '../../model/LiveModels';
 import { getMockLiveById, getMockLiveComments, getMockLiveBag, MOCK_GIFTS, toggleMockFollow, sendMockGift, likeMockLive } from '../../mock/LiveMock';
 import { ImageUtil } from '../../utils/ImageUtil';
+import { ReplaceableImage } from '../../components/ReplaceableImage';
 
 /** 跳转商品详情的路由参数（spec 10.12：ArkTS 严格模式要求具体 interface） */
 interface ProductDetailParam {
@@ -261,10 +262,7 @@ export struct LiveRoom {
   LiveBackground() {
     Stack() {
       // 背景图（占位直播画面）
-      Image(ImageUtil.get(this.live!.coverImage))
-        .width('100%')
-        .height('100%')
-        .objectFit(ImageFit.Cover)
+      ReplaceableImage({ imageKey: this.live!.coverImage, imgWidth: '100%', imgHeight: '100%', imgFit: ImageFit.Cover })
 
       // 渐变遮罩（顶底深、中间透，对齐设计稿 qn-live-gradient）
       Column() {

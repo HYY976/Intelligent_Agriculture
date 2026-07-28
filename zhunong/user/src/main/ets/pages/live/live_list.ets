@@ -12,6 +12,7 @@ import { LiveListItem, LiveCategory, getLiveCategoryLabel } from '../../model/Li
 import { LiveStatus } from 'common';
 import { LiveDataSource } from '../../viewmodel/LiveDataSource';
 import { ImageUtil } from '../../utils/ImageUtil';
+import { ReplaceableImage } from '../../components/ReplaceableImage';
 
 /** 跳转直播间的路由参数（spec 10.12：ArkTS 严格模式要求具体 interface） */
 interface LiveRoomParam {
@@ -251,10 +252,7 @@ export struct LiveList {
     Column({ space: 0 }) {
       // 1. 封面区（对齐农户端：160px 高 + 状态标签 + 观看人数）
       Stack() {
-        Image(ImageUtil.get(item.coverImage))
-          .width('100%')
-          .height(160)
-          .objectFit(ImageFit.Cover)
+        ReplaceableImage({ imageKey: item.coverImage, imgWidth: '100%', imgHeight: 160, imgFit: ImageFit.Cover })
 
         // 直播状态标签（左上，对齐农户端三状态差异化）
         if (item.status === 'living') {

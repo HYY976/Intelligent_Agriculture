@@ -26,6 +26,7 @@ import { LiveRepository } from '../../repository/LiveRepository';
 import { LiveListItem, LiveListParam } from '../../model/LiveModels';
 import { getMockCartCount } from '../../mock/CartMock';
 import { ImageUtil } from '../../utils/ImageUtil';
+import { ReplaceableImage } from '../../components/ReplaceableImage';
 
 /** 跳转商品详情的路由参数（spec 10.12：ArkTS 严格模式要求具体 interface） */
 interface ProductDetailParam {
@@ -741,11 +742,7 @@ export struct HomePage {
     Column({ space: 0 }) {
       // 封面 + LIVE 徽标（左上）+ 观看人数（右下）（对齐 .qn-thumb）
       Stack({ alignContent: Alignment.BottomEnd }) {
-        Image(ImageUtil.get(live.coverImage))
-          .width(148)
-          .height(96)
-          .borderRadius(AppConstants.RADIUS_MD)
-          .objectFit(ImageFit.Cover)
+        ReplaceableImage({ imageKey: live.coverImage, imgWidth: 148, imgHeight: 96, imgRadius: AppConstants.RADIUS_MD, imgFit: ImageFit.Cover })
 
         // LIVE 徽标（对齐 .qn-live-badge：左上角红底白字，绝对定位）
         Row({ space: 3 }) {

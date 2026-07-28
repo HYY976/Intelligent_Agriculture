@@ -339,7 +339,7 @@ export struct MessageContent {
     .scrollable(ScrollDirection.Horizontal)
     .scrollBar(BarState.Off)
     .width('100%')
-    .margin({ top: 14 })
+    .margin({ top: 6 })
   }
 
   /** 会话列表（对齐设计稿 qn-msg-card 白卡分组） */
@@ -373,7 +373,7 @@ export struct MessageContent {
           .textAlign(TextAlign.Center)
       }
       .width('100%')
-      .padding({ left: 16, right: 16, top: 6 })
+      .padding({ left: 16, right: 16, top: 0 })
     }
     .layoutWeight(1)
     .width('100%')

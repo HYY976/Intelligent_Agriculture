@@ -13,6 +13,8 @@
 import { TokenStore, ThemeStore, Logger, AppConstants, ToastUtil, RouteName, NavigationHelper } from 'common';
 import type { CurrentThemeKey, UserInfo } from 'common';
 import { ImageUtil } from '../../utils/ImageUtil';
+import { photoAccessHelper } from '@kit.MediaLibraryKit';
+import fs from '@ohos.file.fs';
 
 /** 设置项图标主题色（对齐设计稿 qn-ico-*） */
 type SettingIconTheme = 'yellow' | 'green' | 'blue' | 'red' | 'orange' | 'soft';
@@ -133,6 +135,43 @@ export struct Setting {
     this.showProfileEditor = false;
     ToastUtil.success('已保存，全端同步生效');
     Logger.info(AppConstants.SCENE_USER, { action: 'profile_updated', nickname: trimmedName, avatar: this.editAvatarKey });
+  }
+
+  /** 从相册选择照片作为头像（复制到应用内部存储，保证持久化） */
+  private async pickPhoto(): Promise<void> {
+    try {
+      const options: photoAccessHelper.PhotoSelectOptions = new photoAccessHelper.PhotoSelectOptions();
+      options.MIMEType = photoAccessHelper.PhotoViewMIMETypes.IMAGE_TYPE;
+      options.maxSelectNumber = 1;
+      const photoPicker: photoAccessHelper.PhotoViewPicker = new photoAccessHelper.PhotoViewPicker();
+      const result: photoAccessHelper.PhotoSelectResult = await photoPicker.select(options);
+      if (result.photoUris && result.photoUris.length > 0) {
+        const sourceUri: string = result.photoUris[0];
+        // 复制到应用内部存储，保证重启后仍可访问
+        const filesDir: string = getContext(this).filesDir;
+        const destFileName: string = `avatar_${Date.now()}.jpg`;
+        const destPath: string = `${filesDir}/${destFileName}`;
+        const srcFile = fs.openSync(sourceUri, fs.OpenMode.READ_ONLY);
+        const destFile = fs.openSync(destPath, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY);
+        fs.copyFileSync(srcFile.fd, destFile.fd);
+        fs.closeSync(srcFile);
+        fs.closeSync(destFile);
+        this.editAvatarKey = `file://${destPath}`;
+        ToastUtil.success('照片已选择');
+        Logger.info(AppConstants.SCENE_USER, { action: 'avatar_photo_picked', msg: destPath });
+      }
+    } catch (err) {
+      ToastUtil.error('选择照片失败');
+      Logger.error(AppConstants.SCENE_USER, { action: 'pick_photo_fail', error: (err as Error).message });
+    }
+  }
+
+  /** 获取头像预览源（file:///data URI 直接使用，资源 key 走 ImageUtil） */
+  private getAvatarPreviewSource(key: string): string | Resource {
+    if (key.startsWith('file://') || key.startsWith('data:') || key.startsWith('/')) {
+      return key;
+    }
+    return ImageUtil.get(key);
   }
 
   /** 退出登录 */
@@ -285,7 +324,7 @@ export struct Setting {
             .fontSize(13)
             .fontColor($r('app.color.color_text_2'))
             .alignSelf(ItemAlign.Start)
-          Image(ImageUtil.get(this.editAvatarKey))
+          Image(this.getAvatarPreviewSource(this.editAvatarKey))
             .width(80)
             .height(80)
             .borderRadius(40)
@@ -295,13 +334,44 @@ export struct Setting {
         .width('100%')
         .alignItems(HorizontalAlign.Center)
 
-        // 头像选择列表
+        // 头像选择列表（上传照片 + 预设头像）
         Column({ space: 8 }) {
           Text('选择新头像')
             .fontSize(13)
             .fontColor($r('app.color.color_text_2'))
             .alignSelf(ItemAlign.Start)
           Row({ space: 12 }) {
+            // 上传照片选项（+ 图标）
+            Stack() {
+              Column() {
+                Text('+')
+                  .fontSize(28)
+                  .fontColor($r('app.color.color_text_3'))
+                Text('上传')
+                  .fontSize(9)
+                  .fontColor($r('app.color.color_text_3'))
+                  .margin({ top: 2 })
+              }
+              .width(56)
+              .height(56)
+              .borderRadius(28)
+              .backgroundColor($r('app.color.color_fill'))
+              .justifyContent(FlexAlign.Center)
+              .alignItems(HorizontalAlign.Center)
+
+              // file:// URI 选中标识
+              Column()
+                .width(60)
+                .height(60)
+                .borderRadius(30)
+                .border({ width: 3, color: $r('app.color.color_yellow') })
+                .visibility(this.editAvatarKey.startsWith('file://') ? Visibility.Visible : Visibility.None)
+            }
+            .width(60)
+            .height(60)
+            .onClick(() => { this.pickPhoto(); })
+
+            // 预设头像列表
             ForEach(this.avatarOptions, (opt: AvatarOption) => {
               Stack() {
                 Image(ImageUtil.get(opt.key))
@@ -310,14 +380,13 @@ export struct Setting {
                   .borderRadius(28)
                   .objectFit(ImageFit.Cover)
                   .backgroundColor($r('app.color.color_fill'))
-                if (this.editAvatarKey === opt.key) {
-                  // 选中标识：黄色环
-                  Column()
-                    .width(60)
-                    .height(60)
-                    .borderRadius(30)
-                    .border({ width: 3, color: $r('app.color.color_yellow') })
-                }
+                // 选中标识：黄色环
+                Column()
+                  .width(60)
+                  .height(60)
+                  .borderRadius(30)
+                  .border({ width: 3, color: $r('app.color.color_yellow') })
+                  .visibility(this.editAvatarKey === opt.key ? Visibility.Visible : Visibility.None)
               }
               .width(60)
               .height(60)

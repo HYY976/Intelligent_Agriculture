@@ -17,6 +17,7 @@ import { MOCK_HOT_WORDS, MOCK_PRODUCT_RANK, MOCK_LIVE_RANK, MOCK_FARMER_RANK, MO
 import { SearchResultDataSource } from '../../viewmodel/SearchResultDataSource';
 import { ImageUtil } from '../../utils/ImageUtil';
 import { ProductCard } from '../../components/ProductCard';
+import { ReplaceableImage } from '../../components/ReplaceableImage';
 
 /** 跳转商品详情的路由参数（spec 10.12：ArkTS 严格模式要求具体 interface） */
 interface ProductDetailParam {
@@ -511,11 +512,7 @@ export struct SearchPage {
         .textAlign(TextAlign.Center)
 
       // 封面
-      Image(ImageUtil.get(item.coverImage))
-        .width(52)
-        .height(52)
-        .borderRadius(AppConstants.RADIUS_SM)
-        .objectFit(ImageFit.Cover)
+      ReplaceableImage({ imageKey: item.coverImage, imgWidth: 52, imgHeight: 52, imgRadius: AppConstants.RADIUS_SM, imgFit: ImageFit.Cover })
 
       // 标题 + 销量
       Column({ space: 5 }) {
@@ -567,11 +564,7 @@ export struct SearchPage {
         .width(22)
         .textAlign(TextAlign.Center)
 
-      Image(ImageUtil.get(item.coverImage))
-        .width(52)
-        .height(52)
-        .borderRadius(AppConstants.RADIUS_SM)
-        .objectFit(ImageFit.Cover)
+      ReplaceableImage({ imageKey: item.coverImage, imgWidth: 52, imgHeight: 52, imgRadius: AppConstants.RADIUS_SM, imgFit: ImageFit.Cover })
 
       Column({ space: 5 }) {
         Text(item.title)
@@ -839,11 +832,7 @@ export struct SearchPage {
           ForEach(this.liveResults, (item: SearchLiveItem, index: number) => {
             Row({ space: 12 }) {
               Stack() {
-                Image(ImageUtil.get(item.coverImage))
-                  .width(120)
-                  .height(80)
-                  .borderRadius(AppConstants.RADIUS_MD)
-                  .objectFit(ImageFit.Cover)
+                ReplaceableImage({ imageKey: item.coverImage, imgWidth: 120, imgHeight: 80, imgRadius: AppConstants.RADIUS_MD, imgFit: ImageFit.Cover })
                 Text('回放')
                   .fontSize(10)
                   .fontColor(Color.White)
@@ -881,7 +870,7 @@ export struct SearchPage {
             })
           }, (item: SearchLiveItem, index: number) => `result_live_${item.liveId}_${index}`)
         }
-        .padding({ top: 12, bottom: 12 })
+        .padding({ top: 4, bottom: 12 })
       }
       .width('100%')
       .height('100%')
@@ -908,11 +897,7 @@ export struct SearchPage {
           ForEach(this.postResults, (item: SearchPostItem, index: number) => {
             Row({ space: 12 }) {
               if (item.coverImage && item.coverImage.length > 0) {
-                Image(ImageUtil.get(item.coverImage))
-                  .width(96)
-                  .height(72)
-                  .borderRadius(AppConstants.RADIUS_SM)
-                  .objectFit(ImageFit.Cover)
+                ReplaceableImage({ imageKey: item.coverImage, imgWidth: 96, imgHeight: 72, imgRadius: AppConstants.RADIUS_SM, imgFit: ImageFit.Cover })
               } else {
                 Column()
                   .width(96)
@@ -950,7 +935,7 @@ export struct SearchPage {
             .borderRadius(AppConstants.RADIUS_LG)
           }, (item: SearchPostItem, index: number) => `result_post_${item.postId}_${index}`)
         }
-        .padding({ top: 12, bottom: 12 })
+        .padding({ top: 4, bottom: 12 })
       }
       .width('100%')
       .height('100%')
@@ -1031,7 +1016,7 @@ export struct SearchPage {
             .alignItems(VerticalAlign.Center)
           }, (item: SearchFarmerItem, index: number) => `result_farmer_${item.farmerId}_${index}`)
         }
-        .padding({ top: 12, bottom: 12 })
+        .padding({ top: 4, bottom: 12 })
       }
       .width('100%')
       .height('100%')

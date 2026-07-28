@@ -19,6 +19,7 @@ import { getMockReviewsByProductId, getMockReviewStats, ReviewStats } from '../.
 import { addToMockCart } from '../../mock/CartMock';
 import { ImageUtil } from '../../utils/ImageUtil';
 import { StarRating } from '../../components/StarRating';
+import { ReplaceableImage } from '../../components/ReplaceableImage';
 
 /** 跳转确认订单的路由参数（spec 10.12：ArkTS 严格模式要求具体 interface） */
 interface OrderConfirmParam {
@@ -276,11 +277,7 @@ export struct ProductDetail {
     Column() {
       // 大图区（对齐设计稿 pd-hero：圆角 18 + 阴影 + 320 高）
       Stack({ alignContent: Alignment.TopEnd }) {
-        Image(ImageUtil.get(this.product!.mainImages[this.currentImageIndex]))
-          .width('100%')
-          .height(320)
-          .objectFit(ImageFit.Cover)
-          .borderRadius(AppConstants.RADIUS_LG)
+        ReplaceableImage({ imageKey: this.product!.mainImages[this.currentImageIndex], imgWidth: '100%', imgHeight: 320, imgRadius: AppConstants.RADIUS_LG, imgFit: ImageFit.Cover })
 
         // 右上角：LIVE 徽标 + 收藏心形（对齐设计稿 pd-hero-badge）
         Row({ space: 8 }) {
@@ -323,11 +320,7 @@ export struct ProductDetail {
         Row({ space: 8 }) {
           ForEach(this.product!.mainImages, (imgKey: string, index: number) => {
             Stack() {
-              Image(ImageUtil.get(imgKey))
-                .width(52)
-                .height(52)
-                .borderRadius(AppConstants.RADIUS_SM)
-                .objectFit(ImageFit.Cover)
+              ReplaceableImage({ imageKey: imgKey, imgWidth: 52, imgHeight: 52, imgRadius: AppConstants.RADIUS_SM, imgFit: ImageFit.Cover })
             }
             .width(56)
             .height(56)
@@ -786,11 +779,7 @@ export struct ProductDetail {
       if (review.images.length > 0) {
         Row({ space: 6 }) {
           ForEach(review.images.slice(0, 3), (imgKey: string, _j: number) => {
-            Image(ImageUtil.get(imgKey))
-              .width(60)
-              .height(60)
-              .borderRadius(AppConstants.RADIUS_SM)
-              .objectFit(ImageFit.Cover)
+            ReplaceableImage({ imageKey: imgKey, imgWidth: 60, imgHeight: 60, imgRadius: AppConstants.RADIUS_SM, imgFit: ImageFit.Cover })
           }, (imgKey: string, j: number) => `${review.reviewId}_${imgKey}_${j}`)
         }
         .width('100%')

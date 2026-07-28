@@ -115,7 +115,7 @@ export struct ProfileContent {
 
   /** 监听 UserInfoKey.value 变化，设置页修改头像/昵称后自动同步到「我的」页面 */
   @Monitor('userInfoRef.value')
-  onUserInfoChange(monitor: Monitor): void {
+  onUserInfoChange(): void {
     const userInfo = this.userInfoRef.value;
     if (userInfo) {
       this.nickname = userInfo.nickname;

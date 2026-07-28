@@ -111,6 +111,7 @@ export struct FavoriteList {
               FlowItem() {
                 this.FavoriteCard(fav)
               }
+              .width('100%')
             }, (fav: FavoriteItem) => fav.favoriteId)
           }
           .columnsTemplate('1fr 1fr')

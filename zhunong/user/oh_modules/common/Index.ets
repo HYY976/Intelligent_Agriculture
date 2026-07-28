@@ -47,7 +47,7 @@ export type { RouterParam } from './src/main/ets/router/AppRouter';
 /** spec 10.9.2：声明式路由名常量（NavPathStack.pushPath 使用的 name） */
 export { RouteName } from './src/main/ets/router/AppRouter';
 
-// ===== 数据模型 =====
+// ===== 数据模型（接口/类型别名用 export type，class 用 export 保证可作为值使用） =====
 export type {
   ApiResponse,
   PageResult,
@@ -65,8 +65,11 @@ export type {
   UserType,
   AccountStatus,
   SortOrder,
-  KeyValue,
-  /** spec 10.9.3：AppStorageV2 Key 类型定义 */
+  KeyValue
+} from './src/main/ets/model/CommonModels';
+
+/** spec 10.9.3：AppStorageV2 Key 类型定义（class 需作为值导出，供 AppStorageV2.connect 构造使用） */
+export {
   AuthTokenKey,
   UserInfoKey,
   AdminInfoKey,

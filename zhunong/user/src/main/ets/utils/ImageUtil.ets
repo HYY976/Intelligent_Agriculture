@@ -3,15 +3,32 @@
  * 遵循 spec 2.3.2：禁止硬编码色值/图片，统一通过 $r 引用本地资源
  * 作用：将 Mock 数据中的字符串图片 key 解析为 ArkUI Resource
  * 后续对接后端时，可在此扩展网络 URL 分支
+ *
+ * 演示模式：get() 优先检查 ImageReplaceStore，若已替换则返回 file:// URI
  */
+
+import { ImageReplaceStore } from './ImageReplaceStore';
 
 export class ImageUtil {
   /**
-   * 根据 key 解析本地图片资源
+   * 根据 key 解析本地图片资源（优先返回演示替换图）
    * @param key media 资源名（不含 app.media. 前缀）
+   * @returns Resource 引用 或 file:// URI 字符串
+   */
+  static get(key: string): string | Resource {
+    // 演示模式：优先检查全局替换存储
+    const replaced: string | undefined = ImageReplaceStore.getUri(key);
+    if (replaced !== undefined) {
+      return replaced;
+    }
+    return ImageUtil.getOriginal(key);
+  }
+
+  /**
+   * 根据 key 解析原始本地图片资源（不检查替换存储）
    * @returns Resource 引用
    */
-  static get(key: string): Resource {
+  static getOriginal(key: string): Resource {
     switch (key) {
       // 商品图（spec 4.1.3 mainImages）
       case 'prod_vegetable_1': return $r('app.media.prod_vegetable_1');

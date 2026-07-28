@@ -20,6 +20,7 @@ import {
 import { MOCK_PRODUCTS } from '../../mock/ProductMock';
 import { CartDataSource } from '../../viewmodel/CartDataSource';
 import { ImageUtil } from '../../utils/ImageUtil';
+import { ReplaceableImage } from '../../components/ReplaceableImage';
 
 /** 推荐商品参数（跳转商品详情） */
 interface ProductDetailParam {
@@ -340,11 +341,7 @@ export struct CartContent {
       })
 
       // 商品主图（80×80 圆角14）
-      Image(ImageUtil.get(item.image))
-        .width(80)
-        .height(80)
-        .borderRadius(AppConstants.RADIUS_MD)
-        .objectFit(ImageFit.Cover)
+      ReplaceableImage({ imageKey: item.image, imgWidth: 80, imgHeight: 80, imgRadius: AppConstants.RADIUS_MD, imgFit: ImageFit.Cover })
         .backgroundColor($r('app.color.color_fill'))
 
       // 商品信息区（对齐设计稿 qn-cart-info）
@@ -403,32 +400,26 @@ export struct CartContent {
     .border({ width: { top: 1 }, color: { top: $r('app.color.color_divider') } })
   }
 
-  /** 圆形勾选框（对齐设计稿 qn-check：22px 圆，选中绿色） */
+  /** 圆形勾选框（对齐设计稿 qn-check：22px 圆，选中绿色）
+   * spec V2 约束：禁止 if-else 条件渲染，统一用 Stack + visibility 三元 */
   @Builder
   RoundCheckBox(isSelected: boolean, onTap: () => void) {
-    if (isSelected) {
+    Stack() {
+      // 选中态对勾（未选中时隐藏）
       Text('✓')
         .fontSize(14)
         .fontColor(Color.White)
         .fontWeight(FontWeight.Bold)
-        .width(22)
-        .height(22)
-        .textAlign(TextAlign.Center)
-        .borderRadius(AppConstants.RADIUS_PILL)
-        .backgroundColor($r('app.color.color_green'))
-        .onClick(() => {
-          onTap();
-        })
-    } else {
-      Text('')
-        .width(20)
-        .height(20)
-        .borderRadius(AppConstants.RADIUS_PILL)
-        .border({ width: 1.5, color: $r('app.color.color_text_4') })
-        .onClick(() => {
-          onTap();
-        })
+        .visibility(isSelected ? Visibility.Visible : Visibility.Hidden)
     }
+    .width(22)
+    .height(22)
+    .borderRadius(AppConstants.RADIUS_PILL)
+    .backgroundColor(isSelected ? $r('app.color.color_green') : Color.Transparent)
+    .border({ width: isSelected ? 0 : 1.5, color: $r('app.color.color_text_4') })
+    .onClick(() => {
+      onTap();
+    })
   }
 
   /** 步进器（对齐设计稿 qn-stepper：26px 圆形按钮 + 数字） */
@@ -521,11 +512,7 @@ export struct CartContent {
   RecommendCard(product: Product) {
     Column({ space: 0 }) {
       // 商品图（120×120 圆角14）
-      Image(ImageUtil.get(product.mainImages[0]))
-        .width(120)
-        .height(120)
-        .borderRadius(AppConstants.RADIUS_MD)
-        .objectFit(ImageFit.Cover)
+      ReplaceableImage({ imageKey: product.mainImages[0], imgWidth: 120, imgHeight: 120, imgRadius: AppConstants.RADIUS_MD, imgFit: ImageFit.Cover })
         .backgroundColor($r('app.color.color_fill'))
 
       // 商品名称（12px 600 2行）
@@ -564,6 +551,8 @@ export struct CartContent {
   BottomBar() {
     Row({ space: 10 }) {
       // 全选（对齐设计稿 qn-bar-check）
+      // 注意：RoundCheckBox 自身已绑定 onClick，外层 Row 不再绑 onClick，
+      // 否则事件冒泡导致 onToggleAll 被调用两次互相抵消（全选无效 bug）
       Row({ space: 6 }) {
         this.RoundCheckBox(this.allSelected, () => {
           this.onToggleAll();
@@ -572,11 +561,11 @@ export struct CartContent {
           .fontSize(13)
           .fontColor($r('app.color.color_ink_2'))
           .fontWeight(FontWeight.Medium)
+          .onClick(() => {
+            this.onToggleAll();
+          })
       }
       .alignItems(VerticalAlign.Center)
-      .onClick(() => {
-        this.onToggleAll();
-      })
 
       Blank()
 
