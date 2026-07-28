@@ -27,6 +27,38 @@ interface ProductDetailParam {
   productId: string;
 }
 
+/**
+ * 圆形勾选框组件（独立 @ComponentV2，确保 @Param 响应式）
+ * 对齐设计稿 qn-check：22px 圆，选中绿色 + 白色对勾
+ * spec V2 约束：禁止 if-else 条件渲染，统一用 Stack + visibility 三元
+ */
+@ComponentV2
+export struct RoundCheckBox {
+  /** 是否选中（@Param 响应式，父组件更新时自动刷新） */
+  @Param isSelected: boolean = false;
+  /** 点击回调 */
+  @Event onTap: () => void = () => {};
+
+  build() {
+    Stack() {
+      // 选中态对勾（未选中时隐藏）
+      Text('✓')
+        .fontSize(14)
+        .fontColor(Color.White)
+        .fontWeight(FontWeight.Bold)
+        .visibility(this.isSelected ? Visibility.Visible : Visibility.Hidden)
+    }
+    .width(22)
+    .height(22)
+    .borderRadius(AppConstants.RADIUS_PILL)
+    .backgroundColor(this.isSelected ? $r('app.color.color_green') : Color.Transparent)
+    .border({ width: this.isSelected ? 0 : 1.5, color: $r('app.color.color_text_4') })
+    .onClick(() => {
+      this.onTap();
+    })
+  }
+}
+
 /** 购物车内容组件（可复用于 Tab 与独立页） */
 @ComponentV2
 export struct CartContent {
@@ -42,6 +74,8 @@ export struct CartContent {
   @Local totalAmount: number = 0;
   /** 是否编辑模式（编辑模式下底部按钮变为删除） */
   @Local isEditing: boolean = false;
+  /** 当前购物车分组（@Local 驱动 ForEach 重渲染） */
+  @Local cartGroups: CartGroup[] = [];
   /** 推荐商品列表 */
   private recommendList: Product[] = MOCK_PRODUCTS.slice(0, 6);
 
@@ -53,6 +87,8 @@ export struct CartContent {
   private async refreshCart(): Promise<void> {
     await this.dataSource.refresh();
     this.isEmpty = this.dataSource.totalCount() === 0;
+    // 关键：重新赋值 cartGroups（新数组引用）驱动 ForEach 重评估
+    this.cartGroups = this.dataSource.getGroups();
     this.updateSummary();
   }
 
@@ -62,7 +98,7 @@ export struct CartContent {
     let count: number = 0;
     let amount: number = 0;
     let hasItems: boolean = false;
-    const groups: CartGroup[] = this.dataSource.getGroups();
+    const groups: CartGroup[] = this.cartGroups;
     groups.forEach((g: CartGroup) => {
       g.items.forEach((item: CartItem) => {
         hasItems = true;
@@ -77,6 +113,17 @@ export struct CartContent {
     this.allSelected = hasItems && allSel;
     this.selectedCount = count;
     this.totalAmount = Math.round(amount * 100) / 100;
+  }
+
+  /** 计算分组内已选商品数（用于 ForEach key，确保勾选状态变化时 key 改变 → 触发重渲染） */
+  private groupSelectedCount(group: CartGroup): number {
+    let cnt: number = 0;
+    group.items.forEach((item: CartItem) => {
+      if (item.selected) {
+        cnt++;
+      }
+    });
+    return cnt;
   }
 
   /** 切换商品选中 */
@@ -191,10 +238,10 @@ export struct CartContent {
               // 优惠提示条（对齐设计稿 qn-cart-promo）
               this.PromoBar()
 
-              // 店铺分组列表
-              ForEach(this.dataSource.getGroups(), (group: CartGroup, _gi: number) => {
+              // 店铺分组列表（key 含 selectedCount，确保勾选变化时 ForEach 重渲染）
+              ForEach(this.cartGroups, (group: CartGroup, _gi: number) => {
                 this.ShopGroupCard(group)
-              }, (group: CartGroup) => group.farmerId + `_${group.allSelected}_${group.items.length}`)
+              }, (group: CartGroup) => group.farmerId + `_${group.allSelected}_${this.groupSelectedCount(group)}_${group.items.length}`)
 
               // 推荐区（对齐设计稿 qn-rec-scroll）
               this.RecommendationSection()
@@ -284,9 +331,10 @@ export struct CartContent {
     Column({ space: 0 }) {
       // 店铺行（对齐设计稿 qn-cart-shop-head）
       Row({ space: 10 }) {
-        // 圆形勾选框（对齐设计稿 qn-check：22px 绿色圆）
-        this.RoundCheckBox(group.allSelected, () => {
-          this.onGroupSelect(group);
+        // 圆形勾选框（独立组件，@Param 响应式确保勾选状态实时更新）
+        RoundCheckBox({
+          isSelected: group.allSelected,
+          onTap: () => { this.onGroupSelect(group); }
         })
 
         // 店铺图标 + 名称（对齐设计稿 qn-cart-shop-name）
@@ -335,9 +383,10 @@ export struct CartContent {
   @Builder
   CartItemRow(group: CartGroup, item: CartItem) {
     Row({ space: 12 }) {
-      // 圆形勾选框
-      this.RoundCheckBox(item.selected, () => {
-        this.onItemSelect(group, item);
+      // 圆形勾选框（独立组件，@Param 响应式确保勾选状态实时更新）
+      RoundCheckBox({
+        isSelected: item.selected,
+        onTap: () => { this.onItemSelect(group, item); }
       })
 
       // 商品主图（80×80 圆角14）
@@ -398,28 +447,6 @@ export struct CartContent {
     .padding({ top: 12, bottom: 12 })
     .alignItems(VerticalAlign.Top)
     .border({ width: { top: 1 }, color: { top: $r('app.color.color_divider') } })
-  }
-
-  /** 圆形勾选框（对齐设计稿 qn-check：22px 圆，选中绿色）
-   * spec V2 约束：禁止 if-else 条件渲染，统一用 Stack + visibility 三元 */
-  @Builder
-  RoundCheckBox(isSelected: boolean, onTap: () => void) {
-    Stack() {
-      // 选中态对勾（未选中时隐藏）
-      Text('✓')
-        .fontSize(14)
-        .fontColor(Color.White)
-        .fontWeight(FontWeight.Bold)
-        .visibility(isSelected ? Visibility.Visible : Visibility.Hidden)
-    }
-    .width(22)
-    .height(22)
-    .borderRadius(AppConstants.RADIUS_PILL)
-    .backgroundColor(isSelected ? $r('app.color.color_green') : Color.Transparent)
-    .border({ width: isSelected ? 0 : 1.5, color: $r('app.color.color_text_4') })
-    .onClick(() => {
-      onTap();
-    })
   }
 
   /** 步进器（对齐设计稿 qn-stepper：26px 圆形按钮 + 数字） */
@@ -554,8 +581,9 @@ export struct CartContent {
       // 注意：RoundCheckBox 自身已绑定 onClick，外层 Row 不再绑 onClick，
       // 否则事件冒泡导致 onToggleAll 被调用两次互相抵消（全选无效 bug）
       Row({ space: 6 }) {
-        this.RoundCheckBox(this.allSelected, () => {
-          this.onToggleAll();
+        RoundCheckBox({
+          isSelected: this.allSelected,
+          onTap: () => { this.onToggleAll(); }
         })
         Text('全选')
           .fontSize(13)

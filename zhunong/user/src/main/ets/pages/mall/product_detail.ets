@@ -18,6 +18,7 @@ import { ProductRepository } from '../../repository/ProductRepository';
 import { getMockReviewsByProductId, getMockReviewStats, ReviewStats } from '../../mock/ReviewMock';
 import { addToMockCart } from '../../mock/CartMock';
 import { ImageUtil } from '../../utils/ImageUtil';
+import { ImageReplaceStore } from '../../utils/ImageReplaceStore';
 import { StarRating } from '../../components/StarRating';
 import { ReplaceableImage } from '../../components/ReplaceableImage';
 
@@ -65,6 +66,13 @@ export struct ProductDetail {
   @Local isFavorited: boolean = false;
   /** 是否已关注农户 */
   @Local isFollowed: boolean = false;
+  /** 响应式存储单例（图片替换后详情图自动刷新） */
+  @Local imgStore: ImageReplaceStore = ImageReplaceStore.getInstance();
+
+  /** 解析图片源（传入 store.version 建立响应式依赖） */
+  private resolveImg(_version: number, key: string): string | Resource {
+    return ImageUtil.get(key);
+  }
 
   aboutToAppear(): void {
     const params: Record<string, string> = NavigationHelper.getParam<Record<string, string>>() as Record<string, string>;
@@ -428,7 +436,7 @@ export struct ProductDetail {
     Row({ space: 12 }) {
       // 头像（对齐设计稿 pd-farmer-ava：48×48 + 双层光环）
       Stack() {
-        Image(ImageUtil.get(this.getFarmerAvatar()))
+        Image(this.resolveImg(this.imgStore.version, this.getFarmerAvatar()))
           .width(48)
           .height(48)
           .borderRadius(AppConstants.RADIUS_PILL)
@@ -642,7 +650,7 @@ export struct ProductDetail {
 
       // 多张详情图（对齐设计稿 pd-detail-img）
       ForEach(this.product!.mainImages, (imgKey: string, index: number) => {
-        Image(ImageUtil.get(imgKey))
+        Image(this.resolveImg(this.imgStore.version, imgKey))
           .width('100%')
           .height(180)
           .objectFit(ImageFit.Cover)
@@ -753,7 +761,7 @@ export struct ProductDetail {
     Column({ space: 8 }) {
       // 评价人头部（对齐设计稿 pd-review-head：头像 + 昵称 + 星星）
       Row({ space: 8 }) {
-        Image(ImageUtil.get(review.buyerAvatar))
+        Image(this.resolveImg(this.imgStore.version, review.buyerAvatar))
           .width(28)
           .height(28)
           .borderRadius(AppConstants.RADIUS_PILL)

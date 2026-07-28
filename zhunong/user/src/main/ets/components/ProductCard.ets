@@ -6,6 +6,7 @@
 
 import { ProductListItem } from '../model/ProductModels';
 import { ImageUtil } from '../utils/ImageUtil';
+import { ImageReplaceStore } from '../utils/ImageReplaceStore';
 import { AppConstants } from 'common';
 
 @ComponentV2
@@ -14,12 +15,22 @@ export struct ProductCard {
   @Param item: ProductListItem | null = null;
   /** 点击回调 */
   @Event onCardClick: (productId: string) => void = () => {};
+  /** 响应式存储单例（读取 version 建立 V2 依赖，图片替换后自动刷新封面） */
+  @Local store: ImageReplaceStore = ImageReplaceStore.getInstance();
+
+  /** 解析商品主图源（传入 store.version 建立响应式依赖） */
+  private resolveMainImage(_version: number): string | Resource {
+    if (this.item) {
+      return ImageUtil.get(this.item.mainImage);
+    }
+    return ImageUtil.getDefaultProduct();
+  }
 
   build() {
     Column() {
       // 商品主图 + 产地标签
       Stack({ alignContent: Alignment.TopStart }) {
-        Image(this.item ? ImageUtil.get(this.item.mainImage) : ImageUtil.getDefaultProduct())
+        Image(this.resolveMainImage(this.store.version))
           .width('100%')
           .aspectRatio(1)
           .objectFit(ImageFit.Cover)

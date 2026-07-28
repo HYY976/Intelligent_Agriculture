@@ -11,19 +11,26 @@ import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.Ab
 import { window } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import { PreferencesUtil, ModeStore, ThemeStore, Logger, AppConstants, TokenStore } from 'common';
+import { ImageReplaceStore } from '../utils/ImageReplaceStore';
 
 export default class UserEntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     Logger.info(AppConstants.SCENE_USER, { action: 'ability_on_create' });
 
-    // 初始化 Preferences
-    PreferencesUtil.init(this.context as common.UIAbilityContext);
+    // 初始化 Preferences + 加载持久化的图片替换映射（异步，不阻塞 onCreate）
+    this.initPreferencesAndLoadReplacements();
 
     // 初始化模式（标准/老年大字）
     ModeStore.initMode();
 
     // 应用主题（默认跟随系统）
     ThemeStore.applyTheme(this.context as common.UIAbilityContext);
+  }
+
+  /** 异步初始化 Preferences 并加载持久化的图片替换映射 */
+  private async initPreferencesAndLoadReplacements(): Promise<void> {
+    await PreferencesUtil.init(this.context as common.UIAbilityContext);
+    await ImageReplaceStore.loadFromPreferences();
   }
 
   onDestroy(): void {

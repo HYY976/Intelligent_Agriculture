@@ -12,6 +12,7 @@ import { Logger, AppConstants, TokenStore, RouteName, NavigationHelper } from 'c
 import { SplashAd } from '../../model/SearchModels';
 import { MOCK_SPLASH_ADS } from '../../mock/SearchMock';
 import { ImageUtil } from '../../utils/ImageUtil';
+import { ImageReplaceStore } from '../../utils/ImageReplaceStore';
 
 /** 跳转商品详情的路由参数 */
 interface ProductDetailParam {
@@ -30,6 +31,16 @@ export struct SplashAdPage {
   @Local adFinished: boolean = false;
   /** 倒计时定时器 */
   private countdownTimerId: number = -1;
+  /** 响应式存储单例（读取 version 建立依赖，设置页替换开屏广告后即时同步） */
+  @Local store: ImageReplaceStore = ImageReplaceStore.getInstance();
+
+  /** 解析广告图源（传入 store.version 建立响应式依赖） */
+  private resolveAdImage(_version: number): string | Resource {
+    if (this.adList.length > 0) {
+      return ImageUtil.get(this.adList[this.currentIndex].posterUrl);
+    }
+    return $r('app.media.hero_harvest');
+  }
 
   async aboutToAppear(): Promise<void> {
     Logger.info(AppConstants.SCENE_USER, JSON.stringify({ action: 'splash_ad_appear', adCount: this.adList.length }));
@@ -115,19 +126,12 @@ export struct SplashAdPage {
   build() {
     NavDestination() {
       Stack({ alignContent: Alignment.TopStart }) {
-        // 1. 全屏背景图（优先使用广告海报，兜底 hero_harvest）
-        if (this.adList.length > 0) {
-          Image(ImageUtil.get(this.adList[this.currentIndex].posterUrl))
-            .width('100%')
-            .height('100%')
-            .objectFit(ImageFit.Cover)
-            .onClick(() => this.clickAd())
-        } else {
-          Image($r('app.media.hero_harvest'))
-            .width('100%')
-            .height('100%')
-            .objectFit(ImageFit.Cover)
-        }
+        // 1. 全屏背景图（优先使用广告海报，兜底 hero_harvest；支持设置页自定义替换）
+        Image(this.resolveAdImage(this.store.version))
+          .width('100%')
+          .height('100%')
+          .objectFit(ImageFit.Cover)
+          .onClick(() => this.clickAd())
 
         // 2. 暗色渐变蒙版（底部 0.35 → 顶部 0）
         Column()

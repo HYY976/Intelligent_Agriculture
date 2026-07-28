@@ -728,20 +728,16 @@ export struct SearchPage {
       .borderWidth({ bottom: 0.5 })
       .borderColor($r('app.color.color_divider'))
 
-      // 结果内容
-      Stack() {
-        if (this.resultTab === 'product') {
-          this.ProductResultList()
-        } else if (this.resultTab === 'live') {
-          this.LiveResultList()
-        } else if (this.resultTab === 'post') {
-          this.PostResultList()
-        } else {
-          this.FarmerResultList()
-        }
+      // 结果内容（直接 if-else，不用 Stack 包裹，layoutWeight(1) 正确填充剩余空间）
+      if (this.resultTab === 'product') {
+        this.ProductResultList()
+      } else if (this.resultTab === 'live') {
+        this.LiveResultList()
+      } else if (this.resultTab === 'post') {
+        this.PostResultList()
+      } else {
+        this.FarmerResultList()
       }
-      .layoutWeight(1)
-      .width('100%')
     }
     .width('100%')
     .layoutWeight(1)
@@ -862,7 +858,7 @@ export struct SearchPage {
               .alignItems(HorizontalAlign.Start)
             }
             .width('100%')
-            .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+            .padding({ left: 16, right: 16, top: 4, bottom: 8 })
             .backgroundColor($r('app.color.color_bg_card'))
             .borderRadius(AppConstants.RADIUS_LG)
             .onClick(() => {
@@ -870,10 +866,10 @@ export struct SearchPage {
             })
           }, (item: SearchLiveItem, index: number) => `result_live_${item.liveId}_${index}`)
         }
-        .padding({ top: 4, bottom: 12 })
+        .padding({ top: 0, bottom: 12 })
       }
       .width('100%')
-      .height('100%')
+      .layoutWeight(1)
       .scrollBar(BarState.Off)
     }
   }
@@ -930,15 +926,15 @@ export struct SearchPage {
               .alignItems(HorizontalAlign.Start)
             }
             .width('100%')
-            .padding({ left: 16, right: 16, top: 10, bottom: 10 })
+            .padding({ left: 16, right: 16, top: 4, bottom: 10 })
             .backgroundColor($r('app.color.color_bg_card'))
             .borderRadius(AppConstants.RADIUS_LG)
           }, (item: SearchPostItem, index: number) => `result_post_${item.postId}_${index}`)
         }
-        .padding({ top: 4, bottom: 12 })
+        .padding({ top: 0, bottom: 12 })
       }
       .width('100%')
-      .height('100%')
+      .layoutWeight(1)
       .scrollBar(BarState.Off)
     }
   }
@@ -1010,16 +1006,16 @@ export struct SearchPage {
                 .textAlign(TextAlign.Center)
             }
             .width('100%')
-            .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+            .padding({ left: 16, right: 16, top: 4, bottom: 12 })
             .backgroundColor($r('app.color.color_bg_card'))
             .borderRadius(AppConstants.RADIUS_LG)
             .alignItems(VerticalAlign.Center)
           }, (item: SearchFarmerItem, index: number) => `result_farmer_${item.farmerId}_${index}`)
         }
-        .padding({ top: 4, bottom: 12 })
+        .padding({ top: 0, bottom: 12 })
       }
       .width('100%')
-      .height('100%')
+      .layoutWeight(1)
       .scrollBar(BarState.Off)
     }
   }

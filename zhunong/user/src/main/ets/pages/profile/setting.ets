@@ -13,6 +13,7 @@
 import { TokenStore, ThemeStore, Logger, AppConstants, ToastUtil, RouteName, NavigationHelper } from 'common';
 import type { CurrentThemeKey, UserInfo } from 'common';
 import { ImageUtil } from '../../utils/ImageUtil';
+import { ImageReplaceStore } from '../../utils/ImageReplaceStore';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import fs from '@ohos.file.fs';
 
@@ -525,6 +526,11 @@ export struct Setting {
         ToastUtil.success('缓存已清除');
       })
       this.RowDivider()
+      // 开屏广告设置（橙色图标，从相册选图替换开屏广告）
+      this.SettingRow('orange', '🖼️', '开屏广告设置', ImageReplaceStore.has('splash_ad_1') ? '已自定义' : '', true, () => {
+        this.pickSplashAd();
+      })
+      this.RowDivider()
       // 意见反馈（绿色图标）
       this.SettingRow('green', '💬', '意见反馈', '', true, () => {
         ToastUtil.info('意见反馈功能开发中');
@@ -545,6 +551,36 @@ export struct Setting {
     .backgroundColor($r('app.color.color_bg_card'))
     .borderRadius(AppConstants.RADIUS_LG)
     .shadow(AppConstants.SHADOW_CARD)
+  }
+
+  /** 从相册选择开屏广告图片 → 复制到内部存储 → 写入 ImageReplaceStore（splash_ad_1 key） */
+  private async pickSplashAd(): Promise<void> {
+    try {
+      ToastUtil.info('请选择开屏广告图片');
+      const options: photoAccessHelper.PhotoSelectOptions = new photoAccessHelper.PhotoSelectOptions();
+      options.MIMEType = photoAccessHelper.PhotoViewMIMETypes.IMAGE_TYPE;
+      options.maxSelectNumber = 1;
+      const photoPicker: photoAccessHelper.PhotoViewPicker = new photoAccessHelper.PhotoViewPicker();
+      const result: photoAccessHelper.PhotoSelectResult = await photoPicker.select(options);
+      if (result.photoUris && result.photoUris.length > 0) {
+        const sourceUri: string = result.photoUris[0];
+        const filesDir: string = getContext(this).filesDir;
+        const destFileName: string = `splash_ad_custom_${Date.now()}.jpg`;
+        const destPath: string = `${filesDir}/${destFileName}`;
+        const srcFile = fs.openSync(sourceUri, fs.OpenMode.READ_ONLY);
+        const destFile = fs.openSync(destPath, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY);
+        fs.copyFileSync(srcFile.fd, destFile.fd);
+        fs.closeSync(srcFile);
+        fs.closeSync(destFile);
+        const fileUri: string = `file://${destPath}`;
+        ImageReplaceStore.set('splash_ad_1', fileUri);
+        ToastUtil.success('开屏广告已设置，下次打开应用生效');
+        Logger.info(AppConstants.SCENE_USER, { action: 'splash_ad_set', msg: destPath });
+      }
+    } catch (err) {
+      ToastUtil.error('设置失败，请重试');
+      Logger.error(AppConstants.SCENE_USER, { action: 'splash_ad_set_fail', error: (err as Error).message });
+    }
   }
 
   /** 通用设置行（对齐设计稿 qn-set-row，56px 高） */

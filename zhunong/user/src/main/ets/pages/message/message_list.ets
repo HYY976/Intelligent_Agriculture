@@ -299,7 +299,7 @@ export struct MessageContent {
           }, (entry: QuickEntry) => entry.category)
         }
         .width('100%')
-        .padding({ left: 6, right: 6, top: 14, bottom: 12 })
+        .padding({ left: 6, right: 6, top: 6, bottom: 0 })
       }
       .width('100%')
       .backgroundColor($r('app.color.color_bg_card'))
@@ -321,7 +321,7 @@ export struct MessageContent {
               .fontSize(this.currentFilter === tab.key ? 15 : 14)
               .fontColor(this.currentFilter === tab.key ? $r('app.color.color_ink') : $r('app.color.color_text_3'))
               .fontWeight(this.currentFilter === tab.key ? FontWeight.Bold : FontWeight.Medium)
-              .padding({ top: 10, bottom: 12 })
+              .padding({ top: 4, bottom: 6 })
 
             // 选中下划线（对齐设计稿 qn-msg-tab.is-active::after）
             Row()
@@ -339,7 +339,7 @@ export struct MessageContent {
     .scrollable(ScrollDirection.Horizontal)
     .scrollBar(BarState.Off)
     .width('100%')
-    .margin({ top: 6 })
+    .margin({ top: 0 })
   }
 
   /** 会话列表（对齐设计稿 qn-msg-card 白卡分组） */
@@ -369,7 +369,7 @@ export struct MessageContent {
         Text('没有更多消息了')
           .fontSize(11)
           .fontColor($r('app.color.color_text_4'))
-          .margin({ top: 14, bottom: 4 })
+          .margin({ top: 8, bottom: 4 })
           .textAlign(TextAlign.Center)
       }
       .width('100%')
