@@ -37,6 +37,8 @@ export class ImageUtil {
       // 吉祥物
       case 'mascot_farmer': return $r('app.media.mascot_farmer');
       case 'hero_harvest': return $r('app.media.hero_harvest');
+      // spec 16.12：AI 海报生成结果图（与 farmer 端共享）
+      case 'ai_poster_result': return $r('app.media.5ca5fecf7f0a30564c6060604cfdae53');
       // 文旅
       case 'farm_picking': return $r('app.media.farm_picking');
       case 'live_orchard': return $r('app.media.live_orchard');

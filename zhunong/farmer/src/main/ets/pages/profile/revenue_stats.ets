@@ -237,7 +237,7 @@ export struct RevenueStats {
     .hideTitleBar(true)
   }
 
-  /** spec 16.10：图表放大弹窗（全屏覆盖，重新绘制大尺寸图表） */
+  /** spec 16.10：图表放大弹窗（全屏覆盖，重新绘制大尺寸图表；spec 16.12：对齐 product_manage 弹窗样式） */
   @Builder
   ChartEnlargedDialog() {
     Stack() {
@@ -253,15 +253,15 @@ export struct RevenueStats {
         // 顶部标题 + 关闭按钮
         Row() {
           Text(this.getEnlargedChartTitle())
-            .fontSize(18)
+            .fontSize(22)
             .fontColor(Color.White)
             .fontWeight(FontWeight.Bold)
             .layoutWeight(1)
           Text('×')
-            .fontSize(28)
+            .fontSize(32)
             .fontColor(Color.White)
-            .width(40)
-            .height(40)
+            .width(44)
+            .height(44)
             .textAlign(TextAlign.Center)
             .onClick(() => { this.enlargedChart = null; })
         }
@@ -272,14 +272,29 @@ export struct RevenueStats {
         Column() {
           Scroll() {
             if (this.enlargedChart === 'trend') {
-              TrendChartCanvas({ points: this.trendPoints })
+              // spec 16.12：放大弹窗传更大尺寸 + 字号（对齐 product_manage 销量趋势图）
+              TrendChartCanvas({
+                points: this.trendPoints,
+                canvasWidth: 680,
+                canvasHeight: 400,
+                labelFontSize: 42,
+                bubbleFontSize: 44
+              })
                 .width(680)
-                .height(380)
+                .height(400)
             } else if (this.enlargedChart === 'composition') {
               Row({ space: 30 }) {
-                DonutChartCanvas({ composition: this.composition, centerAmount: this.monthRevenue })
-                  .width(480)
-                  .height(480)
+                // spec 16.12：放大弹窗传更大尺寸 + 字号（对齐 product_manage 环形图）
+                DonutChartCanvas({
+                  composition: this.composition,
+                  centerAmount: this.monthRevenue,
+                  canvasWidth: 560,
+                  canvasHeight: 560,
+                  amountFontSize: 56,
+                  labelFontSize: 40
+                })
+                  .width(560)
+                  .height(560)
                 Column({ space: 16 }) {
                   ForEach(this.composition, (item: IncomeComposition) => {
                     Column({ space: 6 }) {
@@ -322,12 +337,13 @@ export struct RevenueStats {
           .width('100%')
         }
         .width('100%')
+        .layoutWeight(1)
         .padding(20)
         .borderRadius(16)
         .backgroundColor($r('app.color.color_bg_card'))
       }
       .width('92%')
-      .height('85%')
+      .height('88%')
       .padding(20)
     }
     .width('100%')
@@ -538,7 +554,11 @@ export struct RevenueStats {
 
       // Canvas 折线图（spec 16.8：固定宽度，支持横向滑动；spec 16.10：点击放大）
       Scroll() {
-        TrendChartCanvas({ points: this.trendPoints })
+        TrendChartCanvas({
+          points: this.trendPoints,
+          canvasWidth: 400,
+          canvasHeight: 160
+        })
           .width(400)
           .height(160)
       }
@@ -804,11 +824,19 @@ interface TrendCoord {
 /**
  * TrendChartCanvas - 收入趋势折线图（Canvas 自绘）
  * 对齐设计稿 qn-chart-box svg：绿色折线 + 渐变填充 + 数据点 + 最高点气泡
+ * spec 16.12：支持 canvasWidth/canvasHeight/labelFontSize 参数，放大弹窗可传更大值
  */
 @ComponentV2
 struct TrendChartCanvas {
   /** 数据点 */
   @Param points: IncomeTrendPoint[] = [];
+  /** spec 16.12：Canvas 尺寸（默认 330x140，放大弹窗传更大值） */
+  @Param canvasWidth: number = 330;
+  @Param canvasHeight: number = 140;
+  /** spec 16.12：字号（默认 26，放大弹窗传更大值） */
+  @Param labelFontSize: number = 26;
+  /** spec 16.12：气泡字号（默认 28，放大弹窗传更大值） */
+  @Param bubbleFontSize: number = 28;
   /** Canvas 渲染上下文设置 */
   private settings: RenderingContextSettings = new RenderingContextSettings(true);
   /** Canvas 渲染上下文 */
@@ -822,8 +850,8 @@ struct TrendChartCanvas {
 
   build() {
     Canvas(this.context)
-      .width('100%')
-      .height(140)
+      .width(this.canvasWidth)
+      .height(this.canvasHeight)
       .onReady(() => {
         this.drawChart();
       })
@@ -835,8 +863,8 @@ struct TrendChartCanvas {
     if (this.points.length === 0) {
       return;
     }
-    const w: number = 330;
-    const h: number = 140;
+    const w: number = this.canvasWidth;
+    const h: number = this.canvasHeight;
     const padL: number = 14;
     const padR: number = 14;
     const padT: number = 24;
@@ -944,9 +972,9 @@ struct TrendChartCanvas {
         ctx.lineTo(c.x, c.y + 1);
         ctx.closePath();
         ctx.fill();
-        // 气泡文字（spec 16.11：放大字号提升可读性，从 22 增大到 28）
+        // 气泡文字（spec 16.11/16.12：字号可配置，放大弹窗传更大值）
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = '700 28px HarmonyOS Sans SC, sans-serif';
+        ctx.font = `700 ${this.bubbleFontSize}px HarmonyOS Sans SC, sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(`¥${c.point.value.toLocaleString()}`, c.x, c.y - 13);
@@ -962,18 +990,18 @@ struct TrendChartCanvas {
       }
     });
 
-    // 5. X 轴标签（spec 16.11：放大字号到 26px 提升可读性）
+    // 5. X 轴标签（spec 16.11/16.12：字号可配置，放大弹窗传更大值）
     ctx.fillStyle = '#999999';
-    ctx.font = '26px HarmonyOS Sans SC, sans-serif';
+    ctx.font = `${this.labelFontSize}px HarmonyOS Sans SC, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     coords.forEach((c: TrendCoord) => {
       if (c.point.isToday) {
         ctx.fillStyle = '#5BB315';
-        ctx.font = '700 26px HarmonyOS Sans SC, sans-serif';
+        ctx.font = `700 ${this.labelFontSize}px HarmonyOS Sans SC, sans-serif`;
       } else {
         ctx.fillStyle = '#999999';
-        ctx.font = '26px HarmonyOS Sans SC, sans-serif';
+        ctx.font = `${this.labelFontSize}px HarmonyOS Sans SC, sans-serif`;
       }
       ctx.fillText(c.point.label, c.x, h - 16);
     });
@@ -984,6 +1012,7 @@ struct TrendChartCanvas {
  * DonutChartCanvas - 收入构成环形图（Canvas 自绘）
  * 对齐设计稿 svg 环形图：3段弧 + 中心文字
  * spec 16.8：放大图表尺寸与字号，修复统计无法正常显示问题
+ * spec 16.12：支持 canvasWidth/canvasHeight/labelFontSize 参数，放大弹窗可传更大值
  */
 @ComponentV2
 struct DonutChartCanvas {
@@ -991,6 +1020,12 @@ struct DonutChartCanvas {
   @Param composition: IncomeComposition[] = [];
   /** 中心金额 */
   @Param centerAmount: number = 0;
+  /** spec 16.12：Canvas 尺寸（默认 180x180，放大弹窗传更大值） */
+  @Param canvasWidth: number = 180;
+  @Param canvasHeight: number = 180;
+  /** spec 16.12：字号（默认 36/26，放大弹窗传更大值） */
+  @Param amountFontSize: number = 36;
+  @Param labelFontSize: number = 26;
   /** Canvas 渲染上下文设置 */
   private settings: RenderingContextSettings = new RenderingContextSettings(true);
   /** Canvas 渲染上下文 */
@@ -1004,8 +1039,8 @@ struct DonutChartCanvas {
 
   build() {
     Canvas(this.context)
-      .width(180)
-      .height(180)
+      .width(this.canvasWidth)
+      .height(this.canvasHeight)
       .onReady(() => {
         this.drawDonut();
       })
@@ -1014,12 +1049,13 @@ struct DonutChartCanvas {
   /** 绘制环形图 */
   private drawDonut(): void {
     const ctx: CanvasRenderingContext2D = this.context;
-    const w: number = 180;
-    const h: number = 180;
+    const w: number = this.canvasWidth;
+    const h: number = this.canvasHeight;
     const cx: number = w / 2;
     const cy: number = h / 2;
-    const radius: number = 64;
-    const lineWidth: number = 22;
+    // spec 16.12：半径与线宽按尺寸比例缩放
+    const radius: number = Math.min(w, h) * 0.36;
+    const lineWidth: number = Math.min(w, h) * 0.12;
 
     // spec 16.8：先清空画布，避免重绘叠加导致显示异常
     ctx.clearRect(0, 0, w, h);
@@ -1051,15 +1087,15 @@ struct DonutChartCanvas {
       startAngle += arcAngle;
     });
 
-    // 中心文字：金额（spec 16.11：放大字号到 36px 提升可读性）
+    // 中心文字：金额（spec 16.11/16.12：字号可配置，放大弹窗传更大值）
     ctx.fillStyle = '#1A1A1A';
-    ctx.font = '800 36px HarmonyOS Sans SC, sans-serif';
+    ctx.font = `800 ${this.amountFontSize}px HarmonyOS Sans SC, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(`¥${this.centerAmount.toLocaleString()}`, cx, cy - 12);
-    // 中心文字：本月收入（spec 16.11：放大到 26px）
+    // 中心文字：本月收入（spec 16.11/16.12：字号可配置）
     ctx.fillStyle = '#999999';
-    ctx.font = '26px HarmonyOS Sans SC, sans-serif';
+    ctx.font = `${this.labelFontSize}px HarmonyOS Sans SC, sans-serif`;
     ctx.fillText('本月收入', cx, cy + 18);
   }
 }

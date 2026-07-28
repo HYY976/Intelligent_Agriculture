@@ -12,6 +12,7 @@ import { Logger, AppConstants, FarmerRoutes, NavigationHelper, RouteName, PageRe
 import { FarmerProductItem } from '../../model/FarmerModels';
 import { ProductManageRepository } from '../../repository/ProductManageRepository';
 import { MOCK_FARMER_ID } from '../../mock/FarmerMock';
+import { ImageUtil } from '../../utils/ImageUtil';
 
 /** 跳转商品编辑页的路由参数（spec 10.12：ArkTS 严格模式要求具体 interface） */
 interface ProductEditParam {
@@ -270,7 +271,7 @@ export struct SellerMallPage {
   RecommendCard(item: RecommendProduct) {
     Column({ space: 8 }) {
       Stack() {
-        // spec 16.9：支持真实 file:// / http URI，否则显示占位
+        // spec 16.9/16.12：支持真实 file:// / http URI，其他 key 走 ImageUtil 映射
         if (item.imageUrl.startsWith('file://') || item.imageUrl.startsWith('http://') || item.imageUrl.startsWith('https://')) {
           Image(item.imageUrl)
             .width('100%')
@@ -278,8 +279,11 @@ export struct SellerMallPage {
             .borderRadius(8)
             .objectFit(ImageFit.Cover)
         } else {
-          Text('🌾')
-            .fontSize(40)
+          Image(ImageUtil.get(item.imageUrl))
+            .width('100%')
+            .height(140)
+            .borderRadius(8)
+            .objectFit(ImageFit.Cover)
         }
       }
       .width('100%')

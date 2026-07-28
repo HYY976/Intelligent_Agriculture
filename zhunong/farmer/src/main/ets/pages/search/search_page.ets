@@ -13,6 +13,7 @@
 
 import { Logger, AppConstants, ToastUtil, NavigationHelper, RouteName, ListStateView } from 'common';
 import { FarmerSearchResultDataSource, FarmerProductRankItem } from '../../viewmodel/FarmerSearchResultDataSource';
+import { ImageUtil } from '../../utils/ImageUtil';
 
 /** 热门搜索词 */
 interface HotKeyword {
@@ -455,7 +456,7 @@ export struct SearchPage {
   ProductGridCard(item: FarmerProductRankItem, idx: number) {
     Column({ space: 8 }) {
       Stack({ alignContent: Alignment.TopStart }) {
-        // spec 16.10：支持真实 file:// / http URI，否则显示占位 emoji
+        // spec 16.10/16.12：支持真实 file:// / http URI，其他 key 走 ImageUtil 映射（含 AI 海报结果图）
         if (item.imageUrl.startsWith('file://') || item.imageUrl.startsWith('http://') || item.imageUrl.startsWith('https://')) {
           Image(item.imageUrl)
             .width('100%')
@@ -463,8 +464,11 @@ export struct SearchPage {
             .borderRadius(8)
             .objectFit(ImageFit.Cover)
         } else {
-          Text('🌾')
-            .fontSize(40)
+          Image(ImageUtil.get(item.imageUrl))
+            .width('100%')
+            .height(140)
+            .borderRadius(8)
+            .objectFit(ImageFit.Cover)
         }
         // 排名角标（前 3 名突出显示）
         if (idx < 3) {

@@ -46,6 +46,8 @@ export class ImageUtil {
         return $r('app.media.avatar_customer');
       // 吉祥物
       case 'mascot_farmer': return $r('app.media.mascot_farmer');
+      // spec 16.12：AI 海报生成结果图
+      case 'ai_poster_result': return $r('app.media.5ca5fecf7f0a30564c6060604cfdae53');
       // 直播封面图（spec 16.8：live_orchard + live_cover_1~16 映射到可用农产品图）
       case 'live_orchard': return $r('app.media.live_orchard');
       case 'live_cover_1': return $r('app.media.prod_strawberry');

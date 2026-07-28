@@ -27,6 +27,7 @@ import { AiPosterClient } from '../../utils/AiPosterClient';
 import { BailianClient } from '../../utils/BailianClient';
 import { MOCK_FARMER_ID } from '../../mock/FarmerMock';
 import { ImagePickerUtil } from '../../utils/ImagePickerUtil';
+import { ImageUtil } from '../../utils/ImageUtil';
 
 /** 类目选项 */
 interface CategoryOption {
@@ -241,7 +242,8 @@ export struct ProductPublish {
         this.isGeneratingPoster = false;
         this.aiPosterUrl = posterUrl;
         this.posterProgressText = '';
-        ToastUtil.success('AI 海报生成完成');
+        // spec 16.12：AI 海报生成完成，预览展示在商品主图下方（不自动替换主图）
+        ToastUtil.success('AI 海报已生成');
         Logger.info(AppConstants.SCENE_FARMER, { action: 'ai_poster_done', posterUrl });
       },
       onError: (message: string) => {
@@ -334,14 +336,14 @@ export struct ProductPublish {
         // 表单内容
         Scroll() {
           Column({ space: 16 }) {
-            // AI 海报预览区（生成后显示）
-            if (this.aiPosterUrl.length > 0) {
-              this.AiPosterPreview()
-            }
             // 基础信息
             this.BasicInfoSection()
             // 主图上传
             this.ImagesSection()
+            // spec 16.12：AI 海报预览区（生成后显示在商品主图下方）
+            if (this.aiPosterUrl.length > 0) {
+              this.AiPosterPreview()
+            }
             // 价格库存
             this.PriceStockSection()
             // 详情富文本
@@ -401,30 +403,79 @@ export struct ProductPublish {
     .alignItems(VerticalAlign.Center)
   }
 
-  /** AI 海报预览区 */
+  /** AI 海报预览区（spec 16.12：显示海报图在商品主图下方） */
   @Builder
   AiPosterPreview() {
     Column({ space: 8 }) {
-      Text('AI 海报预览')
-        .fontSize(14)
-        .fontColor($r('app.color.color_text_secondary'))
-        .alignSelf(ItemAlign.Start)
+      Row() {
+        Text('AI 海报预览')
+          .fontSize(14)
+          .fontColor($r('app.color.color_text_secondary'))
+        Blank()
+        // spec 16.12：应用到主图按钮
+        Button('应用到主图')
+          .height(28)
+          .borderRadius(14)
+          .backgroundColor($r('app.color.color_cta_black'))
+          .fontColor(Color.White)
+          .fontSize(11)
+          .padding({ left: 12, right: 12 })
+          .onClick(() => {
+            if (this.aiPosterUrl.length > 0) {
+              if (this.mainImages.length > 0) {
+                this.mainImages[0] = this.aiPosterUrl;
+                this.mainImages = this.mainImages.slice();
+              } else {
+                this.mainImages = [this.aiPosterUrl];
+              }
+              ToastUtil.success('已替换到主图');
+            }
+          })
+      }
+      .width('100%')
       Stack() {
-        Text('🎨')
-          .fontSize(48)
+        // spec 16.12：支持 http/file URI 直接渲染，其他 key 走 ImageUtil 映射
+        if (this.aiPosterUrl.startsWith('http://') || this.aiPosterUrl.startsWith('https://') || this.aiPosterUrl.startsWith('file://')) {
+          Image(this.aiPosterUrl)
+            .width('100%')
+            .height(200)
+            .borderRadius(12)
+            .objectFit(ImageFit.Cover)
+        } else if (this.aiPosterUrl.length > 0) {
+          Image(ImageUtil.get(this.aiPosterUrl))
+            .width('100%')
+            .height(200)
+            .borderRadius(12)
+            .objectFit(ImageFit.Cover)
+        } else {
+          Column() {
+            Text('🎨')
+              .fontSize(48)
+            Text('生成中...')
+              .fontSize(12)
+              .fontColor(Color.White)
+              .backgroundColor('rgba(0,0,0,0.5)')
+              .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+              .borderRadius(8)
+              .margin({ top: 4 })
+          }
+          .width('100%')
+          .height(200)
+          .justifyContent(FlexAlign.Center)
+          .alignItems(HorizontalAlign.Center)
+        }
         Text('AI 海报')
-          .fontSize(12)
+          .fontSize(10)
           .fontColor(Color.White)
           .backgroundColor('rgba(0,0,0,0.5)')
-          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-          .borderRadius(8)
+          .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+          .borderRadius(6)
           .position({ x: 8, y: 8 })
       }
       .width('100%')
-      .height(160)
+      .height(200)
       .borderRadius(12)
       .backgroundColor($r('app.color.color_card_yellow'))
-      .alignContent(Alignment.Bottom)
     }
     .width('100%')
   }
@@ -551,7 +602,7 @@ export struct ProductPublish {
         ForEach(this.mainImages, (imgKey: string, idx: number) => {
           GridItem() {
             Stack() {
-              // spec 16.9：支持真实 file:// / http URI，否则显示占位
+              // spec 16.9/16.12：支持 file:// / http URI，其他 key 走 ImageUtil 映射
               if (imgKey.startsWith('file://') || imgKey.startsWith('http://') || imgKey.startsWith('https://')) {
                 Image(imgKey)
                   .width('100%')
@@ -559,8 +610,11 @@ export struct ProductPublish {
                   .borderRadius(8)
                   .objectFit(ImageFit.Cover)
               } else {
-                Text('🌾')
-                  .fontSize(28)
+                Image(ImageUtil.get(imgKey))
+                  .width('100%')
+                  .height(96)
+                  .borderRadius(8)
+                  .objectFit(ImageFit.Cover)
               }
               Text('×')
                 .fontSize(14)

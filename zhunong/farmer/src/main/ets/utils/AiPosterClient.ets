@@ -34,9 +34,9 @@ const PATH_QUERY_TEMPLATE: string = '/ai/poster/task/';
 /** Mock 海报生成延迟（毫秒，spec 8.2.3：5秒后返回） */
 const MOCK_POSTER_DELAY_MS: number = 5000;
 
-/** Mock 海报 URL（返回商品首图作为兜底） */
-const MOCK_POSTER_URL: string = 'mock_ai_poster_default';
-const MOCK_THUMBNAIL_URL: string = 'mock_ai_poster_thumbnail';
+/** Mock 海报 URL（spec 16.12：使用资源管理器中的图片作为海报结果，统一 key 便于各页面 ImageUtil 映射） */
+const MOCK_POSTER_URL: string = 'ai_poster_result';
+const MOCK_THUMBNAIL_URL: string = 'ai_poster_result';
 
 class AiPosterClientImpl {
   /** 当前轮询定时器 */
@@ -165,10 +165,9 @@ class AiPosterClientImpl {
     Logger.info(AppConstants.SCENE_FARMER, { action: 'ai_poster_enter_mock', taskId: this.currentTaskId });
 
     this.mockCompleteTimer = setTimeout(() => {
-      // 5 秒后返回 done + 商品首图作为海报
-      const posterUrl: string = request.images.length > 0 ? request.images[0] : MOCK_POSTER_URL;
+      // spec 16.12：5 秒后返回 done + 资源图片作为海报
       this.currentListeners?.onProgress('done');
-      this.currentListeners?.onDone(posterUrl, MOCK_THUMBNAIL_URL);
+      this.currentListeners?.onDone(MOCK_POSTER_URL, MOCK_THUMBNAIL_URL);
       this.currentListeners = null;
       this.mockCompleteTimer = -1;
     }, MOCK_POSTER_DELAY_MS);

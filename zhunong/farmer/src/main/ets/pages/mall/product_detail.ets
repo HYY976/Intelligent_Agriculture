@@ -15,6 +15,7 @@
 
 import { Logger, AppConstants, ToastUtil, NavigationHelper, RouteName, SharedProductStore, SharedProduct, TokenStore, UserInfo } from 'common';
 import { MOCK_FARMER_PRODUCTS } from '../../mock/FarmerMock';
+import { ImageUtil } from '../../utils/ImageUtil';
 
 /** spec 16.10：商品详情页入参 */
 interface ProductDetailParam {
@@ -287,14 +288,11 @@ export struct ProductDetail {
               .height(380)
               .objectFit(ImageFit.Cover)
           } else {
-            Column({ space: 12 }) {
-              Text('🌾').fontSize(80)
-              Text(img).fontSize(12).fontColor($r('app.color.color_text_hint'))
-            }
-            .width('100%')
-            .height(380)
-            .justifyContent(FlexAlign.Center)
-            .alignItems(HorizontalAlign.Center)
+            // spec 16.12：非 URI 的 key 走 ImageUtil 映射（含 AI 海报结果图）
+            Image(ImageUtil.get(img))
+              .width('100%')
+              .height(380)
+              .objectFit(ImageFit.Cover)
           }
         }
         .width('100%')

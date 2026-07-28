@@ -218,10 +218,10 @@ export struct MessageList {
   @Builder
   SessionCard(session: ChatSession) {
     Row({ space: 12 }) {
-      // 头像（系统通知用系统头像，私信用买家头像）
+      // spec 16.12：头像使用 peerAvatar（emoji），系统通知用对应 emoji
       Stack() {
-        Text(session.type === 'system' ? '📢' : '👤')
-          .fontSize(20)
+        Text(session.peerAvatar ?? (session.type === 'system' ? '📢' : '👤'))
+          .fontSize(24)
         if (session.unreadCountB > 0) {
           Text(`${session.unreadCountB}`)
             .fontSize(10)
