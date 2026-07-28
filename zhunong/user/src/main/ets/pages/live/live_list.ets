@@ -1,6 +1,6 @@
-/**
+﻿/**
  * live_list - 直播浏览页（排版对齐农户端 live_browse.ets）
- *  - 顶部导航栏：返回 + 标题"助农直播" + 排序选项（热门/最新）+ 搜索入口
+ *  - 顶部导航栏：返回 + 标题"智农直播" + 排序选项（热门/最新）+ 搜索入口
  *  - 分类筛选条：横向滚动胶囊（全部/生鲜/粮油/肉禽/茶饮/其他），选中黑底白字
  *  - 直播卡片列表（List 单列）：封面(160px) + 状态标签 + 观看人数 + 标题 + 主播信息 + 进入按钮
  *  - 点击进入直播间 pages/live/live_room?liveId=xxx
@@ -156,7 +156,7 @@ export struct LiveList {
         .width(32)
         .textAlign(TextAlign.Center)
         .onClick(() => this.goBack())
-      Text('助农直播')
+      Text('智农直播')
         .fontSize(18)
         .fontColor($r('app.color.color_ink'))
         .fontWeight(FontWeight.Bold)

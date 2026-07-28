@@ -339,7 +339,7 @@ export struct MessageContent {
     .scrollable(ScrollDirection.Horizontal)
     .scrollBar(BarState.Off)
     .width('100%')
-    .margin({ top: 0 })
+    .margin({ top: 20 })
   }
 
   /** 会话列表（对齐设计稿 qn-msg-card 白卡分组） */
@@ -363,7 +363,8 @@ export struct MessageContent {
         .backgroundColor($r('app.color.color_bg_card'))
         .borderRadius(AppConstants.RADIUS_LG)
         .shadow(AppConstants.SHADOW_CARD)
-        .padding({ left: 16, right: 16 })
+        .margin({ top: 0 })
+        .padding({ left: 16, right: 16, top: 0 })
 
         // 列表底部提示（对齐设计稿 qn-msg-foot）
         Text('没有更多消息了')
@@ -453,7 +454,7 @@ export struct MessageContent {
       .alignItems(HorizontalAlign.Start)
     }
     .width('100%')
-    .padding({ top: 13, bottom: 13 })
+    .padding({ top: 2, bottom: 13 })
     .alignItems(VerticalAlign.Top)
     .onClick(() => { this.onSessionClick(session); })
     .gesture(

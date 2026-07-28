@@ -1,11 +1,11 @@
-/**
+﻿/**
  * poi_detail - POI 点位详情页（spec 3.1.4.3）
  * 对齐设计稿 pages/poi-detail.html：
  *  - 顶部图片轮播 240 高 + 状态栏白字叠图
  *  - 左上返回键 + 右上收藏键（圆形 82% 白底 + 模糊，对齐设计稿 qn-poi-circle-btn）
  *  - 右下图片索引指示器（黑底白字胶囊，如 1/4）
  *  - 中部 Scroll 内容区（向上覆盖图片 8px + 圆角 24 顶部）：
- *    1) 名称区：黄色 pill 分类 + 绿色 pill 助农推荐 + 20px 加粗标题
+ *    1) 名称区：黄色 pill 分类 + 绿色 pill 智农推荐 + 20px 加粗标题
  *    2) 评分行：★ 4.8 · 128条评价 · 人均¥88 · 距您2.3km
  *    3) 信息卡（3 行）：地址(黄)/电话(绿)/营业时间(蓝)，每行 30×30 彩色图标
  *    4) 简介卡：标题 + 多段简介文字
@@ -225,7 +225,7 @@ export struct PoiDetail {
   @Builder
   NameSection(poi: PoiInfo) {
     Column({ space: 6 }) {
-      // 标签行（黄色分类 + 绿色助农推荐）
+      // 标签行（黄色分类 + 绿色智农推荐）
       Row({ space: 6 }) {
         Text(getPoiCategoryLabel(poi.category))
           .fontSize(11)
@@ -236,7 +236,7 @@ export struct PoiDetail {
           .backgroundColor($r('app.color.color_yellow_soft'))
 
         if (poi.isFeatured) {
-          Text('助农推荐')
+          Text('智农推荐')
             .fontSize(11)
             .fontColor($r('app.color.color_green_deep'))
             .fontWeight(FontWeight.Bold)

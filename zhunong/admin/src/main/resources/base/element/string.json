@@ -1,12 +1,12 @@
 {
   "string": [
-    { "name": "module_desc", "value": "助农系统管理后台端模块" },
-    { "name": "AdminEntryAbility_desc", "value": "助农管理后台入口" },
-    { "name": "AdminEntryAbility_label", "value": "助农管理" },
+    { "name": "module_desc", "value": "智农系统管理后台端模块" },
+    { "name": "AdminEntryAbility_desc", "value": "智农管理后台入口" },
+    { "name": "AdminEntryAbility_label", "value": "智农管理" },
     { "name": "permission_internet_reason", "value": "用于访问后端管理接口进行用户/内容/API管理" },
     { "name": "permission_network_reason", "value": "用于检查网络连接状态" },
     { "name": "admin_login_title", "value": "管理后台登录" },
-    { "name": "admin_login_subtitle", "value": "助农平台系统管理后台" },
+    { "name": "admin_login_subtitle", "value": "智农平台系统管理后台" },
     { "name": "admin_role_super", "value": "超级管理员" },
     { "name": "admin_role_user", "value": "用户管理员" },
     { "name": "admin_role_content", "value": "内容审核员" },

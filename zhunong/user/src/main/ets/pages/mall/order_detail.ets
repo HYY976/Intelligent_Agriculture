@@ -1,4 +1,4 @@
-/**
+﻿/**
  * order_detail - 订单详情页
  * 遵循 spec 3.1.4.1 + UI 复刻 order-detail.html：
  *  - 顶部栏：返回（白圆）+ 居中标题
@@ -155,7 +155,7 @@ export struct OrderDetail {
           startColor: $r('app.color.color_green'),
           endColor: $r('app.color.color_green_deep'),
           title: '交易完成',
-          subtitle: '您的订单已签收，感谢支持助农',
+          subtitle: '您的订单已签收，感谢支持智农',
           iconBg: '#3D8A0A',
           icon: '✓'
         };

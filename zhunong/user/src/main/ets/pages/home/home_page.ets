@@ -1,9 +1,9 @@
-/**
+﻿/**
  * home_page - 用户端首页（5 Tab + 首页推荐流）
  * 对齐设计稿 pages/user-home.html（spec 15.5 第 65 页对照表）：
- *  - 顶部栏：趣农品牌字 + 胶囊搜索栏（白底阴影）+ 购物车图标按钮（红点徽标）
+ *  - 顶部栏：智农品牌字 + 胶囊搜索栏（白底阴影）+ 购物车图标按钮（红点徽标）
  *  - 黄色英雄横幅：渐变卡 + 产地直达 eyebrow + 标题/副标题 + 立即逛逛 CTA + 吉祥物 + 自定义圆点指示器
- *  - 快捷入口九宫格：白卡内 4 列（分类/直播/助农/旅游），彩色圆形图标
+ *  - 快捷入口九宫格：白卡内 4 列（分类/直播/智农/旅游），彩色圆形图标
  *  - 直播横滑区：LIVE pill + 正在直播 + 横向卡片（封面 + LIVE 徽标 + 观看人数 + 标题 + 主播）
  *  - 商品瀑布流：为你推荐 + 双列 ProductCard
  *  - 底部 5 Tab：首页/社区/消息(红点)/购物车/我的
@@ -66,7 +66,7 @@ export struct HomePage {
   /** 当前底部 Tab 索引 */
   @Local currentTab: number = 0;
   /** 用户昵称 */
-  @Local nickname: string = '助农用户';
+  @Local nickname: string = '智农用户';
   /** 首页推荐流数据源（保留层：取数走 HomeRepository） */
   private recommendDataSource: HomeRecommendDataSource = new HomeRecommendDataSource();
   /** 是否正在下拉刷新 */
@@ -75,7 +75,7 @@ export struct HomePage {
   @Local banners: BannerItem[] = [];
   /** 当前 Banner 索引（自定义圆点指示器用） */
   @Local currentBannerIndex: number = 0;
-  /** 4 快捷入口（对齐设计稿：分类/直播/助农/旅游） */
+  /** 4 快捷入口（对齐设计稿：分类/直播/智农/旅游） */
   @Local quickEntries: QuickEntry[] = [];
   /** 正在直播列表（横滑区，最多 6 条） */
   @Local liveList: LiveListItem[] = [];
@@ -137,7 +137,7 @@ export struct HomePage {
     this.productPairs = pairs;
   }
 
-  /** 构建 4 快捷入口数据（对齐设计稿 .qn-cat-grid；spec 16.12：助农改为商城） */
+  /** 构建 4 快捷入口数据（对齐设计稿 .qn-cat-grid；spec 16.12：智农改为商城） */
   private buildQuickEntries(): QuickEntry[] {
     const entries: QuickEntry[] = [
       { label: '分类', icon: '📦', entryKey: 'category', colorKey: 'green' },
@@ -201,7 +201,7 @@ export struct HomePage {
     NavigationHelper.push(RouteName.USER_LIVE_ROOM, param);
   }
 
-  /** 快捷入口点击 → 路由跳转（对齐设计稿 4 入口；spec 16.12：助农改为商城，跳商品列表实时同步农户端商品） */
+  /** 快捷入口点击 → 路由跳转（对齐设计稿 4 入口；spec 16.12：智农改为商城，跳商品列表实时同步农户端商品） */
   private onQuickEntryClick(entryKey: string): void {
     switch (entryKey) {
       case 'category':
@@ -362,7 +362,7 @@ export struct HomePage {
   @Builder
   HomeTabContent() {
     Column() {
-      // 固定顶栏：趣农品牌 + 胶囊搜索 + 购物车
+      // 固定顶栏：智农品牌 + 胶囊搜索 + 购物车
       this.TopBar()
 
       // 可滚动内容区（Refresh 包裹 List，首个 ListItem 承载头部内容，随列表滚动）
@@ -441,12 +441,12 @@ export struct HomePage {
     .height('100%')
   }
 
-  /** 顶部栏：趣农品牌字 + 胶囊搜索栏 + 购物车图标按钮（对齐 .qn-home-top） */
+  /** 顶部栏：智农品牌字 + 胶囊搜索栏 + 购物车图标按钮（对齐 .qn-home-top） */
   @Builder
   TopBar() {
     Row({ space: 10 }) {
       // 品牌字（对齐 .qn-brand：18px / 800 / letter-spacing .5）
-      Text('趣农')
+      Text('智农')
         .fontSize(18)
         .fontWeight(FontWeight.Bold)
         .fontColor($r('app.color.color_ink'))
@@ -455,7 +455,7 @@ export struct HomePage {
       Row({ space: 8 }) {
         Text('🔍')
           .fontSize(14)
-        Text('搜索助农好物')
+        Text('搜索智农好物')
           .fontSize(13)
           .fontColor($r('app.color.color_text_3'))
         Blank()
@@ -574,8 +574,8 @@ export struct HomePage {
                 .alignItems(HorizontalAlign.Start)
                 .layoutWeight(1)
 
-                // 吉祥物头像（对齐 .qn-hero-mascot：96 圆形 + 白边）
-                Image($r('app.media.mascot_farmer'))
+                // 品牌头像（对齐 .qn-hero-mascot：96 圆形 + 白边）
+                Image($r('app.media.avatar_brand'))
                   .width(96)
                   .height(96)
                   .borderRadius(48)

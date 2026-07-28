@@ -363,7 +363,7 @@ export struct FarmerHomePage {
             .border({ width: 2, color: 'rgba(255,217,61,0.4)' })
           Text(this.userNickname && this.userNickname.length > 0
             ? this.userNickname
-            : (this.profile?.shopName ?? '助农卖家'))
+            : (this.profile?.shopName ?? '智农卖家'))
             .fontSize(this.isElderMode() ? 15 : 13)
             .fontColor(Color.White)
             .fontWeight(FontWeight.Bold)

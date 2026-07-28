@@ -1,4 +1,4 @@
-/**
+﻿/**
  * setting - 设置页
  * 遵循 spec 3.1.3.5 + 设计稿 setting.html 1:1 复刻：
  *  - 顶栏：白色圆形返回按钮 + 居中标题"设置"
@@ -538,7 +538,7 @@ export struct Setting {
       this.RowDivider()
       // 关于我们（蓝色图标 + v1.0.0）
       this.SettingRow('blue', 'ℹ️', '关于我们', 'v1.0.0', true, () => {
-        ToastUtil.info('趣农 v1.0.0 助农电商平台');
+        ToastUtil.info('智农 v1.0.0 智农电商平台');
       })
       this.RowDivider()
       // 隐私政策（灰色图标）

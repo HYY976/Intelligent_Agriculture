@@ -170,6 +170,8 @@ export interface LiveManageItem {
   totalGiftIncome: number;
   /** 累计订单收入（元） */
   totalOrderIncome: number;
+  /** 直播视频文件名（rawfile 中，有值时直播间自动播放视频） */
+  videoUrl?: string;
 }
 
 /** 粉丝信息（spec 3.2.4.5：粉丝列表） */

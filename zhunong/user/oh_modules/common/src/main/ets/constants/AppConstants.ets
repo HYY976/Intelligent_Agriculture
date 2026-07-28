@@ -1,5 +1,5 @@
-/**
- * AppConstants - 助农平台全局常量定义
+﻿/**
+ * AppConstants - 智农平台全局常量定义
  * 集中管理场景名、Preferences键名、HTTP超时、错误码等常量，避免硬编码
  */
 

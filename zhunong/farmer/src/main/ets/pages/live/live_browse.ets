@@ -14,6 +14,7 @@ import type { CurrentModeKey } from 'common';
 import { LiveListItem, LiveSortBy } from '../../model/FarmerLiveModels';
 import { LiveManageRepository } from '../../repository/LiveManageRepository';
 import { ImageUtil } from '../../utils/ImageUtil';
+import { ReplaceableImage } from '../../components/ReplaceableImage';
 import { LiveStatusBroadcaster } from './live_room';
 
 /** 排序选项 */
@@ -362,10 +363,7 @@ export struct LiveBrowse {
             .height(160)
             .objectFit(ImageFit.Cover)
         } else {
-          Image(ImageUtil.get(item.coverImage))
-            .width('100%')
-            .height(160)
-            .objectFit(ImageFit.Cover)
+          ReplaceableImage({ imageKey: item.coverImage, imgWidth: '100%', imgHeight: 160, imgFit: ImageFit.Cover })
         }
 
         // 直播状态标签（左上）

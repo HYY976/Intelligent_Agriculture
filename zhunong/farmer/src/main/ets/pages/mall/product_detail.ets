@@ -67,7 +67,7 @@ export struct ProductDetail {
   /** 是否展开详情描述 */
   @Local descExpanded: boolean = false;
   /** 卖家昵称（来自 TokenStore，同步个人信息修改） */
-  @Local sellerName: string = '助农店铺';
+  @Local sellerName: string = '智农店铺';
   /** 卖家头像（来自 TokenStore） */
   @Local sellerAvatar: string = '';
 
@@ -135,7 +135,7 @@ export struct ProductDetail {
           shipFrom: '本地农场',
           freightText: '包邮',
           description: '暂无商品信息',
-          farmerName: '助农店铺',
+          farmerName: '智农店铺',
           farmerAvatar: '',
           categoryId: ''
         };
@@ -152,7 +152,7 @@ export struct ProductDetail {
     try {
       const user: UserInfo | null = await TokenStore.getUserInfo();
       if (user) {
-        this.sellerName = user.nickname && user.nickname.length > 0 ? user.nickname : '助农店铺';
+        this.sellerName = user.nickname && user.nickname.length > 0 ? user.nickname : '智农店铺';
         this.sellerAvatar = user.avatar;
       }
     } catch (err) {

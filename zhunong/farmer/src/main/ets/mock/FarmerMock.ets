@@ -303,7 +303,8 @@ export const MOCK_LIVE_MANAGE_LIST: LiveManageItem[] = [
   {
     liveId: 'l005', title: '土蜂蜜采收直播', coverImage: 'live_cover_5',
     category: 'fresh', status: 'living', startTime: 1737180000000,
-    totalViewUv: 326, totalGiftIncome: 86.50, totalOrderIncome: 580.00
+    totalViewUv: 326, totalGiftIncome: 86.50, totalOrderIncome: 580.00,
+    videoUrl: 'honey_live.mp4'
   }
 ];
 

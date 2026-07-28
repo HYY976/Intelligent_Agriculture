@@ -1,4 +1,4 @@
-/**
+﻿/**
  * admin_login - 管理后台登录页（UI 复刻 qunong-harmony-app/pages/admin-login.html）
  * 遵循 spec 1.3.2 / 3.3.1 / 6.6.3：
  *  - 登录方式：用户名 + 密码 + 角色（4角色RBAC：超管/用户管理员/内容审核员/API管理员）
@@ -224,7 +224,7 @@ export struct AdminLogin {
       .margin({ top: 72 })
 
       // 标题
-      Text('助农管理后台')
+      Text('智农管理后台')
         .fontSize(22)
         .fontColor($r('app.color.color_ink'))
         .fontWeight(FontWeight.Bold)

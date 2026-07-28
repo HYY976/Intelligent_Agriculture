@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ProfileMock - 个人中心域 Mock 数据
  * 遵循 spec 3.1.3.5：地址/收藏/关注/优惠券/钱包/浏览历史
  */
@@ -75,10 +75,10 @@ export const MOCK_PROFILE_STATS: ProfileStats = {
   points: 860
 };
 
-/** 个人中心等级 Mock（对齐设计稿 qn-level-pill: Lv.3 助农达人） */
+/** 个人中心等级 Mock（对齐设计稿 qn-level-pill: Lv.3 智农达人） */
 export const MOCK_PROFILE_LEVEL: ProfileLevel = {
   level: 3,
-  title: '助农达人'
+  title: '智农达人'
 };
 
 /** 用户 ID Mock（对齐设计稿 qn-profile-id: ID: QN20231234） */

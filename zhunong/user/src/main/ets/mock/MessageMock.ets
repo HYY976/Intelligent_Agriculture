@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MessageMock - 消息域 Mock 数据
  * 遵循 spec 4.1.10 / 3.1.3.3 + 设计稿 message.html / chat-detail.html：
  *  - 消息列表（通知中心式）：订单/直播/优惠/互动/系统/客服 6 条
@@ -129,7 +129,7 @@ export const MOCK_SESSIONS: ChatSession[] = [
     peerNickname: '系统通知',
     peerAvatar: 'avatar_default',
     noticeType: 'review',
-    lastMessage: '感谢您支持助农',
+    lastMessage: '感谢您支持智农',
     lastMessageAt: Date.now() - 26 * 60 * 60 * 1000,
     unreadCount: 0,
     isPinned: false,
@@ -213,7 +213,7 @@ const MOCK_MESSAGE_DATA: Record<string, ChatMessage[]> = {
       senderId: 'cs_xiaoqu',
       receiverId: 'u_self',
       contentType: 'text',
-      content: '您好，欢迎来到趣农客服中心，有什么可以帮您？',
+      content: '您好，欢迎来到智农客服中心，有什么可以帮您？',
       isSelf: false,
       isRead: true,
       createdAt: Date.now() - 26 * 60 * 60 * 1000

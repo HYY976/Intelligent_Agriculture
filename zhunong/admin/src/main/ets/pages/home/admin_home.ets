@@ -1,4 +1,4 @@
-/**
+﻿/**
  * admin_home - 管理后台首页（UI 复刻 qunong-harmony-app/pages/admin-dashboard.html）
  * 遵循 spec 1.3.2 / 3.3.1 / 6.6.3 / 7.2 / 10.8.4：
  *  - 无底部 Tab，使用侧边栏导航（spec 1.3.2 / 7.2）
@@ -352,7 +352,7 @@ export struct AdminHome {
   @Builder
   Sidebar() {
     Column() {
-      // 顶部 Logo 区（黄色方块 + "助农管理"）
+      // 顶部 Logo 区（黄色方块 + "智农管理"）
       Row({ space: 10 }) {
         Stack() {
           Text('🌾')
@@ -363,7 +363,7 @@ export struct AdminHome {
         .height(34)
         .borderRadius(AppConstants.RADIUS_SM)
         .backgroundColor($r('app.color.color_yellow'))
-        Text('助农管理')
+        Text('智农管理')
           .fontSize(18)
           .fontColor(Color.White)
           .fontWeight(FontWeight.Bold)

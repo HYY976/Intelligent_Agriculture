@@ -1,4 +1,4 @@
-/**
+﻿/**
  * agent_page - 智能体页（spec 3.2.1 / 8.3）
  *
  * 对齐设计稿 pages/farmer-agent.html：
@@ -221,7 +221,7 @@ export struct AgentPage {
         .border({ width: 2, color: Color.White })
       // 名称 + 副标题
       Column({ space: 2 }) {
-        Text('趣农AI助手')
+        Text('智农AI助手')
           .fontSize(16)
           .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Bold)

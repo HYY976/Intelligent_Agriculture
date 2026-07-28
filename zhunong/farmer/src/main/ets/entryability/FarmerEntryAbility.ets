@@ -11,6 +11,7 @@ import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.Ab
 import { window } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import { PreferencesUtil, ModeStore, ThemeStore, Logger, AppConstants } from 'common';
+import { ImageReplaceStore } from '../utils/ImageReplaceStore';
 
 export default class FarmerEntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
@@ -24,6 +25,9 @@ export default class FarmerEntryAbility extends UIAbility {
 
     // 应用主题（默认跟随系统）
     ThemeStore.applyTheme(this.context as common.UIAbilityContext);
+
+    // 加载持久化的图片替换映射（演示用，应用重启后仍生效）
+    ImageReplaceStore.loadFromPreferences();
   }
 
   onDestroy(): void {

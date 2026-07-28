@@ -1,4 +1,4 @@
-/**
+﻿/**
  * BannerMock - 首页 Banner 轮播 Mock 数据
  * 遵循 spec 2.4.6.6 / 10.2：首页 Banner 轮播（营销活动 / 榜单入口）
  * 现阶段纯 Mock，Phase 6 联调时由 Repository 层替换为 GET /api/home/banner
@@ -50,7 +50,7 @@ const MOCK_BANNERS: BannerItem[] = [
   },
   {
     bannerId: 'b003',
-    title: '助农直播季',
+    title: '智农直播季',
     subtitle: '原产地直播 限时特价',
     theme: 'red',
     linkType: 'live',

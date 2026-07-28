@@ -124,7 +124,7 @@ export struct SplashAd {
             Text('🌾')
               .fontSize(120)
               .margin({ bottom: 24 })
-            Text('助农卖家')
+            Text('智农卖家')
               .fontSize(32)
               .fontColor(Color.White)
               .fontWeight(FontWeight.Bold)

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * setting - 设置页（spec 3.2.4.5）
  *
  * 对齐设计稿 pages/farmer-setting.html：
@@ -201,7 +201,7 @@ export struct Setting {
         ToastUtil.info('意见反馈功能开发中');
         break;
       case 'about':
-        ToastUtil.info('助农卖家 v1.0.0');
+        ToastUtil.info('智农卖家 v1.0.0');
         break;
       default:
         break;
@@ -591,7 +591,7 @@ export struct Setting {
           .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Bold)
         // 描述
-        Text('退出后需要重新登录才能继续使用趣农助农服务，是否确认退出当前账号？')
+        Text('退出后需要重新登录才能继续使用智农智农服务，是否确认退出当前账号？')
           .fontSize(FontUtil.s(14, this.isElder()))
           .fontColor($r('app.color.color_text_3'))
           .lineHeight(20)

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TravelMock - 文旅地图域 Mock 数据
  * 遵循 spec 3.1.4.3：百度地图 POI 检索（农家乐/乡村文旅/农庄/采摘园/民宿/景点/市集）
  * 设计稿对齐（travel-map.html / poi-detail.html / user-booking.html）：
@@ -44,10 +44,10 @@ export const MOCK_POIS: PoiInfo[] = [
     avgPrice: 88,
     distance: 2300,
     businessHours: '08:00-18:00',
-    intro: '山田农庄占地200亩，集采摘、农事体验、民宿于一体，是余杭区重点扶持的助农示范项目。园内种植有草莓、番茄、茶叶等十余种应季果蔬，全程生态种植，可现采现摘。\n园区提供亲子农事课堂、手工制茶、田园餐桌等特色体验，支持团队定制与研学活动。所有收益按比例反哺当地农户，助力乡村振兴。',
+    intro: '山田农庄占地200亩，集采摘、农事体验、民宿于一体，是余杭区重点扶持的智农示范项目。园内种植有草莓、番茄、茶叶等十余种应季果蔬，全程生态种植，可现采现摘。\n园区提供亲子农事课堂、手工制茶、田园餐桌等特色体验，支持团队定制与研学活动。所有收益按比例反哺当地农户，助力乡村振兴。',
     images: ['farm_picking', 'prod_fruit_1', 'prod_vegetable_1', 'prod_tea_1'],
     isFeatured: true,
-    tags: ['农庄', '助农推荐'],
+    tags: ['农庄', '智农推荐'],
     bookable: true
   },
   {
@@ -186,7 +186,7 @@ export const MOCK_ROUTES: TravelRoute[] = [
     poiNames: ['古城农耕文化村'],
     duration: '1天',
     price: 128,
-    tags: ['古村', '文化', '助农'],
+    tags: ['古村', '文化', '智农'],
     description: '临安天目山千年古村落文化游，参观古农具展、体验传统酿酒与制茶工艺，入住明清古宅民宿，助力乡村振兴。'
   }
 ];

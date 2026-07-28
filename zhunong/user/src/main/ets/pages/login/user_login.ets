@@ -1,8 +1,8 @@
-/**
+﻿/**
  * user_login - 用户端登录页
  * 对齐农户端 farmer_login.ets 格式：
  *  - 奶油白背景 + 顶部装饰气泡（黄/绿径向渐变模拟）
- *  - 品牌Logo区：黄色渐变 80×80 圆角Logo + 萌芽图标 + 右侧吉祥物 + "趣农"标题 + 副标题
+ *  - 品牌Logo区：黄色渐变 80×80 圆角Logo + 萌芽图标 + 右侧吉祥物 + "智农"标题 + 副标题
  *  - 表单区：手机号/密码输入卡（白底圆角14+阴影+描边+左侧图标）
  *  - 登录按钮（墨黑底白字 + 右箭头图标）
  *  - "去注册"下划线链接
@@ -165,8 +165,8 @@ export struct UserLogin {
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
 
-        // 标题"趣农"
-        Text('趣农')
+        // 标题"智农"
+        Text('智农')
           .fontSize(24)
           .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Bold)
@@ -174,7 +174,7 @@ export struct UserLogin {
           .margin({ top: 10 })
 
         // 副标题
-        Text('新鲜直达 · 助农优选')
+        Text('新鲜直达 · 智农优选')
           .fontSize(13)
           .fontColor($r('app.color.color_text_3'))
           .letterSpacing(0.5)
@@ -183,13 +183,12 @@ export struct UserLogin {
       .margin({ top: 12 })
       .alignItems(HorizontalAlign.Center)
 
-      // 右侧吉祥物装饰（对齐 qn-brand-mascot 60×60）
-      Image($r('app.media.mascot_farmer'))
+      // 右侧品牌头像（60×60 圆形）
+      Image($r('app.media.avatar_brand'))
         .width(60)
         .height(60)
         .borderRadius(AppConstants.RADIUS_PILL)
         .objectFit(ImageFit.Cover)
-        .backgroundColor($r('app.color.color_yellow_tint'))
         .border({ width: 3, color: $r('app.color.color_bg_card') })
         .shadow({ radius: 18, color: 'rgba(26,26,26,0.12)', offsetX: 0, offsetY: 6 })
         .position({ right: 8, top: 0 })

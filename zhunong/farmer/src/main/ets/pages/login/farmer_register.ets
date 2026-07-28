@@ -1,9 +1,9 @@
-/**
+﻿/**
  * farmer_register - 农户卖家端注册页
  * 对齐设计稿 pages/farmer-register.html：
  *  - 奶油白背景 + 顶部装饰气泡（黄/绿径向渐变模拟）
  *  - 返回按钮栏（圆形白底阴影返回键）
- *  - 品牌Logo区：黄色渐变 80×80 圆角Logo + 萌芽图标 + 右侧吉祥物 + "助农卖家"标题 + 副标题
+ *  - 品牌Logo区：黄色渐变 80×80 圆角Logo + 萌芽图标 + 右侧吉祥物 + "智农卖家"标题 + 副标题
  *  - 表单区：手机号/密码/确认密码输入卡（白底圆角14+阴影+描边+左侧图标+密码显隐切换）
  *  - 资质承诺勾选（黄色选中态 20×20 方框 + 承诺文案）
  *  - 注册按钮（墨黑底白字 + 右箭头图标）
@@ -130,13 +130,11 @@ export struct FarmerRegister {
           Column() {
             // 1. 顶部装饰气泡
             this.Decorations()
-            // 2. 返回按钮栏
-            this.BackBar()
-            // 3. 品牌Logo区
+            // 2. 品牌Logo区
             this.BrandHero()
-            // 4. 表单区
+            // 3. 表单区
             this.FormSection()
-            // 5. 底部区域
+            // 4. 底部区域
             this.FooterSection()
           }
           .width('100%')
@@ -180,30 +178,6 @@ export struct FarmerRegister {
     .hitTestBehavior(HitTestMode.Transparent)
   }
 
-  /** 返回按钮栏（对齐设计稿 qn-back-bar + qn-back-btn） */
-  @Builder
-  BackBar() {
-    Row() {
-      Row() {
-        Text('‹')
-          .fontSize(22)
-          .fontColor($r('app.color.color_ink'))
-          .fontWeight(FontWeight.Bold)
-      }
-      .width(36)
-      .height(36)
-      .borderRadius(AppConstants.RADIUS_PILL)
-      .backgroundColor($r('app.color.color_bg_card'))
-      .shadow(AppConstants.SHADOW_CARD)
-      .justifyContent(FlexAlign.Center)
-      .alignItems(VerticalAlign.Center)
-      .onClick(() => { this.gotoLogin(); })
-    }
-    .width('100%')
-    .padding({ top: 8, bottom: 0 })
-    .alignItems(VerticalAlign.Center)
-  }
-
   /** 品牌Logo区（对齐设计稿 qn-brand-hero，margin-top 18px 区别于登录页 80px） */
   @Builder
   BrandHero() {
@@ -228,8 +202,8 @@ export struct FarmerRegister {
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
 
-        // 标题"助农卖家"
-        Text('助农卖家')
+        // 标题"智农卖家"
+        Text('智农卖家')
           .fontSize(24)
           .fontColor($r('app.color.color_ink'))
           .fontWeight(FontWeight.Bold)
@@ -246,13 +220,12 @@ export struct FarmerRegister {
       .margin({ top: 0 })
       .alignItems(HorizontalAlign.Center)
 
-      // 右侧吉祥物装饰
-      Image($r('app.media.mascot_farmer'))
+      // 右侧品牌头像（60×60 圆形，与登录页同位置）
+      Image($r('app.media.avatar_brand'))
         .width(60)
         .height(60)
         .borderRadius(AppConstants.RADIUS_PILL)
         .objectFit(ImageFit.Cover)
-        .backgroundColor($r('app.color.color_yellow_tint'))
         .border({ width: 3, color: $r('app.color.color_bg_card') })
         .shadow({ radius: 18, color: 'rgba(26,26,26,0.12)', offsetX: 0, offsetY: 6 })
         .position({ right: 8, top: 0 })

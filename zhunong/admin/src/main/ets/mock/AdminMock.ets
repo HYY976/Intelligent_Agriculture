@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AdminMock - 管理后台 Mock 数据源（spec 3.3 / 10.8.6）
  * 提供 user/api/review/dashboard 等 Mock 数据与分页查询函数
  * 后端未部署时由 Repository 层回退调用
@@ -652,7 +652,7 @@ export function getMockPendingReviewCount(): number {
  *  - 丰收节大促（首页Banner · 投放中）
  *  - 新茶上市（开屏广告 · 投放中）
  *  - 草莓季（直播贴片 · 已暂停）
- *  - 助农故事（社区推荐 · 待审核）
+ *  - 智农故事（社区推荐 · 待审核）
  */
 export const MOCK_ADS: AdRecord[] = [
   {
@@ -708,7 +708,7 @@ export const MOCK_ADS: AdRecord[] = [
   },
   {
     adId: 'ad_004',
-    title: '助农故事',
+    title: '智农故事',
     slot: 'community',
     status: 'pending',
     enabled: true,

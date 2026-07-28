@@ -1,4 +1,4 @@
-/**
+﻿/**
  * post_create - 发帖页（对齐设计稿 pages/post-create.html）
  *  - 顶部栏：圆形返回按钮 + 居中标题"发布帖子" + 右侧黄色"发布"文字按钮
  *  - 话题选择卡：白卡 + 胶囊标签流（灰底默认，黄底选中）
@@ -317,7 +317,7 @@ export struct PostCreate {
   ContentCard() {
     Column({ space: 0 }) {
       // 正文 textarea（对齐设计稿 qn-pc-textarea：14px 160高 1.6行高）
-      TextArea({ text: this.content, placeholder: '分享你的助农故事、种植经验或乡村见闻...' })
+      TextArea({ text: this.content, placeholder: '分享你的智农故事、种植经验或乡村见闻...' })
         .fontSize(14)
         .fontColor($r('app.color.color_ink'))
         .placeholderColor($r('app.color.color_text_4'))

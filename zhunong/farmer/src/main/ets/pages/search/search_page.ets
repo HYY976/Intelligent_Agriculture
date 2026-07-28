@@ -14,6 +14,7 @@
 import { Logger, AppConstants, ToastUtil, NavigationHelper, RouteName, ListStateView } from 'common';
 import { FarmerSearchResultDataSource, FarmerProductRankItem } from '../../viewmodel/FarmerSearchResultDataSource';
 import { ImageUtil } from '../../utils/ImageUtil';
+import { ReplaceableImage } from '../../components/ReplaceableImage';
 
 /** 热门搜索词 */
 interface HotKeyword {
@@ -464,11 +465,7 @@ export struct SearchPage {
             .borderRadius(8)
             .objectFit(ImageFit.Cover)
         } else {
-          Image(ImageUtil.get(item.imageUrl))
-            .width('100%')
-            .height(140)
-            .borderRadius(8)
-            .objectFit(ImageFit.Cover)
+          ReplaceableImage({ imageKey: item.imageUrl, imgWidth: '100%', imgHeight: 140, imgRadius: 8, imgFit: ImageFit.Cover })
         }
         // 排名角标（前 3 名突出显示）
         if (idx < 3) {

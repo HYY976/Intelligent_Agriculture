@@ -1,12 +1,12 @@
-/**
+﻿/**
  * profile_page - 个人中心页（Tab 内嵌 + 独立路由双用）
  * 遵循 spec 3.1.3.5 + 设计稿 user-profile.html 1:1 复刻：
  *  - 黄色渐变头部：顶部图标栏（设置+消息红点）+ 吉祥物探头 + 头像+昵称+ID+等级胶囊
  *  - 悬浮资料卡：关注/粉丝/订单/积分 4 列统计
  *  - 我的订单卡：4 状态宫格（待付款/待发货/待收货/已完成）+ 全部订单链接
- *  - 更多功能宫格：8 项（助农积分/优惠券/我的农场/收藏/地址管理/助农认证/我的直播/邀请好友）
+ *  - 更多功能宫格：8 项（智农积分/优惠券/我的农场/收藏/地址管理/智农认证/我的直播/邀请好友）
  *  - 购物车快捷入口
- *  - 设置列表卡：消息通知/助农认证/帮助中心/关于我们/设置
+ *  - 设置列表卡：消息通知/智农认证/帮助中心/关于我们/设置
  *
  * 导出 ProfileContent 供 home_page Tab 内嵌使用
  * 同时作为 @Entry 独立路由（pages/profile/profile_page）支持深链接
@@ -80,12 +80,12 @@ export struct ProfileContent {
 
   /** 更多功能宫格（对齐设计稿 qn-quick-grid：4列×2行 = 8 项） */
   private quickFunctions: ProfileFunction[] = [
-    { funcId: 'points', label: '助农积分', icon: '🎁', iconTheme: 'yellow', route: RouteName.USER_WALLET },
+    { funcId: 'points', label: '智农积分', icon: '🎁', iconTheme: 'yellow', route: RouteName.USER_WALLET },
     { funcId: 'coupon', label: '优惠券', icon: '🎟️', iconTheme: 'yellow', route: RouteName.USER_COUPON_LIST },
     { funcId: 'farm', label: '我的农场', icon: '🌱', iconTheme: 'green', route: '' },
     { funcId: 'favorite', label: '收藏', icon: '❤️', iconTheme: 'green', route: RouteName.USER_FAVORITE_LIST },
     { funcId: 'address', label: '地址管理', icon: '📍', iconTheme: 'blue', route: RouteName.USER_ADDRESS_LIST },
-    { funcId: 'cert', label: '助农认证', icon: '✓', iconTheme: 'green', route: '' },
+    { funcId: 'cert', label: '智农认证', icon: '✓', iconTheme: 'green', route: '' },
     { funcId: 'live', label: '我的直播', icon: '📹', iconTheme: 'red', route: '' },
     { funcId: 'invite', label: '邀请好友', icon: '👥', iconTheme: 'orange', route: '' }
   ];
@@ -93,7 +93,7 @@ export struct ProfileContent {
   /** 设置列表（对齐设计稿 qn-list-card：5 行） */
   private settingList: ProfileFunction[] = [
     { funcId: 'message', label: '消息通知', icon: '🔔', iconTheme: 'yellow', route: RouteName.USER_MESSAGE_LIST },
-    { funcId: 'cert2', label: '助农认证', icon: '✓', iconTheme: 'green', route: '' },
+    { funcId: 'cert2', label: '智农认证', icon: '✓', iconTheme: 'green', route: '' },
     { funcId: 'help', label: '帮助中心', icon: '❓', iconTheme: 'blue', route: '' },
     { funcId: 'about', label: '关于我们', icon: 'ℹ️', iconTheme: 'orange', route: '' },
     { funcId: 'setting', label: '设置', icon: '⚙️', iconTheme: 'soft', route: RouteName.USER_SETTING }
@@ -315,8 +315,8 @@ export struct ProfileContent {
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
 
-          // 吉祥物探头（82×82 圆形，对齐设计稿 qn-mascot）
-          Image(ImageUtil.get('mascot_farmer'))
+          // 品牌头像（82×82 圆形，对齐设计稿 qn-mascot）
+          Image($r('app.media.avatar_brand'))
             .width(82)
             .height(82)
             .borderRadius(41)

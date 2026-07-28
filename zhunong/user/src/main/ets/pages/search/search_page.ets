@@ -1,4 +1,4 @@
-/**
+﻿/**
  * search_page - 搜索页 + 4 Tab 榜单（对齐设计稿 search.html）
  * 功能：
  *  - 顶部搜索栏：返回 + 输入框（圆角胶囊） + 黄色搜索按钮
@@ -229,7 +229,7 @@ export struct SearchPage {
             Text('🔍')
               .fontSize(14)
               .fontColor($r('app.color.color_text_3'))
-            TextInput({ text: this.keyword, placeholder: '搜索助农好物/直播间' })
+            TextInput({ text: this.keyword, placeholder: '搜索智农好物/直播间' })
               .fontSize(14)
               .fontColor($r('app.color.color_ink'))
               .placeholderFont({ size: 14 })
@@ -801,7 +801,7 @@ export struct SearchPage {
       .columnsTemplate('1fr 1fr')
       .columnsGap(8)
       .rowsGap(8)
-      .padding({ left: 12, right: 12, top: 8, bottom: 12 })
+      .padding({ left: 12, right: 12, top: 0, bottom: 12 })
       .cachedCount(AppConstants.LIST_CACHED_COUNT)
       .onReachEnd(() => {
         this.productDataSource.loadMore();
@@ -858,7 +858,7 @@ export struct SearchPage {
               .alignItems(HorizontalAlign.Start)
             }
             .width('100%')
-            .padding({ left: 16, right: 16, top: 4, bottom: 8 })
+            .padding({ left: 16, right: 16, top: 0, bottom: 8 })
             .backgroundColor($r('app.color.color_bg_card'))
             .borderRadius(AppConstants.RADIUS_LG)
             .onClick(() => {
@@ -926,7 +926,7 @@ export struct SearchPage {
               .alignItems(HorizontalAlign.Start)
             }
             .width('100%')
-            .padding({ left: 16, right: 16, top: 4, bottom: 10 })
+            .padding({ left: 16, right: 16, top: 0, bottom: 10 })
             .backgroundColor($r('app.color.color_bg_card'))
             .borderRadius(AppConstants.RADIUS_LG)
           }, (item: SearchPostItem, index: number) => `result_post_${item.postId}_${index}`)
@@ -1006,7 +1006,7 @@ export struct SearchPage {
                 .textAlign(TextAlign.Center)
             }
             .width('100%')
-            .padding({ left: 16, right: 16, top: 4, bottom: 12 })
+            .padding({ left: 16, right: 16, top: 0, bottom: 12 })
             .backgroundColor($r('app.color.color_bg_card'))
             .borderRadius(AppConstants.RADIUS_LG)
             .alignItems(VerticalAlign.Center)

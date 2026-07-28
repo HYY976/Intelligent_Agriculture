@@ -1,9 +1,9 @@
-/**
+﻿/**
  * splash_ad - 开屏广告页（UI 复刻 v4.0，对齐 splash-ad.html 设计稿）
  * 遵循 spec 15.5.1：整页重写，1:1 还原设计稿
  *  - 全屏背景图（hero_harvest.jpg）+ 暗色渐变蒙版
  *  - 状态栏白字 + 右上角"广告"角标
- *  - 底部品牌 Logo（黄色渐变方块 + 萌芽图标）+ "趣农" + "新鲜农货·产地直发"
+ *  - 底部品牌 Logo（黄色渐变方块 + 萌芽图标）+ "智农" + "新鲜农货·产地直发"
  *  - 跳过按钮（右下，倒计时秒数）+ "— 广告 —" 提示
  * 业务逻辑保留：MOCK_SPLASH_ADS + 5秒倒计时 + 跳过/点击跳转 + TokenStore 登录态判断
  */
@@ -201,7 +201,7 @@ export struct SplashAdPage {
 
               // 品牌文字
               Column({ space: 4 }) {
-                Text('趣农')
+                Text('智农')
                   .fontSize(26)
                   .fontWeight(FontWeight.Bold)
                   .fontColor(Color.White)

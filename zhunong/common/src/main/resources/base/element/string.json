@@ -1,6 +1,6 @@
 {
   "string": [
-    { "name": "common_module_desc", "value": "助农平台共享 HAR 库" },
+    { "name": "common_module_desc", "value": "智农平台共享 HAR 库" },
     { "name": "common_empty_default", "value": "暂无数据" },
     { "name": "common_empty_product", "value": "暂无商品" },
     { "name": "common_empty_order", "value": "暂无订单" },

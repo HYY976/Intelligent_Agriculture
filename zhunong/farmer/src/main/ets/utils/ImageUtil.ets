@@ -55,7 +55,7 @@ export class ImageUtil {
       case 'live_cover_3': return $r('app.media.prod_tea');
       case 'live_cover_4': return $r('app.media.prod_eggs');
       case 'live_cover_5': return $r('app.media.prod_honey');
-      case 'live_cover_6': return $r('app.media.farm_picking');
+      case 'live_cover_6': return $r('app.media.prod_tomato');
       case 'live_cover_7': return $r('app.media.prod_strawberry');
       case 'live_cover_8': return $r('app.media.prod_honey');
       case 'live_cover_9': return $r('app.media.prod_rice');
@@ -74,6 +74,11 @@ export class ImageUtil {
   /** 获取默认商品图（无图兜底） */
   static getDefaultProduct(): Resource {
     return $r('app.media.prod_strawberry');
+  }
+
+  /** 获取原始图片资源（ReplaceableImage 未替换时的兜底图，等同于 get） */
+  static getOriginal(key: string): Resource {
+    return ImageUtil.get(key);
   }
 
   /** 获取默认头像（卖家） */

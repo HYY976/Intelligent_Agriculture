@@ -21,6 +21,7 @@ import { LiveManageRepository } from '../../repository/LiveManageRepository';
 import { MOCK_LIVE_MANAGE_LIST, MOCK_FARMER_PRODUCTS, MOCK_FARMER_PROFILE } from '../../mock/FarmerMock';
 import { MOCK_LIVE_COMMENTS, MOCK_GIFTS } from '../../mock/FarmerLiveMock';
 import { ImageUtil } from '../../utils/ImageUtil';
+import { ReplaceableImage } from '../../components/ReplaceableImage';
 
 /** 弹幕消息本地存储 */
 interface DanmakuMessage {
@@ -433,9 +434,22 @@ export struct LiveRoom {
   build() {
     NavDestination() {
       Stack() {
-        // 直播画面背景（spec：显示封面图，支持真实图片 URI 和 Mock 图片 key）
+        // 直播画面背景（spec：有视频时自动播放视频，否则显示封面图）
         Column() {
-          if (this.liveInfo && this.liveInfo.coverImage) {
+          if (this.liveInfo && this.liveInfo.videoUrl && this.liveInfo.videoUrl.length > 0) {
+            // 蜂蜜直播间：自动循环播放视频
+            Video({
+              src: $rawfile('honey_live.mp4'),
+              currentProgressRate: 1.0,
+              previewUri: undefined
+            })
+              .width('100%')
+              .height('100%')
+              .autoPlay(true)
+              .loop(true)
+              .controls(false)
+              .objectFit(ImageFit.Cover)
+          } else if (this.liveInfo && this.liveInfo.coverImage) {
             // spec 16.8：支持 file:// / http(s):// 真实 URI 或 Mock 图片 key
             if (this.liveInfo.coverImage.startsWith('file://') ||
                 this.liveInfo.coverImage.startsWith('http://') ||
@@ -446,10 +460,7 @@ export struct LiveRoom {
                 .objectFit(ImageFit.Cover)
             } else {
               // 使用 ImageUtil 解析 Mock 封面 key
-              Image(ImageUtil.get(this.liveInfo.coverImage))
-                .width('100%')
-                .height('100%')
-                .objectFit(ImageFit.Cover)
+              ReplaceableImage({ imageKey: this.liveInfo.coverImage, imgWidth: '100%', imgHeight: '100%', imgFit: ImageFit.Cover })
             }
           } else {
             Text('📹')
@@ -524,12 +535,8 @@ export struct LiveRoom {
             .objectFit(ImageFit.Cover)
         } else if (this.anchorAvatar.length > 0) {
           // spec 16.15：资源名头像（如 avatar_farmer），同步卖家中心 shopLogo
-          Image(ImageUtil.get(this.anchorAvatar))
-            .width(40)
-            .height(40)
-            .borderRadius(20)
+          ReplaceableImage({ imageKey: this.anchorAvatar, imgWidth: 40, imgHeight: 40, imgRadius: 20, imgFit: ImageFit.Cover })
             .border({ width: 1, color: 'rgba(255,255,255,0.6)' })
-            .objectFit(ImageFit.Cover)
         } else {
           Text('👤')
             .fontSize(20)
