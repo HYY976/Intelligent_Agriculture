@@ -14,10 +14,11 @@
 
 import { Logger, AppConstants, ToastUtil, NavigationHelper, RouteName, TokenStore } from 'common';
 import { UserInfo } from 'common';
+import { display } from '@kit.ArkUI';
 import { LiveManageItem, FarmerProductItem } from '../../model/FarmerModels';
-import { LiveComment, Gift } from '../../model/FarmerLiveModels';
+import { LiveComment, Gift, LiveListItem } from '../../model/FarmerLiveModels';
 import { LiveManageRepository } from '../../repository/LiveManageRepository';
-import { MOCK_LIVE_MANAGE_LIST, MOCK_FARMER_PRODUCTS } from '../../mock/FarmerMock';
+import { MOCK_LIVE_MANAGE_LIST, MOCK_FARMER_PRODUCTS, MOCK_FARMER_PROFILE } from '../../mock/FarmerMock';
 import { MOCK_LIVE_COMMENTS, MOCK_GIFTS } from '../../mock/FarmerLiveMock';
 import { ImageUtil } from '../../utils/ImageUtil';
 
@@ -78,6 +79,22 @@ export struct LiveRoom {
   @Local cartProducts: FarmerProductItem[] = [];
   /** 小黄车是否展开 */
   @Local cartExpanded: boolean = false;
+  /** spec 16.15：小黄车拖动位置 X（vp，相对屏幕左上角） */
+  @Local cartPosX: number = 200;
+  /** spec 16.15：小黄车拖动位置 Y（vp，相对屏幕左上角） */
+  @Local cartPosY: number = 400;
+  /** spec 16.15：拖动起始触摸点 X */
+  private dragStartX: number = 0;
+  /** spec 16.15：拖动起始触摸点 Y */
+  private dragStartY: number = 0;
+  /** spec 16.15：拖动起始时面板 X */
+  private dragStartPosX: number = 0;
+  /** spec 16.15：拖动起始时面板 Y */
+  private dragStartPosY: number = 0;
+  /** spec 16.15：是否已初始化小黄车默认位置 */
+  private cartPosInitialized: boolean = false;
+  /** spec 16.15：当前触摸是否已触发拖动（用于抑制点击事件） */
+  @Local dragMoved: boolean = false;
   /** 小黄车编辑面板是否展开（spec 16.9：链接可修改） */
   @Local cartEditOpen: boolean = false;
   /** 可选商品池（spec 16.9：链接编辑用） */
@@ -105,6 +122,7 @@ export struct LiveRoom {
     const roleParam: string = params?.role ?? 'viewer';
     this.role = roleParam === 'broadcaster' ? 'broadcaster' : 'viewer';
     Logger.info(AppConstants.SCENE_FARMER, { action: 'live_room_appear', liveId: this.liveId, role: this.role });
+    this.initCartPosition();
     await this.loadAnchorInfo();
     await this.loadLiveInfo();
     await this.loadComments();
@@ -115,16 +133,23 @@ export struct LiveRoom {
     this.startMockDanmaku();
   }
 
-  /** spec 16.9：加载注册用户信息作为主播昵称/头像 */
+  /** spec 16.9/16.15：加载注册用户信息作为主播昵称/头像，同步卖家中心个人信息 */
   private async loadAnchorInfo(): Promise<void> {
     try {
       const user: UserInfo | null = await TokenStore.getUserInfo();
       if (user) {
-        this.anchorName = user.nickname && user.nickname.length > 0 ? user.nickname : '主播';
-        this.anchorAvatar = user.avatar;
+        this.anchorName = user.nickname && user.nickname.length > 0 ? user.nickname : MOCK_FARMER_PROFILE.shopName;
+        this.anchorAvatar = user.avatar && user.avatar.length > 0 ? user.avatar : MOCK_FARMER_PROFILE.shopLogo;
+      } else {
+        // spec 16.15：TokenStore 无用户信息时，回退到卖家中心 Mock 同步
+        this.anchorName = MOCK_FARMER_PROFILE.shopName;
+        this.anchorAvatar = MOCK_FARMER_PROFILE.shopLogo;
       }
     } catch (err) {
       Logger.error(AppConstants.SCENE_FARMER, { action: 'load_anchor_info_fail', error: (err as Error).message });
+      // spec 16.15：异常时回退到卖家中心 Mock
+      this.anchorName = MOCK_FARMER_PROFILE.shopName;
+      this.anchorAvatar = MOCK_FARMER_PROFILE.shopLogo;
     }
   }
 
@@ -135,7 +160,10 @@ export struct LiveRoom {
     }
   }
 
-  /** 加载直播信息（Mock：从本地列表查询） */
+  /**
+   * 加载直播信息（Mock：从本地列表查询）
+   * spec 16.13：优先从 MOCK_LIVE_MANAGE_LIST 查询，未命中时回退到 CreatedLiveStore（用户刚创建的直播）
+   */
   private async loadLiveInfo(): Promise<void> {
     const found: LiveManageItem | undefined = MOCK_LIVE_MANAGE_LIST.find(
       (l: LiveManageItem): boolean => l.liveId === this.liveId
@@ -145,6 +173,26 @@ export struct LiveRoom {
       this.onlineCount = found.totalViewUv;
       this.totalIncome = found.totalGiftIncome + found.totalOrderIncome;
       this.productBag = [];
+    } else {
+      // spec 16.13：回退到 CreatedLiveStore（用户刚创建的直播，LiveListItem → LiveManageItem）
+      const created: LiveListItem | undefined = LiveManageRepository.getCreatedLiveById(this.liveId);
+      if (created) {
+        const constructed: LiveManageItem = {
+          liveId: created.liveId,
+          title: created.title,
+          coverImage: created.coverImage,
+          category: created.category,
+          status: created.status,
+          startTime: Date.now(),
+          totalViewUv: created.totalViewUv,
+          totalGiftIncome: 0,
+          totalOrderIncome: 0
+        };
+        this.liveInfo = constructed;
+        this.onlineCount = created.onlineCount ?? 1;
+        this.totalIncome = 0;
+        this.productBag = [];
+      }
     }
     // spec 16.9：可选商品池（已上架商品），用于链接编辑
     this.candidateProducts = MOCK_FARMER_PRODUCTS.filter(
@@ -266,6 +314,70 @@ export struct LiveRoom {
     this.cartProducts = this.cartProducts.filter((p: FarmerProductItem): boolean => p.productId !== productId);
   }
 
+  /** spec 16.15：初始化小黄车默认位置到屏幕右下角 */
+  private initCartPosition(): void {
+    if (this.cartPosInitialized) {
+      return;
+    }
+    try {
+      const screen: display.Display = display.getDefaultDisplaySync();
+      const screenWidth: number = px2vp(screen.width);
+      const screenHeight: number = px2vp(screen.height);
+      // 默认右下角：面板宽 180，留 16vp 边距
+      this.cartPosX = Math.max(0, screenWidth - 180 - 16);
+      this.cartPosY = Math.max(0, screenHeight - 320);
+      this.cartPosInitialized = true;
+    } catch (err) {
+      // 兜底默认值
+      this.cartPosX = 200;
+      this.cartPosY = 400;
+      this.cartPosInitialized = true;
+    }
+  }
+
+  /** spec 16.15：小黄车触摸事件处理，支持拖动移动位置 */
+  private onCartTouch(event: TouchEvent): void {
+    const touch: TouchObject = event.touches[0];
+    const x: number = touch.x;
+    const y: number = touch.y;
+    if (event.type === TouchType.Down) {
+      this.dragStartX = x;
+      this.dragStartY = y;
+      this.dragStartPosX = this.cartPosX;
+      this.dragStartPosY = this.cartPosY;
+      this.dragMoved = false;
+    } else if (event.type === TouchType.Move) {
+      const dx: number = x - this.dragStartX;
+      const dy: number = y - this.dragStartY;
+      // 仅当位移超过 5vp 才视为拖动，避免误触
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        this.dragMoved = true;
+        let newX: number = this.dragStartPosX + dx;
+        let newY: number = this.dragStartPosY + dy;
+        // 边界限制，避免拖出屏幕
+        try {
+          const screen: display.Display = display.getDefaultDisplaySync();
+          const screenWidth: number = px2vp(screen.width);
+          const screenHeight: number = px2vp(screen.height);
+          newX = Math.max(0, Math.min(newX, screenWidth - 180));
+          newY = Math.max(0, Math.min(newY, screenHeight - 80));
+        } catch (_err) {
+          // 兜底不限制
+        }
+        this.cartPosX = newX;
+        this.cartPosY = newY;
+      }
+    }
+  }
+
+  /** spec 16.15：判断是否为纯点击（非拖动），用于抑制拖动后的点击事件 */
+  private isPureClick(): boolean {
+    const moved: boolean = this.dragMoved;
+    // 消费后立即重置，确保下次触摸可重新判定
+    this.dragMoved = false;
+    return !moved;
+  }
+
   /** spec 16.9：向小黄车添加商品链接 */
   private addCartProduct(productId: string): void {
     const exists: boolean = this.cartProducts.some((p: FarmerProductItem): boolean => p.productId === productId);
@@ -278,6 +390,8 @@ export struct LiveRoom {
     );
     if (target) {
       this.cartProducts = this.cartProducts.concat([target]);
+      // spec 16.14：关闭编辑面板，让用户直接看到新增的商品
+      this.cartEditOpen = false;
       ToastUtil.success('已添加到小黄车');
     }
   }
@@ -311,6 +425,8 @@ export struct LiveRoom {
     // 清空输入框
     this.newProductName = '';
     this.newProductPrice = '';
+    // spec 16.14：关闭编辑面板，让用户直接看到新增的商品
+    this.cartEditOpen = false;
     ToastUtil.success('已上架到正在卖');
   }
 
@@ -397,7 +513,7 @@ export struct LiveRoom {
           .fontColor(Color.White)
           .onClick(() => NavigationHelper.pop())
 
-        // 主播头像（spec 16.9：同步注册用户头像）
+        // 主播头像（spec 16.9：同步注册用户头像，spec 16.15：同步卖家中心 shopLogo）
         if (this.anchorAvatar.length > 0 &&
             (this.anchorAvatar.startsWith('file://') || this.anchorAvatar.startsWith('http'))) {
           Image(this.anchorAvatar)
@@ -405,6 +521,15 @@ export struct LiveRoom {
             .height(40)
             .borderRadius(20)
             .border({ width: 1, color: 'rgba(255,255,255,0.6)' })
+            .objectFit(ImageFit.Cover)
+        } else if (this.anchorAvatar.length > 0) {
+          // spec 16.15：资源名头像（如 avatar_farmer），同步卖家中心 shopLogo
+          Image(ImageUtil.get(this.anchorAvatar))
+            .width(40)
+            .height(40)
+            .borderRadius(20)
+            .border({ width: 1, color: 'rgba(255,255,255,0.6)' })
+            .objectFit(ImageFit.Cover)
         } else {
           Text('👤')
             .fontSize(20)
@@ -416,11 +541,11 @@ export struct LiveRoom {
             .textAlign(TextAlign.Center)
         }
 
-        // 昵称 + 在线人数（spec 16.9：主播名同步注册用户昵称）
+        // 昵称 + 在线人数（spec 16.9：主播名同步注册用户昵称，spec 16.15：姓名字体颜色改为黑色）
         Column({ space: 2 }) {
           Text(this.anchorName)
             .fontSize(13)
-            .fontColor(Color.White)
+            .fontColor(Color.Black)
             .fontWeight(FontWeight.Medium)
           Row({ space: 4 }) {
             Text('👁')
@@ -701,8 +826,11 @@ export struct LiveRoom {
       if (this.cartExpanded) {
         // 展开状态：显示商品列表（spec 16.11：支持滚动，避免商品多时被遮挡）
         Column({ space: 8 }) {
-          // 标题栏（spec 16.9：主播端显示"管理"链接编辑入口）
+          // 标题栏（spec 16.9：主播端显示"管理"链接编辑入口，spec 16.15：标题栏可拖动）
           Row() {
+            Text('⠿')
+              .fontSize(13)
+              .fontColor('rgba(255,255,255,0.6)')
             Text('正在卖')
               .fontSize(13)
               .fontColor(Color.White)
@@ -712,21 +840,30 @@ export struct LiveRoom {
               Text('✏️ 管理')
                 .fontSize(11)
                 .fontColor($r('app.color.color_accent_gold'))
-                .onClick(() => { this.cartEditOpen = !this.cartEditOpen; })
+                .onClick(() => {
+                  if (this.isPureClick()) {
+                    this.cartEditOpen = !this.cartEditOpen;
+                  }
+                })
             }
             Text('✕')
               .fontSize(14)
               .fontColor(Color.White)
-              .onClick(() => { this.cartExpanded = false; })
+              .onClick(() => {
+                if (this.isPureClick()) {
+                  this.cartExpanded = false;
+                }
+              })
           }
           .width('100%')
+          .onTouch((event: TouchEvent) => { this.onCartTouch(event); })
 
           // spec 16.9：链接编辑面板（主播端，可增删小黄车商品链接）
           if (this.role === 'broadcaster' && this.cartEditOpen) {
             this.CartEditPanel()
           }
 
-          // spec 16.11：商品列表 - 用 Scroll 包裹支持上下滚动
+          // spec 16.13：商品列表 - 用 Scroll 包裹支持上下滚动，移除 maxHeight 限制
           Scroll() {
             Column({ space: 4 }) {
               ForEach(this.cartProducts, (product: FarmerProductItem, _idx: number) => {
@@ -768,19 +905,20 @@ export struct LiveRoom {
             }
             .width('100%')
           }
-          // spec 16.11：限制最大高度，超过 4 个商品时滚动
+          // spec 16.14：layoutWeight(1) 撑满剩余空间，商品多时可上下滚动
           .layoutWeight(1)
           .scrollable(ScrollDirection.Vertical)
           .scrollBar(BarState.Auto)
-          .constraintSize({ maxHeight: 220 })
+          .constraintSize({ minHeight: 100 })
         }
+        // spec 16.14：面板高度增大（编辑模式 55%，非编辑 38%），确保 Scroll 有足够空间显示新增商品
         .width(180)
-        .height(this.cartEditOpen ? 380 : 260)
+        .height(this.cartEditOpen ? '55%' : '38%')
         .padding(10)
         .borderRadius(12)
         .backgroundColor('rgba(0,0,0,0.85)')
       } else {
-        // 收起状态：显示第一个商品的缩略信息
+        // 收起状态：显示第一个商品的缩略信息（spec 16.15：支持拖动）
         if (this.cartProducts.length > 0) {
           Row({ space: 8 }) {
             Text('🛒')
@@ -805,14 +943,20 @@ export struct LiveRoom {
           }
           .padding({ left: 10, right: 10, top: 6, bottom: 6 })
           .borderRadius(20)
+          .onTouch((event: TouchEvent) => { this.onCartTouch(event); })
           .backgroundColor('rgba(0,0,0,0.7)')
           .alignItems(VerticalAlign.Center)
-          .onClick(() => { this.cartExpanded = true; })
+          .onClick(() => {
+            // spec 16.15：拖动后不触发展开，仅纯点击才展开
+            if (this.isPureClick()) {
+              this.cartExpanded = true;
+            }
+          })
         }
       }
     }
-    // spec 16.9：小黄车下移到 y: '74%'，编辑面板展开时上移避免遮挡
-    .position({ x: '52%', y: this.cartEditOpen ? '40%' : '74%' })
+    // spec 16.15：使用绝对位置定位，支持拖动移动
+    .position({ x: this.cartPosX, y: this.cartPosY })
   }
 
   /** spec 16.10：保存自定义挂链接 */

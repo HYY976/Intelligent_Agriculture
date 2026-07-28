@@ -62,9 +62,10 @@ export struct SellerProfile {
     await this.loadUserInfo();
   }
 
-  /** spec 16.10：从设置页返回后刷新，确保头像/姓名同步 */
+  /** spec 16.14：页面再次显示时同步刷新用户信息和店铺资料（营收/粉丝同步） */
   onPageShow(): void {
     this.loadUserInfo();
+    this.loadProfile();
   }
 
   /** spec 16.10：从 TokenStore 加载用户头像和昵称（与设置页个人信息同步） */
@@ -157,8 +158,9 @@ export struct SellerProfile {
     }
     .hideTitleBar(true)
     .onShown(() => {
-      // spec 16.10：从设置页返回后刷新，确保头像/姓名同步
+      // spec 16.10/16.15：页面再次显示时刷新用户信息和店铺资料（营收/粉丝同步）
       this.loadUserInfo();
+      this.loadProfile();
     })
   }
 

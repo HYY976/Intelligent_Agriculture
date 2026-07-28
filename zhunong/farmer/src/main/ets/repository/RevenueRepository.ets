@@ -20,7 +20,6 @@ import {
   getMockWithdrawals,
   getMockRevenueChart
 } from '../mock/FarmerMock';
-import { SharedProductStore, SharedProduct } from 'common';
 
 /** 营收汇总查询参数 */
 interface RevenueSummaryQuery {
@@ -60,6 +59,8 @@ interface WithdrawRequestBody {
 class RevenueRepositoryImpl {
   /**
    * 营收汇总（spec 3.2.3.1：今日/月/年/累计切换）
+   * spec 16.13：统一使用 Mock 递增一致数据（今日 < 本月 < 本年 < 累计），
+   *             累计值与卖家中心 totalRevenue 完全一致
    * GET /api/revenue/summary?farmerId=&range=
    */
   async getRevenueSummary(farmerId: string, range: RevenueRange): Promise<RevenueSummary> {
@@ -68,58 +69,16 @@ class RevenueRepositoryImpl {
       'revenue/summary',
       params,
       async (): Promise<RevenueSummary> => {
-        // spec 16.11/16.12：从 SharedProductStore 计算真实营业额数据，无商品时回退 Mock
-        try {
-          const products: SharedProduct[] = await SharedProductStore.getAll();
-          const approvedProducts: SharedProduct[] = products.filter(
-            (p: SharedProduct): boolean => p.status === 'approved'
-          );
-          // 基于已发布商品计算月销售额（月销售额 + 随机波动）
-          let baseRevenue: number = approvedProducts.reduce(
-            (sum: number, p: SharedProduct): number => sum + (p.monthlyGmv || p.price * (p.monthlySales || 5)), 0
-          );
-          // spec 16.12：无商品时使用 Mock 基础值（8000/月），确保首页卡片有数据
-          const mockBase: RevenueSummary = getMockRevenueSummary(range);
-          if (baseRevenue <= 0) {
-            baseRevenue = 8000;
-          }
-          // spec 16.11：根据时间范围调整系数
-          let multiplier: number = 1.0;
-          if (range === 'today') {
-            multiplier = 0.08;
-          } else if (range === 'month') {
-            multiplier = 1.0;
-          } else if (range === 'year') {
-            multiplier = 6.0;
-          } else if (range === 'total') {
-            multiplier = 12.0;
-          }
-          // 添加随机波动（±15%），让数据看起来更真实
-          const fluctuation: number = 0.85 + Math.random() * 0.3;
-          const amount: number = Math.round(baseRevenue * multiplier * fluctuation * 100) / 100;
-          // spec 16.12：确保最小值不低于 Mock 值
-          const finalAmount: number = Math.max(amount, mockBase.amount);
-          // 订单数和商品数基于商品数量计算
-          const orderCount: number = Math.max(
-            approvedProducts.length * Math.round(3 + Math.random() * 8),
-            mockBase.orderCount
-          );
-          const productCount: number = Math.max(approvedProducts.length, 6);
-          // 转化率基于商品数量和销量
-          const conversionRate: number = Math.min(
-            Math.round((approvedProducts.length / Math.max(products.length, 1)) * 100 * (8 + Math.random() * 10)) / 100,
-            25
-          );
-
-          return {
-            amount: finalAmount,
-            orderCount: orderCount,
-            productCount: productCount,
-            conversionRate: conversionRate
-          } as RevenueSummary;
-        } catch (_err) {
-          return getMockRevenueSummary(range);
-        }
+        const mockBase: RevenueSummary = getMockRevenueSummary(range);
+        // spec 16.13：小额随机波动（±3%），保证数据真实感同时维持递增一致性
+        const fluctuation: number = 0.97 + Math.random() * 0.06;
+        const amount: number = Math.round(mockBase.amount * fluctuation * 100) / 100;
+        return {
+          amount: amount,
+          orderCount: mockBase.orderCount,
+          productCount: mockBase.productCount,
+          conversionRate: mockBase.conversionRate
+        } as RevenueSummary;
       },
       AppConstants.SCENE_FARMER
     );

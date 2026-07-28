@@ -70,14 +70,12 @@ export struct LiveBrowse {
     await this.loadList();
   }
 
-  /** spec 16.11：页面再次显示时刷新（新创建直播/结束直播后回到列表同步状态） */
+  /** spec 16.11/16.14：页面再次显示时刷新（新创建直播/结束直播后回到列表同步状态） */
   onPageShow(): void {
-    // spec 16.11：每次页面显示都刷新，确保新创建的直播间能展示出来
+    // spec 16.14：重置到第一页并重新加载，确保新创建的直播间能置顶展示
+    this.page = 1;
     this.refreshForEndedLives();
-    // 如果列表为空或需要同步新直播，重新加载
-    if (this.liveList.length === 0) {
-      this.loadList();
-    }
+    this.loadList();
   }
 
   /** spec 16.10：将已结束的直播状态从 living 改为 ended（保留列表项，仅切换状态） */
@@ -149,10 +147,16 @@ export struct LiveBrowse {
     await this.loadList();
   }
 
-  /** 进入直播间 */
+  /**
+   * 进入直播间
+   * spec 16.13：若点击的是当前用户自己创建且仍在直播中的直播，以 broadcaster 身份进入
+   */
   private gotoLiveRoom(liveId: string): void {
-    Logger.info(AppConstants.SCENE_FARMER, { action: 'goto_live_room', liveId });
-    const param: LiveRoomParam = { liveId: liveId, role: 'viewer' };
+    const createdLive: LiveListItem | undefined = LiveManageRepository.getCreatedLiveById(liveId);
+    const isOwnLiving: boolean = createdLive !== undefined && createdLive.status === 'living';
+    const role: string = isOwnLiving ? 'broadcaster' : 'viewer';
+    Logger.info(AppConstants.SCENE_FARMER, { action: 'goto_live_room', liveId, role });
+    const param: LiveRoomParam = { liveId: liveId, role: role };
     NavigationHelper.push(RouteName.FARMER_LIVE_ROOM, param);
   }
 
@@ -179,10 +183,10 @@ export struct LiveBrowse {
     }
     .hideTitleBar(true)
     .onShown(() => {
-      // spec 16.10：从直播间返回后同步已结束状态
-      if (this.liveList.length > 0) {
-        this.refreshForEndedLives();
-      }
+      // spec 16.10/16.15：从直播间/创建直播返回后刷新列表，确保新创建的直播间置顶展示
+      this.page = 1;
+      this.refreshForEndedLives();
+      this.loadList();
     })
   }
 

@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿/**
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿/**
  * home_page - 农户卖家端首页
  * 对齐设计稿 pages/farmer-home.html：
  *  - 顶部 4 入口导航栏（商城/直播/智能体/搜索）白底圆角18浮卡 56vp
@@ -53,7 +53,7 @@ export struct FarmerHomePage {
   @Local revenueRange: RevenueRange = 'today';
   /** 营收数据 */
   @Local revenueData: RevenueSummary = {
-    amount: 8652.00,
+    amount: 1286.00,
     orderCount: 23,
     productCount: 8,
     conversionRate: 12.5
@@ -75,9 +75,9 @@ export struct FarmerHomePage {
     await this.loadUserInfo();
   }
 
-  /** spec 16.10：从发布页/设置页返回后刷新，确保新发布商品立即显示在"我的商品"，并同步用户头像/姓名 */
+  /** spec 16.10/16.14：从发布页/设置页/卖家中心返回后刷新，确保营收/粉丝/商品数据同步 */
   onPageShow(): void {
-    this.syncPublishedProducts();
+    this.loadData();
     this.loadUserInfo();
   }
 
@@ -224,7 +224,8 @@ export struct FarmerHomePage {
     }
     .hideTitleBar(true)
     .onShown(() => {
-      // spec 16.10：NavDestination 显示时刷新（从设置页/发布页返回后同步头像/姓名/新商品）
+      // spec 16.10/16.15：NavDestination 显示时刷新（从设置页/发布页/卖家中心返回后同步营收/头像/姓名/新商品）
+      this.loadData();
       this.syncPublishedProducts();
       this.loadUserInfo();
     })

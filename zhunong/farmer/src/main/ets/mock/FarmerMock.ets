@@ -40,21 +40,25 @@ export const MOCK_FARMER_PROFILE: FarmerProfile = {
     idCardBackImg: 'cert_id_back',
     farmerCertImg: 'cert_farmer'
   },
-  totalRevenue: 38560.00,
-  availableBalance: 8680.50,
+  totalRevenue: 186580.00,
+  availableBalance: 41980.50,
   frozenBalance: 1200.00,
-  followCount: 28,
-  fansCount: 186,
+  followCount: 36,
+  fansCount: 1286,
   monthlyNewFans: 86,
   interactionRate: 68
 };
 
-/** 营收汇总（按时间范围，spec 3.2.3.1，对齐设计稿 farmer-home：今日 ¥8,652.00 / 23笔 / 8件 / 12.5%） */
+/**
+ * 营收汇总（按时间范围，spec 3.2.3.1）
+ * spec 16.15：递增一致策略 —— 今日 < 本月 < 本年 < 累计，且累计值与卖家中心 totalRevenue 完全一致
+ * 演示数据：今日 ¥1,286 / 本月 ¥38,560 / 本年 ¥158,920 / 累计 ¥186,580
+ */
 export const MOCK_REVENUE_SUMMARIES: Record<RevenueRange, RevenueSummary> = {
-  'today': { amount: 8652.00, orderCount: 23, productCount: 8, conversionRate: 12.5 },
-  'month': { amount: 12860.00, orderCount: 612, productCount: 8, conversionRate: 15.8 },
-  'year': { amount: 458920.80, orderCount: 7823, productCount: 8, conversionRate: 14.2 },
-  'total': { amount: 38560.00, orderCount: 21568, productCount: 8, conversionRate: 13.6 }
+  'today': { amount: 1286.00, orderCount: 23, productCount: 8, conversionRate: 12.5 },
+  'month': { amount: 38560.00, orderCount: 612, productCount: 8, conversionRate: 15.8 },
+  'year': { amount: 158920.00, orderCount: 7823, productCount: 8, conversionRate: 14.2 },
+  'total': { amount: 186580.00, orderCount: 21568, productCount: 8, conversionRate: 13.6 }
 };
 
 /** 收入构成（对齐设计稿 farmer-income 收入构成环形图：商品销售65% / 直播打赏22% / 体验预约13%） */

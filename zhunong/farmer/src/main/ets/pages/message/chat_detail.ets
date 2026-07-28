@@ -12,7 +12,8 @@ import { Logger, AppConstants, ToastUtil, NavigationHelper, RouteName } from 'co
 import { ChatMessage, WsMessage, WsConnectionState } from '../../model/FarmerMessageModels';
 import { MessageRepository } from '../../repository/MessageRepository';
 import { FarmerWsClient } from '../../utils/WsClient';
-import { MOCK_FARMER_ID } from '../../mock/FarmerMock';
+import { ImageUtil } from '../../utils/ImageUtil';
+import { MOCK_FARMER_ID, MOCK_FARMER_PROFILE } from '../../mock/FarmerMock';
 
 /** 独立时间格式化函数（避免 ForEach 内 this 上下文丢失导致崩溃） */
 function formatMsgTime(ts: number): string {

@@ -66,6 +66,10 @@ class CreatedLiveStore {
   static getAll(): LiveListItem[] {
     return CreatedLiveStore.items;
   }
+  /** spec 16.13：按 liveId 查询已创建的直播（用于直播间信息加载与主播身份判断） */
+  static getById(liveId: string): LiveListItem | undefined {
+    return CreatedLiveStore.items.find((it: LiveListItem): boolean => it.liveId === liveId);
+  }
 }
 
 /** 结束直播请求体 */
@@ -221,6 +225,11 @@ class LiveManageRepositoryImpl {
       async (): Promise<Gift[]> => getMockGifts(),
       AppConstants.SCENE_FARMER
     );
+  }
+
+  /** spec 16.13：按 liveId 查询当前用户已创建的直播（用于直播间信息加载与主播身份判断） */
+  getCreatedLiveById(liveId: string): LiveListItem | undefined {
+    return CreatedLiveStore.getById(liveId);
   }
 }
 
