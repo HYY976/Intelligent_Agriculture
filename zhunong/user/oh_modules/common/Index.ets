@@ -26,6 +26,12 @@ export { BaseRepository } from './src/main/ets/repository/BaseRepository';
 /** spec 16.3：共享商品池（农户端发布 → 用户端读取，跨端同步） */
 export { SharedProductStore } from './src/main/ets/repository/SharedProductStore';
 export type { SharedProduct } from './src/main/ets/repository/SharedProductStore';
+/** 共享直播池（农户端开播 → 用户端读取，跨端同步） */
+export { SharedLiveStore } from './src/main/ets/repository/SharedLiveStore';
+export type { SharedLive } from './src/main/ets/repository/SharedLiveStore';
+/** 共享帖子池（农户端发帖 → 用户端读取，跨端同步） */
+export { SharedPostStore } from './src/main/ets/repository/SharedPostStore';
+export type { SharedPost } from './src/main/ets/repository/SharedPostStore';
 
 // ===== ViewModel 基础设施（spec 10.11.3：LazyForEach 通用数据源基类） =====
 export { BaseDataSource } from './src/main/ets/viewmodel/BaseDataSource';

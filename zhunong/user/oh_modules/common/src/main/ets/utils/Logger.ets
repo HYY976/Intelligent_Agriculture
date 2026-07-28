@@ -218,6 +218,8 @@ export interface LogInfo {
   farmerName?: string;
   /** 用户昵称（spec 16.4：发帖/开播加载注册身份日志） */
   nickname?: string;
+  /** 头像资源 key（用户资料更新日志） */
+  avatar?: string;
   /** 主播昵称（spec 16.4：开播成功日志） */
   anchorName?: string;
 }

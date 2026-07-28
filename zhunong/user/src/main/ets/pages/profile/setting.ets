@@ -3,14 +3,16 @@
  * 遵循 spec 3.1.3.5 + 设计稿 setting.html 1:1 复刻：
  *  - 顶栏：白色圆形返回按钮 + 居中标题"设置"
  *  - 3 个设置组卡（行高 56px + 1px 分割线 + 32×32 彩色图标）：
- *    1. 账号安全：修改密码(黄) + 绑定手机(绿, 显示手机号)
+ *    1. 账号安全：修改头像和姓名(黄) + 修改密码(黄) + 绑定手机(绿, 显示手机号)
  *    2. 通知与偏好：消息通知(红, Toggle 绿色开关) + 深色模式(蓝, 3段胶囊组)
  *    3. 通用设置：清除缓存(橙, 23.5MB) + 意见反馈(绿) + 关于我们(蓝, v1.0.0) + 隐私政策(灰)
  *  - 退出登录按钮（白底红字全宽）
+ * spec 16.12：新增"修改头像和姓名"功能，通过弹窗编辑并同步 TokenStore 全端生效
  */
 
 import { TokenStore, ThemeStore, Logger, AppConstants, ToastUtil, RouteName, NavigationHelper } from 'common';
-import type { CurrentThemeKey } from 'common';
+import type { CurrentThemeKey, UserInfo } from 'common';
+import { ImageUtil } from '../../utils/ImageUtil';
 
 /** 设置项图标主题色（对齐设计稿 qn-ico-*） */
 type SettingIconTheme = 'yellow' | 'green' | 'blue' | 'red' | 'orange' | 'soft';
@@ -24,6 +26,12 @@ interface DarkModeSeg {
   label: string;
 }
 
+/** spec 16.12：可选头像项（key + 预览资源） */
+interface AvatarOption {
+  key: string;
+  label: string;
+}
+
 @ComponentV2
 export struct Setting {
   /** 当前主题 — spec 10.18：@Local themeRef 持有 AppStorageV2 共享 ref */
@@ -32,12 +40,26 @@ export struct Setting {
   @Local notifyOn: boolean = true;
   /** 当前选中的深色模式段控 */
   @Local darkMode: DarkModeOption = 'light';
+  /** spec 16.12：当前昵称（编辑弹窗用） */
+  @Local editNickname: string = '';
+  /** spec 16.12：当前头像 key（编辑弹窗用） */
+  @Local editAvatarKey: string = 'avatar_default';
+  /** spec 16.12：是否显示编辑头像姓名弹窗 */
+  @Local showProfileEditor: boolean = false;
 
   /** 深色模式段控配置（对齐设计稿 qn-seg） */
   private darkModeSegs: DarkModeSeg[] = [
     { value: 'system', label: '跟随系统' },
     { value: 'light', label: '浅色' },
     { value: 'dark', label: '深色' }
+  ];
+
+  /** spec 16.12：可选头像列表 */
+  private avatarOptions: AvatarOption[] = [
+    { key: 'avatar_default', label: '默认' },
+    { key: 'avatar_farmer_1', label: '农夫1' },
+    { key: 'avatar_farmer_2', label: '农夫2' },
+    { key: 'avatar_farmer_3', label: '农夫3' }
   ];
 
   async aboutToAppear(): Promise<void> {
@@ -48,6 +70,12 @@ export struct Setting {
       this.darkMode = 'system';
     } else {
       this.darkMode = 'light';
+    }
+    // spec 16.12：预加载当前用户信息到编辑态
+    const userInfo: UserInfo | null = await TokenStore.getUserInfo();
+    if (userInfo) {
+      this.editNickname = userInfo.nickname;
+      this.editAvatarKey = userInfo.avatar || 'avatar_default';
     }
   }
 
@@ -67,6 +95,44 @@ export struct Setting {
     this.notifyOn = !this.notifyOn;
     Logger.info(AppConstants.SCENE_USER, { action: 'notify_toggle', msg: `notifyOn=${this.notifyOn}` });
     ToastUtil.success(this.notifyOn ? '已开启消息通知' : '已关闭消息通知');
+  }
+
+  /** spec 16.12：打开修改头像和姓名弹窗 */
+  private async openProfileEditor(): Promise<void> {
+    const userInfo: UserInfo | null = await TokenStore.getUserInfo();
+    if (userInfo) {
+      this.editNickname = userInfo.nickname;
+      this.editAvatarKey = userInfo.avatar || 'avatar_default';
+    }
+    this.showProfileEditor = true;
+  }
+
+  /** spec 16.12：保存头像和姓名 → 持久化到 TokenStore，全端同步 */
+  private async saveProfile(): Promise<void> {
+    const trimmedName: string = this.editNickname.trim();
+    if (trimmedName.length === 0) {
+      ToastUtil.error('昵称不能为空');
+      return;
+    }
+    const userInfo: UserInfo | null = await TokenStore.getUserInfo();
+    if (!userInfo) {
+      ToastUtil.error('请先登录');
+      return;
+    }
+    const updated: UserInfo = {
+      userId: userInfo.userId,
+      phone: userInfo.phone,
+      nickname: trimmedName,
+      avatar: this.editAvatarKey,
+      userType: userInfo.userType,
+      status: userInfo.status,
+      createdAt: userInfo.createdAt,
+      lastLoginAt: userInfo.lastLoginAt
+    };
+    await TokenStore.setUserInfo(updated);
+    this.showProfileEditor = false;
+    ToastUtil.success('已保存，全端同步生效');
+    Logger.info(AppConstants.SCENE_USER, { action: 'profile_updated', nickname: trimmedName, avatar: this.editAvatarKey });
   }
 
   /** 退出登录 */
@@ -113,7 +179,7 @@ export struct Setting {
         // ===== 内容区（对齐设计稿 qn-setting-body） =====
         Scroll() {
           Column({ space: 12 }) {
-            // 1. 账号安全卡（对齐设计稿 第1组 qn-list-card）
+            // 1. 账号安全卡（对齐设计稿 第1组 qn-list-card；spec 16.12：增加修改头像和姓名）
             this.AccountCard()
 
             // 2. 通知与偏好卡（对齐设计稿 第2组）
@@ -143,6 +209,11 @@ export struct Setting {
         .width('100%')
         .backgroundColor($r('app.color.color_bg_page'))
         .scrollBar(BarState.Off)
+
+        // spec 16.12：修改头像和姓名弹窗
+        if (this.showProfileEditor) {
+          this.ProfileEditorDialog()
+        }
       }
       .width('100%')
       .height('100%')
@@ -151,10 +222,15 @@ export struct Setting {
     .hideTitleBar(true)
   }
 
-  /** 账号安全卡（对齐设计稿 第1组） */
+  /** 账号安全卡（对齐设计稿 第1组；spec 16.12：增加"修改头像和姓名"行） */
   @Builder
   AccountCard() {
     Column({ space: 0 }) {
+      // 修改头像和姓名（黄色图标，spec 16.12 新增）
+      this.SettingRow('yellow', '👤', '修改头像和姓名', '', true, () => {
+        this.openProfileEditor();
+      })
+      this.RowDivider()
       // 修改密码（黄色图标）
       this.SettingRow('yellow', '🔒', '修改密码', '', true, () => {
         ToastUtil.info('修改密码功能开发中');
@@ -170,6 +246,125 @@ export struct Setting {
     .backgroundColor($r('app.color.color_bg_card'))
     .borderRadius(AppConstants.RADIUS_LG)
     .shadow(AppConstants.SHADOW_CARD)
+  }
+
+  /** spec 16.12：修改头像和姓名弹窗 */
+  @Builder
+  ProfileEditorDialog() {
+    Stack() {
+      // 遮罩
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor('rgba(0,0,0,0.85)')
+        .onClick(() => { this.showProfileEditor = false; })
+
+      // 弹窗主体
+      Column({ space: 16 }) {
+        // 顶部标题 + 关闭按钮
+        Row() {
+          Text('修改头像和姓名')
+            .fontSize(18)
+            .fontColor($r('app.color.color_ink'))
+            .fontWeight(FontWeight.Bold)
+            .layoutWeight(1)
+          Text('×')
+            .fontSize(28)
+            .fontColor($r('app.color.color_text_3'))
+            .width(40)
+            .height(40)
+            .textAlign(TextAlign.Center)
+            .onClick(() => { this.showProfileEditor = false; })
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
+
+        // 当前头像预览
+        Column({ space: 8 }) {
+          Text('当前头像')
+            .fontSize(13)
+            .fontColor($r('app.color.color_text_2'))
+            .alignSelf(ItemAlign.Start)
+          Image(ImageUtil.get(this.editAvatarKey))
+            .width(80)
+            .height(80)
+            .borderRadius(40)
+            .objectFit(ImageFit.Cover)
+            .backgroundColor($r('app.color.color_fill'))
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Center)
+
+        // 头像选择列表
+        Column({ space: 8 }) {
+          Text('选择新头像')
+            .fontSize(13)
+            .fontColor($r('app.color.color_text_2'))
+            .alignSelf(ItemAlign.Start)
+          Row({ space: 12 }) {
+            ForEach(this.avatarOptions, (opt: AvatarOption) => {
+              Stack() {
+                Image(ImageUtil.get(opt.key))
+                  .width(56)
+                  .height(56)
+                  .borderRadius(28)
+                  .objectFit(ImageFit.Cover)
+                  .backgroundColor($r('app.color.color_fill'))
+                if (this.editAvatarKey === opt.key) {
+                  // 选中标识：黄色环
+                  Column()
+                    .width(60)
+                    .height(60)
+                    .borderRadius(30)
+                    .border({ width: 3, color: $r('app.color.color_yellow') })
+                }
+              }
+              .width(60)
+              .height(60)
+              .onClick(() => { this.editAvatarKey = opt.key; })
+            }, (opt: AvatarOption) => opt.key)
+          }
+          .width('100%')
+          .justifyContent(FlexAlign.Center)
+        }
+        .width('100%')
+
+        // 昵称输入
+        Column({ space: 8 }) {
+          Text('昵称')
+            .fontSize(13)
+            .fontColor($r('app.color.color_text_2'))
+            .alignSelf(ItemAlign.Start)
+          TextInput({ text: this.editNickname, placeholder: '请输入新昵称' })
+            .height(44)
+            .borderRadius(8)
+            .backgroundColor($r('app.color.color_bg_page'))
+            .padding({ left: 12, right: 12 })
+            .fontSize(15)
+            .maxLength(20)
+            .onChange((v: string) => { this.editNickname = v; })
+        }
+        .width('100%')
+
+        // 保存按钮
+        Button('保存')
+          .width('100%')
+          .height(44)
+          .borderRadius(8)
+          .backgroundColor($r('app.color.color_yellow_deep'))
+          .fontColor(Color.White)
+          .fontSize(15)
+          .fontWeight(FontWeight.Bold)
+          .onClick(() => { this.saveProfile(); })
+      }
+      .width('88%')
+      .padding(20)
+      .borderRadius(16)
+      .backgroundColor($r('app.color.color_bg_card'))
+    }
+    .width('100%')
+    .height('100%')
+    .alignContent(Alignment.Center)
   }
 
   /** 通知与偏好卡（对齐设计稿 第2组） */

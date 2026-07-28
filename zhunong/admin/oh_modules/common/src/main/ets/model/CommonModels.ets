@@ -124,9 +124,10 @@ export class AuthTokenKey {
   value: string = '';
 }
 
-/** 用户信息（用户端/卖家端，null 表示未登录） */
+/** 用户信息（用户端/卖家端，null 表示未登录）— @ObservedV2 + @Trace 实现设置页修改后全端同步 */
+@ObservedV2
 export class UserInfoKey {
-  value: UserInfo | null = null;
+  @Trace value: UserInfo | null = null;
 }
 
 /** 管理员信息（null 表示未登录） */

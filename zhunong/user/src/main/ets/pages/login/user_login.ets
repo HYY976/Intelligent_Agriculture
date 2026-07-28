@@ -1,72 +1,41 @@
 /**
- * user_login - 用户端登录页（UI 复刻 v4.0，对齐 login.html 设计稿）
- * 遵循 spec 15.5.1：整页重写，1:1 还原设计稿
- *  - 顶部装饰气泡 + 吉祥物 + 品牌标题
- *  - 角色选择卡片（用户/农民/管理员三端切换）
- *  - 手机号 + 验证码登录表单
- *  - 协议勾选 + 一键登录 + 第三方登录
- *  - 底部黄色波浪装饰
- * 业务逻辑保留：HttpUtil.post /user/login + TokenStore + NavigationHelper
+ * user_login - 用户端登录页
+ * 对齐农户端 farmer_login.ets 格式：
+ *  - 奶油白背景 + 顶部装饰气泡（黄/绿径向渐变模拟）
+ *  - 品牌Logo区：黄色渐变 80×80 圆角Logo + 萌芽图标 + 右侧吉祥物 + "趣农"标题 + 副标题
+ *  - 表单区：手机号/密码输入卡（白底圆角14+阴影+描边+左侧图标）
+ *  - 登录按钮（墨黑底白字 + 右箭头图标）
+ *  - "去注册"下划线链接
+ *  - 底部区域：用户协议文字
+ * spec 15.5.1：账号（手机号）+ 密码登录
  */
 
-import { Logger, AppConstants, HttpUtil, TokenStore, ToastUtil, RouteName, NavigationHelper } from 'common';
+import { Logger, AppConstants, HttpUtil, TokenStore, ToastUtil, NavigationHelper, RouteName } from 'common';
 import { ApiResponse, UserInfo } from 'common';
 
-/** 登录请求参数 */
-interface LoginRequest {
+/** 登录请求体（spec 15.5.1 ArkTS 严格模式要求具体 interface） */
+interface UserLoginRequest {
   phone: string;
   password: string;
-  userType: string;
+  userType: 'user';
 }
 
-/** 登录响应数据 */
-interface LoginResponse {
+/** 登录响应体 */
+interface UserLoginResponse {
   token: string;
   userInfo: UserInfo;
 }
 
-/** 角色类型 */
-type LoginRole = 'user' | 'farmer' | 'admin';
-
-/** 角色卡片数据 */
-interface RoleCardData {
-  role: LoginRole;
-  icon: string;
-  name: string;
-  desc: string;
-}
-
 @ComponentV2
 export struct UserLogin {
-  /** 手机号 */
+  /** 账号（手机号） */
   @Local phone: string = '';
-  /** 验证码（作为密码发送到后端） */
-  @Local code: string = '';
-  /** 当前选中角色 */
-  @Local selectedRole: LoginRole = 'user';
-  /** 是否已同意协议 */
-  @Local agreementChecked: boolean = true;
+  /** 密码 */
+  @Local password: string = '';
   /** 是否正在登录 */
   @Local isLogging: boolean = false;
-  /** 验证码倒计时秒数（0 表示可发送） */
-  @Local codeCountdown: number = 0;
-
-  /** 倒计时定时器 */
-  private countdownTimerId: number = -1;
-
-  /** 角色卡片数据 */
-  private readonly roleCards: RoleCardData[] = [
-    { role: 'user', icon: '👤', name: '用户端', desc: '买菜购物' },
-    { role: 'farmer', icon: '🌱', name: '农民端', desc: '开店带货' },
-    { role: 'admin', icon: '🛡️', name: '管理员端', desc: '后台运营' }
-  ];
-
-  aboutToDisappear(): void {
-    if (this.countdownTimerId !== -1) {
-      clearInterval(this.countdownTimerId);
-      this.countdownTimerId = -1;
-    }
-  }
+  /** 密码是否明文显示 */
+  @Local passwordVisible: boolean = false;
 
   /** 校验手机号格式 */
   private isPhoneValid(): boolean {
@@ -74,61 +43,24 @@ export struct UserLogin {
     return phoneRegex.test(this.phone);
   }
 
-  /** 发送验证码（mock：提示已发送 + 启动 60s 倒计时） */
-  private sendCode(): void {
-    if (this.codeCountdown > 0) {
-      return;
-    }
-    if (!this.isPhoneValid()) {
-      ToastUtil.warning('请输入正确的手机号');
-      return;
-    }
-    ToastUtil.success('验证码已发送');
-    this.codeCountdown = 60;
-    this.countdownTimerId = setInterval(() => {
-      this.codeCountdown -= 1;
-      if (this.codeCountdown <= 0) {
-        this.codeCountdown = 0;
-        if (this.countdownTimerId !== -1) {
-          clearInterval(this.countdownTimerId);
-          this.countdownTimerId = -1;
-        }
-      }
-    }, 1000);
-  }
-
-  /** 选择角色 */
-  private selectRole(role: LoginRole): void {
-    this.selectedRole = role;
-    if (role === 'farmer') {
-      NavigationHelper.replace(RouteName.FARMER_LOGIN);
-    } else if (role === 'admin') {
-      NavigationHelper.replace(RouteName.ADMIN_LOGIN);
-    }
-  }
-
-  /** 一键登录 */
+  /** 登录 */
   private async doLogin(): Promise<void> {
-    if (!this.agreementChecked) {
-      ToastUtil.warning('请先同意用户协议和隐私政策');
-      return;
-    }
     if (!this.isPhoneValid()) {
       ToastUtil.warning('请输入正确的手机号');
       return;
     }
-    if (this.code.length < 6) {
-      ToastUtil.warning('请输入6位验证码');
+    if (this.password.length < 6) {
+      ToastUtil.warning('密码至少6位');
       return;
     }
     this.isLogging = true;
     try {
-      const req: LoginRequest = {
+      const req: UserLoginRequest = {
         phone: this.phone,
-        password: this.code,
+        password: this.password,
         userType: 'user'
       };
-      const resp: ApiResponse<LoginResponse> = await HttpUtil.post<LoginResponse>('/user/login', req, {
+      const resp: ApiResponse<UserLoginResponse> = await HttpUtil.post<UserLoginResponse>('/user/login', req, {
         withAuth: false
       });
       if (resp.code === AppConstants.CODE_SUCCESS && resp.data) {
@@ -153,454 +85,239 @@ export struct UserLogin {
     NavigationHelper.push(RouteName.USER_REGISTER);
   }
 
-  /** 第三方登录（mock） */
-  private thirdPartyLogin(platform: string): void {
-    ToastUtil.info(`${platform}登录暂未开通`);
-  }
-
   build() {
     NavDestination() {
-      Stack({ alignContent: Alignment.TopStart }) {
-        // 主滚动内容
+      Stack({ alignContent: Alignment.BottomStart }) {
+        // 主内容滚动区
         Scroll() {
           Column() {
-            // 1. 顶部装饰气泡（黄色 + 绿色径向渐变）
-            this.DecoBubbles()
-
-            // 2. 吉祥物 + 品牌标题区
+            // 1. 顶部装饰气泡（对齐设计稿 qn-deco-1/2）
+            this.Decorations()
+            // 2. 品牌Logo区
             this.BrandHero()
-
-            // 3. 角色选择区
-            this.RoleSection()
-
-            // 4. 表单区（手机号 + 验证码）
+            // 3. 表单区
             this.FormSection()
-
-            // 5. 协议勾选
-            this.AgreementSection()
-
-            // 6. 一键登录按钮
-            this.LoginButton()
-
-            // 7. 分割线
-            this.OrDivider()
-
-            // 8. 第三方登录
-            this.ThirdPartySection()
-
-            // 9. 底部协议文字
-            this.FooterText()
+            // 4. 底部区域
+            this.FooterSection()
           }
           .width('100%')
-          .padding({ left: 24, right: 24, bottom: 32 })
+          .padding({ left: 24, right: 24, bottom: 24 })
           .alignItems(HorizontalAlign.Center)
         }
         .width('100%')
         .height('100%')
         .scrollBar(BarState.Off)
-        .align(Alignment.Top)
-
-        // 10. 底部黄色波浪装饰
-        this.WaveDecoration()
+        .backgroundColor($r('app.color.color_bg_page'))
       }
       .width('100%')
       .height('100%')
-      .backgroundColor($r('app.color.color_cream'))
+      .backgroundColor($r('app.color.color_bg_page'))
     }
     .hideTitleBar(true)
   }
 
-  /** 顶部装饰气泡 */
+  /** 顶部装饰气泡（对齐设计稿 qn-deco-1/2 径向渐变模拟） */
   @Builder
-  DecoBubbles() {
+  Decorations() {
     Stack() {
-      // 黄色气泡（右上）
+      // 黄色气泡（右上角）
       Column()
-        .width(120)
-        .height(120)
-        .borderRadius(AppConstants.RADIUS_PILL)
-        .linearGradient({
-          angle: 0,
-          colors: [['rgba(255,226,52,0.35)', 0.0], ['rgba(255,226,52,0)', 0.7]]
-        })
-        .position({ x: '70%', y: -30 })
+        .width(70)
+        .height(70)
+        .borderRadius(35)
+        .backgroundColor('rgba(255,226,52,0.28)')
+        .position({ right: -24, top: -24 })
 
-      // 绿色气泡（左中）
+      // 绿色气泡（左侧）
       Column()
-        .width(90)
-        .height(90)
-        .borderRadius(AppConstants.RADIUS_PILL)
-        .linearGradient({
-          angle: 0,
-          colors: [['rgba(126,211,33,0.22)', 0.0], ['rgba(126,211,33,0)', 0.7]]
-        })
-        .position({ x: -30, y: 180 })
+        .width(48)
+        .height(48)
+        .borderRadius(24)
+        .backgroundColor('rgba(126,211,33,0.18)')
+        .position({ left: -20, top: 40 })
     }
     .width('100%')
-    .height(280)
+    .height(80)
+    .hitTestBehavior(HitTestMode.Transparent)
   }
 
-  /** 吉祥物 + 品牌标题 */
+  /** 品牌Logo区（对齐设计稿 qn-brand-hero） */
   @Builder
   BrandHero() {
-    Column({ space: 8 }) {
-      // 吉祥物图片（140×140 圆形 + 黄底 + 白边 + 阴影）
-      Image($r('app.media.mascot_farmer'))
-        .width(140)
-        .height(140)
-        .borderRadius(AppConstants.RADIUS_PILL)
-        .backgroundColor($r('app.color.color_yellow_tint'))
-        .border({ width: 4, color: $r('app.color.color_bg_card') })
-        .shadow({
-          radius: 28,
-          color: 'rgba(255,217,61,0.42)',
-          offsetX: 0,
-          offsetY: 10
-        })
-        .objectFit(ImageFit.Cover)
-        .margin({ top: 56 })
-
-      // 品牌标题 "趣农" + 绿色圆点
-      Row({ space: 6 }) {
-        Text('趣农')
-          .fontSize(28)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.color_ink'))
-          .letterSpacing(2)
-        Text('')
-          .width(8)
-          .height(8)
-          .borderRadius(AppConstants.RADIUS_PILL)
-          .backgroundColor($r('app.color.color_green'))
-      }
-      .margin({ top: 18 })
-
-      // 副标题
-      Text('新鲜直达 · 助农优选')
-        .fontSize(13)
-        .fontColor($r('app.color.color_text_3'))
-        .letterSpacing(1)
-        .margin({ top: 6 })
-    }
-    .width('100%')
-    .alignItems(HorizontalAlign.Center)
-  }
-
-  /** 角色选择区 */
-  @Builder
-  RoleSection() {
-    Column({ space: 10 }) {
-      // 标签
-      Row({ space: 6 }) {
-        Text('')
-          .width(12)
-          .height(2)
-          .backgroundColor($r('app.color.color_yellow_deep'))
-          .borderRadius(AppConstants.RADIUS_PILL)
-        Text('选择登录身份')
-          .fontSize(12)
-          .fontColor($r('app.color.color_text_3'))
-      }
-      .width('100%')
-      .padding({ left: 2 })
-      .margin({ top: 28, bottom: 10 })
-
-      // 角色卡片行
-      Row({ space: 10 }) {
-        ForEach(this.roleCards, (card: RoleCardData, index: number) => {
-          this.RoleCard(card)
-        }, (card: RoleCardData, index: number) => `role_${card.role}`)
-      }
-      .width('100%')
-    }
-    .width('100%')
-  }
-
-  /** 单个角色卡片 */
-  @Builder
-  RoleCard(card: RoleCardData) {
     Stack({ alignContent: Alignment.TopEnd }) {
-      Column({ space: 8 }) {
-        // 图标
-        Text(card.icon)
-          .fontSize(22)
-          .width(40)
-          .height(40)
-          .borderRadius(AppConstants.RADIUS_SM)
-          .backgroundColor(this.selectedRole === card.role ? $r('app.color.color_bg_card') : $r('app.color.color_fill'))
-          .textAlign(TextAlign.Center)
+      // 主内容居中
+      Column({ space: 6 }) {
+        // 黄色渐变Logo + 萌芽图标（对齐 qn-brand-logo 80×80 圆角24）
+        Column() {
+          Text('🌱')
+            .fontSize(40)
+            .fontColor($r('app.color.color_ink'))
+        }
+        .width(80)
+        .height(80)
+        .borderRadius(AppConstants.RADIUS_XL)
+        .linearGradient({
+          angle: 135,
+          colors: [['#FFE234', 0], ['#FFD93D', 1]]
+        })
+        .border({ width: 3, color: $r('app.color.color_bg_card') })
+        .shadow({ radius: 26, color: 'rgba(255,217,61,0.42)', offsetX: 0, offsetY: 10 })
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
 
-        // 名称
-        Text(card.name)
+        // 标题"趣农"
+        Text('趣农')
+          .fontSize(24)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+          .letterSpacing(1)
+          .margin({ top: 10 })
+
+        // 副标题
+        Text('新鲜直达 · 助农优选')
           .fontSize(13)
-          .fontWeight(this.selectedRole === card.role ? FontWeight.Bold : FontWeight.Medium)
-          .fontColor(this.selectedRole === card.role ? $r('app.color.color_ink') : $r('app.color.color_ink_2'))
-
-        // 描述
-        Text(card.desc)
-          .fontSize(10)
-          .fontColor(this.selectedRole === card.role ? '#6B5B00' : $r('app.color.color_text_3'))
+          .fontColor($r('app.color.color_text_3'))
+          .letterSpacing(0.5)
       }
       .width('100%')
-      .padding({ top: 14, bottom: 12, left: 6, right: 6 })
-      .borderRadius(AppConstants.RADIUS_MD)
-      .backgroundColor(this.selectedRole === card.role ? Color.Transparent : $r('app.color.color_bg_card'))
-      .linearGradient(this.selectedRole === card.role ? {
-        angle: 135,
-        colors: [[$r('app.color.color_yellow'), 0.0], [$r('app.color.color_yellow_deep'), 1.0]]
-      } : { angle: 0, colors: [['rgba(0,0,0,0)', 0.0], ['rgba(0,0,0,0)', 1.0]] })
-      .border({ width: 1.5, color: this.selectedRole === card.role ? $r('app.color.color_yellow_deep') : $r('app.color.color_line') })
-      .shadow(this.selectedRole === card.role ? {
-        radius: 16,
-        color: 'rgba(255,217,61,0.4)',
-        offsetX: 0,
-        offsetY: 6
-      } : { radius: 0, color: Color.Transparent, offsetX: 0, offsetY: 0 })
+      .margin({ top: 12 })
       .alignItems(HorizontalAlign.Center)
-      .onClick(() => this.selectRole(card.role))
 
-      // 选中角标
-      if (this.selectedRole === card.role) {
-        Text('✓')
-          .fontSize(10)
-          .fontColor(Color.White)
-          .width(16)
-          .height(16)
-          .borderRadius(AppConstants.RADIUS_PILL)
-          .backgroundColor($r('app.color.color_ink'))
-          .textAlign(TextAlign.Center)
-          .position({ x: '88%', y: 6 })
-      }
+      // 右侧吉祥物装饰（对齐 qn-brand-mascot 60×60）
+      Image($r('app.media.mascot_farmer'))
+        .width(60)
+        .height(60)
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .objectFit(ImageFit.Cover)
+        .backgroundColor($r('app.color.color_yellow_tint'))
+        .border({ width: 3, color: $r('app.color.color_bg_card') })
+        .shadow({ radius: 18, color: 'rgba(26,26,26,0.12)', offsetX: 0, offsetY: 6 })
+        .position({ right: 8, top: 0 })
     }
-    .layoutWeight(1)
+    .width('100%')
+    .margin({ bottom: 32 })
   }
 
-  /** 表单区 */
+  /** 表单区（对齐设计稿 qn-farmer-form） */
   @Builder
   FormSection() {
-    Column({ space: 12 }) {
-      // 手机号输入框
-      Row() {
+    Column({ space: 14 }) {
+      // a) 手机号输入框（对齐 qn-farmer-field）
+      Row({ space: 12 }) {
         Text('📱')
           .fontSize(18)
-          .margin({ right: 10 })
+          .fontColor($r('app.color.color_text_3'))
         TextInput({ text: this.phone, placeholder: '请输入手机号' })
-          .layoutWeight(1)
           .type(InputType.PhoneNumber)
-          .maxLength(11)
-          .backgroundColor(Color.Transparent)
-          .borderRadius(0)
           .fontSize(14)
           .fontColor($r('app.color.color_ink'))
-          .placeholderColor($r('app.color.color_text_4'))
           .placeholderFont({ size: 14 })
-          .onChange((val: string) => { this.phone = val; })
+          .placeholderColor($r('app.color.color_text_4'))
+          .backgroundColor(Color.Transparent)
+          .layoutWeight(1)
+          .height(52)
+          .padding({ left: 0, right: 0 })
+          .maxLength(11)
+          .onChange((value: string) => {
+            this.phone = value;
+          })
       }
       .width('100%')
-      .height(46)
-      .borderRadius(AppConstants.RADIUS_MD)
-      .backgroundColor($r('app.color.color_fill'))
+      .height(52)
       .padding({ left: 16, right: 16 })
+      .borderRadius(AppConstants.RADIUS_MD)
+      .backgroundColor($r('app.color.color_bg_card'))
+      .border({ width: 1, color: $r('app.color.color_line') })
+      .shadow(AppConstants.SHADOW_CARD)
       .alignItems(VerticalAlign.Center)
-      .margin({ top: 22 })
 
-      // 验证码输入框 + 获取验证码按钮
-      Row() {
+      // b) 密码输入框（对齐 qn-farmer-field，系统 Password 类型自带显隐切换，无需手动添加眼睛图标）
+      Row({ space: 12 }) {
         Text('🔒')
           .fontSize(18)
-          .margin({ right: 10 })
-        TextInput({ text: this.code, placeholder: '请输入验证码' })
-          .layoutWeight(1)
-          .type(InputType.Number)
-          .maxLength(6)
-          .backgroundColor(Color.Transparent)
-          .borderRadius(0)
+          .fontColor($r('app.color.color_text_3'))
+        TextInput({ text: this.password, placeholder: '请输入密码' })
+          .type(this.passwordVisible ? InputType.Normal : InputType.Password)
           .fontSize(14)
           .fontColor($r('app.color.color_ink'))
-          .placeholderColor($r('app.color.color_text_4'))
           .placeholderFont({ size: 14 })
-          .onChange((val: string) => { this.code = val; })
-
-        // 获取验证码按钮
-        Text(this.codeCountdown > 0 ? `${this.codeCountdown}s 后重发` : '获取验证码')
-          .fontSize(13)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(this.codeCountdown > 0 ? $r('app.color.color_text_4') : $r('app.color.color_ink'))
-          .padding({ left: 12 })
-          .margin({ left: 8 })
-          .border({ width: { left: 1 }, color: $r('app.color.color_line_2') })
-          .onClick(() => this.sendCode())
+          .placeholderColor($r('app.color.color_text_4'))
+          .backgroundColor(Color.Transparent)
+          .layoutWeight(1)
+          .height(52)
+          .padding({ left: 0, right: 0 })
+          .maxLength(32)
+          .onChange((value: string) => {
+            this.password = value;
+          })
       }
       .width('100%')
-      .height(46)
-      .borderRadius(AppConstants.RADIUS_MD)
-      .backgroundColor($r('app.color.color_fill'))
+      .height(52)
       .padding({ left: 16, right: 16 })
+      .borderRadius(AppConstants.RADIUS_MD)
+      .backgroundColor($r('app.color.color_bg_card'))
+      .border({ width: 1, color: $r('app.color.color_line') })
+      .shadow(AppConstants.SHADOW_CARD)
       .alignItems(VerticalAlign.Center)
-    }
-    .width('100%')
-  }
 
-  /** 协议勾选 */
-  @Builder
-  AgreementSection() {
-    Row({ space: 8 }) {
-      // 复选框
-      Text(this.agreementChecked ? '✓' : '')
-        .fontSize(10)
-        .fontColor(Color.White)
-        .width(16)
-        .height(16)
-        .borderRadius(4)
-        .backgroundColor(this.agreementChecked ? $r('app.color.color_ink') : $r('app.color.color_bg_card'))
-        .border({ width: 1.5, color: this.agreementChecked ? $r('app.color.color_ink') : $r('app.color.color_line_2') })
-        .textAlign(TextAlign.Center)
-        .onClick(() => { this.agreementChecked = !this.agreementChecked; })
-
-      // 协议文字
-      Text() {
-        Span('我已阅读并同意')
-          .fontColor($r('app.color.color_text_3'))
-          .fontSize(12)
-        Span('《用户协议》')
-          .fontColor($r('app.color.color_ink'))
+      // c) 登录按钮（对齐 qn-login-btn 墨黑底）
+      Row({ space: 6 }) {
+        Text('登录')
+          .fontSize(15)
+          .fontColor(Color.White)
           .fontWeight(FontWeight.Bold)
-          .fontSize(12)
-        Span('和')
-          .fontColor($r('app.color.color_text_3'))
-          .fontSize(12)
-        Span('《隐私政策》')
-          .fontColor($r('app.color.color_ink'))
-          .fontWeight(FontWeight.Bold)
-          .fontSize(12)
-        Span('，未注册手机号将自动创建账号')
-          .fontColor($r('app.color.color_text_3'))
-          .fontSize(12)
-      }
-      .layoutWeight(1)
-      .lineHeight(18)
-    }
-    .width('100%')
-    .padding({ left: 2, right: 2, top: 8, bottom: 16 })
-    .alignItems(VerticalAlign.Top)
-  }
-
-  /** 一键登录按钮 */
-  @Builder
-  LoginButton() {
-    Row({ space: 6 }) {
-      Text(this.isLogging ? '登录中...' : '一键登录')
-        .fontSize(15)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(Color.White)
-      if (!this.isLogging) {
+          .letterSpacing(1)
         Text('→')
           .fontSize(18)
           .fontColor(Color.White)
+          .fontWeight(FontWeight.Bold)
       }
-    }
-    .width('100%')
-    .height(46)
-    .borderRadius(AppConstants.RADIUS_MD)
-    .backgroundColor(this.isLogging ? $r('app.color.color_button_disabled') : $r('app.color.color_ink'))
-    .justifyContent(FlexAlign.Center)
-    .alignItems(VerticalAlign.Center)
-    .margin({ top: 4 })
-    .onClick(() => { if (!this.isLogging) this.doLogin(); })
-  }
+      .width('100%')
+      .height(48)
+      .borderRadius(AppConstants.RADIUS_MD)
+      .backgroundColor(this.isLogging ? $r('app.color.color_button_disabled') : $r('app.color.color_ink'))
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .opacity(this.isLogging ? 0.7 : 1)
+      .margin({ top: 6 })
+      .onClick(() => { this.doLogin(); })
 
-  /** 分割线 */
-  @Builder
-  OrDivider() {
-    Row({ space: 12 }) {
-      Column()
-        .layoutWeight(1)
-        .height(1)
-        .backgroundColor($r('app.color.color_line'))
-      Text('或使用以下方式登录')
-        .fontSize(12)
-        .fontColor($r('app.color.color_text_3'))
-      Column()
-        .layoutWeight(1)
-        .height(1)
-        .backgroundColor($r('app.color.color_line'))
-    }
-    .width('100%')
-    .margin({ top: 22, bottom: 18 })
-    .alignItems(VerticalAlign.Center)
-  }
-
-  /** 第三方登录 */
-  @Builder
-  ThirdPartySection() {
-    Row({ space: 24 }) {
-      // 微信登录
-      Text('💬')
-        .fontSize(22)
-        .fontColor(Color.White)
-        .width(44)
-        .height(44)
-        .borderRadius(AppConstants.RADIUS_PILL)
-        .backgroundColor('#07C160')
-        .shadow(AppConstants.SHADOW_CARD)
-        .textAlign(TextAlign.Center)
-        .onClick(() => this.thirdPartyLogin('微信'))
-
-      // Apple 登录
-      Text('')
-        .fontSize(22)
-        .fontColor(Color.White)
-        .width(44)
-        .height(44)
-        .borderRadius(AppConstants.RADIUS_PILL)
-        .backgroundColor($r('app.color.color_ink'))
-        .shadow(AppConstants.SHADOW_CARD)
-        .textAlign(TextAlign.Center)
-        .onClick(() => this.thirdPartyLogin('Apple'))
-
-      // 手机号登录
-      Text('📞')
-        .fontSize(22)
-        .fontColor(Color.White)
-        .width(44)
-        .height(44)
-        .borderRadius(AppConstants.RADIUS_PILL)
-        .backgroundColor($r('app.color.color_info'))
-        .shadow(AppConstants.SHADOW_CARD)
-        .textAlign(TextAlign.Center)
-        .onClick(() => this.thirdPartyLogin('手机号'))
-    }
-    .width('100%')
-    .justifyContent(FlexAlign.Center)
-    .margin({ bottom: 18 })
-  }
-
-  /** 底部协议文字 */
-  @Builder
-  FooterText() {
-    Column({ space: 4 }) {
-      Text('登录即代表同意趣农 服务协议 与 隐私政策')
-        .fontSize(12)
-        .fontColor($r('app.color.color_text_3'))
-      Text('未注册的手机号验证后将自动注册账号')
-        .fontSize(12)
-        .fontColor($r('app.color.color_text_3'))
+      // d) 去注册链接
+      Text('去注册')
+        .fontSize(13)
+        .fontColor($r('app.color.color_text_2'))
+        .margin({ top: 12 })
+        .decoration({ type: TextDecorationType.Underline, color: $r('app.color.color_text_2') })
+        .onClick(() => { this.gotoRegister(); })
     }
     .width('100%')
     .alignItems(HorizontalAlign.Center)
-    .margin({ top: 8 })
   }
 
-  /** 底部黄色波浪装饰 */
+  /** 底部区域（对齐设计稿 qn-foot） */
   @Builder
-  WaveDecoration() {
-    Column()
+  FooterSection() {
+    Column({ space: 16 }) {
+      // 用户协议文字
+      Row() {
+        Text('登录即同意')
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_3'))
+        Text('《用户协议》')
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_2'))
+        Text('和')
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_3'))
+        Text('《隐私政策》')
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_2'))
+      }
       .width('100%')
-      .height(60)
-      .linearGradient({
-        angle: 0,
-        colors: [['rgba(255,226,52,0.55)', 0.0], ['rgba(255,217,61,0.85)', 1.0]]
-      })
-      .position({ x: 0, y: '92%' })
+      .justifyContent(FlexAlign.Center)
+    }
+    .width('100%')
+    .margin({ top: 12 })
+    .alignItems(HorizontalAlign.Center)
   }
 }

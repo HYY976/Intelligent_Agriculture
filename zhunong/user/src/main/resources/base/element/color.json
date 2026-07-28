@@ -1,5 +1,9 @@
 {
   "color": [
-    { "name": "start_window_background", "value": "#FFFEF5" }
+    { "name": "start_window_background", "value": "#FFFEF5" },
+    { "name": "color_morandi_green", "value": "#A8B5A0" },
+    { "name": "color_morandi_pink", "value": "#D4A5A5" },
+    { "name": "color_morandi_yellow", "value": "#D4C5A0" },
+    { "name": "color_morandi_blue", "value": "#A0B5C5" }
   ]
 }

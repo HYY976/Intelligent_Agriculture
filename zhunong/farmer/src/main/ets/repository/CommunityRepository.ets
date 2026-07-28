@@ -3,8 +3,8 @@
  * 走 BaseRepository.fetchWithFallback：先 REST 后 Mock 兜底
  */
 
-import { BaseRepository, AppConstants, PageResult } from 'common';
-import { Post, Comment, Topic, PostSortBy } from '../model/FarmerCommunityModels';
+import { BaseRepository, AppConstants, PageResult, SharedPostStore } from 'common';
+import { Post, Comment, Topic, PostSortBy, PRESET_TOPICS } from '../model/FarmerCommunityModels';
 import {
   getMockPostList,
   getMockPostById,
@@ -190,6 +190,26 @@ class CommunityRepositoryImpl {
       async (): Promise<string> => mockCreatePost(authorId, topicId, title, content, images, authorNickname, authorAvatar),
       AppConstants.SCENE_FARMER
     );
+    // 同步到共享帖子池，用户端可实时看到农户发布的帖子
+    const topic: Topic | undefined = PRESET_TOPICS.find((t: Topic): boolean => t.topicId === topicId);
+    const topicName: string = topic ? topic.name : '种植技术';
+    SharedPostStore.publish({
+      postId: result,
+      authorId: authorId,
+      authorType: 'farmer',
+      authorNickname: authorNickname,
+      authorAvatar: authorAvatar,
+      topicId: topicId,
+      topicName: topicName,
+      title: title,
+      content: content,
+      images: images,
+      likeCount: 0,
+      commentCount: 0,
+      favoriteCount: 0,
+      isSeller: true,
+      createdAt: Date.now()
+    });
     return result;
   }
 
@@ -235,6 +255,8 @@ class CommunityRepositoryImpl {
       async (): Promise<boolean> => mockDeletePost(postId),
       AppConstants.SCENE_FARMER
     );
+    // 同步删除共享帖子池中的帖子
+    SharedPostStore.remove(postId);
     return result;
   }
 }

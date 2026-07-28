@@ -53,6 +53,8 @@ export abstract class BaseDataSource<T> implements IDataSource {
   protected hasMore: boolean = true;
   /** 是否首次加载 */
   protected isFirstLoad: boolean = true;
+  /** 最近一次 refresh / loadMore 是否失败（供页面读取展示错误态） */
+  protected hasLoadFailed: boolean = false;
 
   /** 子类注入：日志场景名（如 AppConstants.SCENE_USER / SCENE_FARMER / SCENE_ADMIN） */
   protected abstract readonly scene: string;
@@ -118,6 +120,7 @@ export abstract class BaseDataSource<T> implements IDataSource {
       this.items = result.list;
       this.hasMore = result.hasMore;
       this.isFirstLoad = false;
+      this.hasLoadFailed = false;
       this.notifyReload();
       const refreshLog: LogInfo = {
         action: `${this.actionPrefix}_refresh`,
@@ -126,6 +129,7 @@ export abstract class BaseDataSource<T> implements IDataSource {
       };
       Logger.info(this.scene, refreshLog);
     } catch (err) {
+      this.hasLoadFailed = true;
       Logger.error(this.scene, {
         action: `${this.actionPrefix}_refresh_fail`,
         error: (err as Error).message
@@ -147,6 +151,7 @@ export abstract class BaseDataSource<T> implements IDataSource {
       const startIndex: number = this.items.length;
       this.items = this.items.concat(result.list);
       this.hasMore = result.hasMore;
+      this.hasLoadFailed = false;
       this.notifyAdd(startIndex);
       const loadMoreLog: LogInfo = {
         action: `${this.actionPrefix}_load_more`,
@@ -156,6 +161,7 @@ export abstract class BaseDataSource<T> implements IDataSource {
       };
       Logger.info(this.scene, loadMoreLog);
     } catch (err) {
+      this.hasLoadFailed = true;
       Logger.error(this.scene, {
         action: `${this.actionPrefix}_load_more_fail`,
         error: (err as Error).message
@@ -179,5 +185,10 @@ export abstract class BaseDataSource<T> implements IDataSource {
   /** 是否还有更多 */
   getHasMore(): boolean {
     return this.hasMore;
+  }
+
+  /** 最近一次 refresh / loadMore 是否失败（供页面读取展示错误态） */
+  getLoadFailed(): boolean {
+    return this.hasLoadFailed;
   }
 }

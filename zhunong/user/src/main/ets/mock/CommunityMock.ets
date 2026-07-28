@@ -3,6 +3,7 @@
  * 遵循 spec 4.1.5 / 3.1.3.2：话题/帖子/评论（无限嵌套）/互动
  * 5 个预设话题：全部/种植技术/销路讨论/乡村生活/互助问答
  * 现阶段前端纯 Mock，后端预留空接口（Phase 6 联调）
+ * spec 16.12：每个作者分配独特 emoji 头像（不重复）
  */
 
 import { Topic, PostListItem, PostDetail, Comment, PostListParam, PostListResult, PostSortBy } from '../model/CommunityModels';
@@ -19,14 +20,26 @@ export const MOCK_TOPICS: Topic[] = [
 /** 作者昵称池 */
 const AUTHOR_NICKNAMES: string[] = ['山间老农', '果园小妹', '稻香阿强', '茶山姑娘', '草原牧人', '城里返乡客', '农技员小王', '乡下宝妈'];
 
-/** 帖子 Mock 数据（12 条，覆盖5话题） */
+/** spec 16.12：作者头像池（与 AUTHOR_NICKNAMES 一一对应，全部独特 emoji 不重复） */
+const AUTHOR_AVATARS: string[] = ['🐴', '🌸', '🌾', '🍵', '🐔', '💼', '📢', '👩'];
+
+/** spec 16.12：根据 authorId 获取 emoji 头像（u001~u008） */
+function getAvatarByAuthorId(authorId: string): string {
+  const idx: number = parseInt(authorId.replace('u', ''), 10) - 1;
+  if (idx >= 0 && idx < AUTHOR_AVATARS.length) {
+    return AUTHOR_AVATARS[idx];
+  }
+  return '👤';
+}
+
+/** 帖子 Mock 数据（12 条，覆盖5话题；spec 16.12：作者头像全部独立） */
 export const MOCK_POSTS: PostListItem[] = [
   {
     postId: 'p001',
     authorId: 'u001',
     authorType: 'farmer',
     authorNickname: AUTHOR_NICKNAMES[0],
-    authorAvatar: 'avatar_farmer_1',
+    authorAvatar: getAvatarByAuthorId('u001'),
     topicId: 't001',
     topicName: '种植技术',
     title: '有机蔬菜种植心得：不用农药如何防虫害',
@@ -44,7 +57,7 @@ export const MOCK_POSTS: PostListItem[] = [
     authorId: 'u002',
     authorType: 'farmer',
     authorNickname: AUTHOR_NICKNAMES[1],
-    authorAvatar: 'avatar_farmer_2',
+    authorAvatar: getAvatarByAuthorId('u002'),
     topicId: 't002',
     topicName: '销路讨论',
     title: '今年蜜桃大丰收，求销路！直播间带货效果怎么样？',
@@ -62,7 +75,7 @@ export const MOCK_POSTS: PostListItem[] = [
     authorId: 'u003',
     authorType: 'user',
     authorNickname: AUTHOR_NICKNAMES[5],
-    authorAvatar: 'avatar_default',
+    authorAvatar: getAvatarByAuthorId('u003'),
     topicId: 't003',
     topicName: '乡村生活',
     title: '辞职回乡种地的第三年，分享我的田园生活',
@@ -80,7 +93,7 @@ export const MOCK_POSTS: PostListItem[] = [
     authorId: 'u004',
     authorType: 'user',
     authorNickname: AUTHOR_NICKNAMES[6],
-    authorAvatar: 'avatar_default',
+    authorAvatar: getAvatarByAuthorId('u004'),
     topicId: 't004',
     topicName: '互助问答',
     title: '新手求助：番茄叶子发黄卷曲是什么原因？',
@@ -98,7 +111,7 @@ export const MOCK_POSTS: PostListItem[] = [
     authorId: 'u005',
     authorType: 'farmer',
     authorNickname: AUTHOR_NICKNAMES[3],
-    authorAvatar: 'avatar_farmer_3',
+    authorAvatar: getAvatarByAuthorId('u005'),
     topicId: 't001',
     topicName: '种植技术',
     title: '武夷山岩茶制作工艺详解：从采摘到烘焙',
@@ -116,7 +129,7 @@ export const MOCK_POSTS: PostListItem[] = [
     authorId: 'u006',
     authorType: 'farmer',
     authorNickname: AUTHOR_NICKNAMES[2],
-    authorAvatar: 'avatar_farmer_1',
+    authorAvatar: getAvatarByAuthorId('u006'),
     topicId: 't002',
     topicName: '销路讨论',
     title: '大米深加工：从卖原粮到卖品牌的转型之路',
@@ -134,7 +147,7 @@ export const MOCK_POSTS: PostListItem[] = [
     authorId: 'u007',
     authorType: 'user',
     authorNickname: AUTHOR_NICKNAMES[7],
-    authorAvatar: 'avatar_default',
+    authorAvatar: getAvatarByAuthorId('u007'),
     topicId: 't003',
     topicName: '乡村生活',
     title: '带娃回乡下奶奶家过暑假，体验最纯粹的童年',
@@ -152,7 +165,7 @@ export const MOCK_POSTS: PostListItem[] = [
     authorId: 'u008',
     authorType: 'farmer',
     authorNickname: AUTHOR_NICKNAMES[4],
-    authorAvatar: 'avatar_farmer_2',
+    authorAvatar: getAvatarByAuthorId('u008'),
     topicId: 't004',
     topicName: '互助问答',
     title: '草原散养土鸡冬季如何保证产蛋率？',
@@ -170,7 +183,7 @@ export const MOCK_POSTS: PostListItem[] = [
     authorId: 'u001',
     authorType: 'farmer',
     authorNickname: AUTHOR_NICKNAMES[0],
-    authorAvatar: 'avatar_farmer_1',
+    authorAvatar: getAvatarByAuthorId('u001'),
     topicId: 't001',
     topicName: '种植技术',
     title: '长白山野生菌菇识别与采摘安全指南',
@@ -188,7 +201,7 @@ export const MOCK_POSTS: PostListItem[] = [
     authorId: 'u002',
     authorType: 'farmer',
     authorNickname: AUTHOR_NICKNAMES[1],
-    authorAvatar: 'avatar_farmer_2',
+    authorAvatar: getAvatarByAuthorId('u002'),
     topicId: 't002',
     topicName: '销路讨论',
     title: '土蜂蜜销售：如何建立稳定客户群？',
@@ -206,7 +219,7 @@ export const MOCK_POSTS: PostListItem[] = [
     authorId: 'u003',
     authorType: 'user',
     authorNickname: AUTHOR_NICKNAMES[5],
-    authorAvatar: 'avatar_default',
+    authorAvatar: getAvatarByAuthorId('u003'),
     topicId: 't003',
     topicName: '乡村生活',
     title: '秋收季：金黄稻田里的最美风景',
@@ -224,7 +237,7 @@ export const MOCK_POSTS: PostListItem[] = [
     authorId: 'u004',
     authorType: 'user',
     authorNickname: AUTHOR_NICKNAMES[6],
-    authorAvatar: 'avatar_default',
+    authorAvatar: getAvatarByAuthorId('u004'),
     topicId: 't004',
     topicName: '互助问答',
     title: '辣椒苗徒长不开花怎么办？施肥浇水都正常',
@@ -246,7 +259,7 @@ const POST_FULL_CONTENT: Record<string, string> = {
   'p003': '三年前放弃北京互联网高薪工作回到云南老家，从零开始学种地。\n\n现在有20亩有机菜园，养了50只土鸡，生活节奏慢了但很充实。\n\n每天清晨5点起床喂鸡摘菜，上午处理订单发货，下午打理菜地，晚上看书学习。虽然没有外卖和地铁，但空气清新、食物健康、时间自由。\n\n最难忘的是第一次卖出自己种的菜，那种成就感比拿到大厂offer还强烈。\n\n欢迎有同样想法的朋友交流，回乡不易但值得。'
 };
 
-/** 评论 Mock 数据（含嵌套回复，按 postId 分组） */
+/** 评论 Mock 数据（含嵌套回复，按 postId 分组；spec 16.12：评论作者头像按 authorId 取自 emoji 池） */
 const COMMENT_DATA: Record<string, Comment[]> = {
   'p001': [
     {
@@ -256,7 +269,7 @@ const COMMENT_DATA: Record<string, Comment[]> = {
       authorId: 'u002',
       authorType: 'farmer',
       authorNickname: AUTHOR_NICKNAMES[1],
-      authorAvatar: 'avatar_farmer_2',
+      authorAvatar: getAvatarByAuthorId('u002'),
       content: '辣椒水驱蚜虫这招真管用，我试过效果很好！',
       likeCount: 28,
       isLiked: false,
@@ -270,7 +283,7 @@ const COMMENT_DATA: Record<string, Comment[]> = {
           authorId: 'u001',
           authorType: 'farmer',
           authorNickname: AUTHOR_NICKNAMES[0],
-          authorAvatar: 'avatar_farmer_1',
+          authorAvatar: getAvatarByAuthorId('u001'),
           content: '是的，纯天然无残留，比农药安全多了',
           likeCount: 12,
           isLiked: false,
@@ -284,7 +297,7 @@ const COMMENT_DATA: Record<string, Comment[]> = {
               authorId: 'u002',
               authorType: 'farmer',
               authorNickname: AUTHOR_NICKNAMES[1],
-              authorAvatar: 'avatar_farmer_2',
+              authorAvatar: getAvatarByAuthorId('u002'),
               content: '请问辣椒和水的比例是多少？',
               likeCount: 5,
               isLiked: false,
@@ -302,7 +315,7 @@ const COMMENT_DATA: Record<string, Comment[]> = {
       authorId: 'u003',
       authorType: 'user',
       authorNickname: AUTHOR_NICKNAMES[5],
-      authorAvatar: 'avatar_default',
+      authorAvatar: getAvatarByAuthorId('u003'),
       content: '收藏了，正好我家菜地有虫害问题',
       likeCount: 16,
       isLiked: false,
@@ -316,7 +329,7 @@ const COMMENT_DATA: Record<string, Comment[]> = {
       authorId: 'u004',
       authorType: 'user',
       authorNickname: AUTHOR_NICKNAMES[6],
-      authorAvatar: 'avatar_default',
+      authorAvatar: getAvatarByAuthorId('u004'),
       content: '黄色粘虫板哪里能买到？求链接',
       likeCount: 8,
       isLiked: false,
@@ -330,7 +343,7 @@ const COMMENT_DATA: Record<string, Comment[]> = {
           authorId: 'u001',
           authorType: 'farmer',
           authorNickname: AUTHOR_NICKNAMES[0],
-          authorAvatar: 'avatar_farmer_1',
+          authorAvatar: getAvatarByAuthorId('u001'),
           content: '农资店或网上都有的，搜"黄板诱虫"',
           likeCount: 4,
           isLiked: false,
@@ -348,7 +361,7 @@ const COMMENT_DATA: Record<string, Comment[]> = {
       authorId: 'u005',
       authorType: 'farmer',
       authorNickname: AUTHOR_NICKNAMES[3],
-      authorAvatar: 'avatar_farmer_3',
+      authorAvatar: getAvatarByAuthorId('u005'),
       content: '建议先从手机直播开始，设备要求不高。补光灯白天可以不用，晚上必备。',
       likeCount: 35,
       isLiked: false,
@@ -485,7 +498,7 @@ function findCommentById(comments: Comment[], commentId: string): Comment | null
 /**
  * 添加一级评论（Mock 本地追加）
  */
-export function addMockComment(postId: string, content: string, authorNickname: string): Comment {
+export function addMockComment(postId: string, content: string, authorNickname: string, authorAvatar: string): Comment {
   const newComment: Comment = {
     commentId: `c_self_${Date.now()}`,
     postId: postId,
@@ -493,7 +506,7 @@ export function addMockComment(postId: string, content: string, authorNickname: 
     authorId: 'u_self',
     authorType: 'user',
     authorNickname: authorNickname,
-    authorAvatar: 'avatar_default',
+    authorAvatar: authorAvatar,
     content: content,
     likeCount: 0,
     isLiked: false,
@@ -515,7 +528,7 @@ export function addMockComment(postId: string, content: string, authorNickname: 
 /**
  * 添加回复（Mock 本地追加到指定父评论的 replies）
  */
-export function addMockReply(postId: string, parentId: string, replyToNickname: string, content: string, authorNickname: string): Comment | null {
+export function addMockReply(postId: string, parentId: string, replyToNickname: string, content: string, authorNickname: string, authorAvatar: string): Comment | null {
   const comments: Comment[] = COMMENT_DATA[postId] ?? [];
   const parent: Comment | null = findCommentById(comments, parentId);
   if (!parent) {
@@ -529,7 +542,7 @@ export function addMockReply(postId: string, parentId: string, replyToNickname: 
     authorId: 'u_self',
     authorType: 'user',
     authorNickname: authorNickname,
-    authorAvatar: 'avatar_default',
+    authorAvatar: authorAvatar,
     content: content,
     likeCount: 0,
     isLiked: false,
@@ -548,13 +561,13 @@ export function addMockReply(postId: string, parentId: string, replyToNickname: 
 /**
  * 创建新帖子（Mock 本地追加到列表头部）
  */
-export function createMockPost(title: string, content: string, topicId: string, topicName: string, images: string[]): PostListItem {
+export function createMockPost(title: string, content: string, topicId: string, topicName: string, images: string[], authorAvatar: string): PostListItem {
   const newPost: PostListItem = {
     postId: `p_self_${Date.now()}`,
     authorId: 'u_self',
     authorType: 'user',
     authorNickname: '我',
-    authorAvatar: 'avatar_default',
+    authorAvatar: authorAvatar,
     topicId: topicId,
     topicName: topicName,
     title: title,
@@ -574,7 +587,6 @@ export function createMockPost(title: string, content: string, topicId: string, 
 /**
  * 提交举报（Mock：仅记录日志，进入审核队列由管理后台处理）
  */
-export function submitMockReport(postId: string, reason: string, description: string): void {
-  // 实际由后端创建 Report 记录 → ContentReview 关联 → 管理后台审核队列
-  // Phase 3 仅前端 Mock，无实际副作用
+export function submitMockReport(_postId: string, _reason: string): boolean {
+  return true;
 }

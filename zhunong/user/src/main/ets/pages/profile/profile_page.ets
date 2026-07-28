@@ -13,6 +13,8 @@
  */
 
 import { TokenStore, Logger, AppConstants, ToastUtil, RouteName, NavigationHelper } from 'common';
+import { UserInfoKey } from 'common';
+import { AppStorageV2 } from '@kit.ArkUI';
 import { OrderStatusTab } from '../../model/OrderModels';
 import { ProfileFunction, ProfileStats, ProfileLevel, ProfileIconTheme } from '../../model/ProfileModels';
 import { getMockOrderCountByStatus } from '../../mock/OrderMock';
@@ -49,8 +51,14 @@ export struct ProfileContent {
   @Local nickname: string = '小趣';
   /** 用户 ID */
   @Local userId: string = MOCK_USER_ID;
-  /** 头像 key */
+  /** 头像 key（资源 key 或 file:// URI） */
   @Local avatarKey: string = 'avatar_default';
+  /** 响应式用户信息引用（设置页修改后自动同步） */
+  @Local userInfoRef: UserInfoKey = AppStorageV2.connect(
+    UserInfoKey,
+    'authUser',
+    () => new UserInfoKey()
+  )!;
   /** 统计信息（关注/粉丝/订单/积分） */
   @Local stats: ProfileStats = MOCK_PROFILE_STATS;
   /** 等级信息 */
@@ -95,10 +103,35 @@ export struct ProfileContent {
     const userInfo = await TokenStore.getUserInfo();
     if (userInfo) {
       this.nickname = userInfo.nickname;
+      // spec 16.12：同步头像 key（设置页修改后整端同步）
+      if (userInfo.avatar && userInfo.avatar.length > 0) {
+        this.avatarKey = userInfo.avatar;
+      }
     }
     this.orderCounts = getMockOrderCountByStatus();
     this.couponCount = getMockAvailableCouponCount();
     Logger.info(AppConstants.SCENE_USER, { action: 'profile_appear' });
+  }
+
+  /** 监听 UserInfoKey.value 变化，设置页修改头像/昵称后自动同步到「我的」页面 */
+  @Monitor('userInfoRef.value')
+  onUserInfoChange(monitor: Monitor): void {
+    const userInfo = this.userInfoRef.value;
+    if (userInfo) {
+      this.nickname = userInfo.nickname;
+      if (userInfo.avatar && userInfo.avatar.length > 0) {
+        this.avatarKey = userInfo.avatar;
+      }
+      Logger.info(AppConstants.SCENE_USER, { action: 'profile_user_info_synced' });
+    }
+  }
+
+  /** 获取头像图片源：file:///data URI 直接使用，否则走 ImageUtil 资源映射 */
+  private getAvatarSource(): string | Resource {
+    if (this.avatarKey.startsWith('file://') || this.avatarKey.startsWith('data:') || this.avatarKey.startsWith('/')) {
+      return this.avatarKey;
+    }
+    return ImageUtil.get(this.avatarKey);
   }
 
   /** 获取图标主题色对（对齐设计稿 qn-ico-* 彩色底） */
@@ -204,21 +237,9 @@ export struct ProfileContent {
 
       // 头部内容（顶部图标栏 + 资料信息 + 吉祥物）
       Column() {
-        // 顶部图标栏（对齐设计稿 qn-profile-topbar）
+        // 顶部图标栏（对齐设计稿 qn-profile-topbar；spec 16.12：删除左上设置按钮，仅保留消息按钮）
         Row() {
-          // 设置按钮
-          Row() {
-            Text('⚙️').fontSize(18)
-          }
-          .width(36)
-          .height(36)
-          .borderRadius(18)
-          .backgroundColor(Color.White)
-          .shadow(AppConstants.SHADOW_CARD)
-          .justifyContent(FlexAlign.Center)
-          .alignItems(VerticalAlign.Center)
-          .onClick(() => { this.gotoSetting(); })
-
+          // 左侧占位（保持消息按钮右对齐）
           Blank()
 
           // 消息按钮（带红点）
@@ -255,7 +276,7 @@ export struct ProfileContent {
         Row({ space: 12 }) {
           // 头像（64×64，白色环 + 黄色环，对齐设计稿 qn-avatar-ring）
           Stack() {
-            Image(ImageUtil.get(this.avatarKey))
+            Image(this.getAvatarSource())
               .width(64)
               .height(64)
               .borderRadius(32)

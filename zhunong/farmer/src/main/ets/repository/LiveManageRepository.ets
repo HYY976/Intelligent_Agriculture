@@ -4,7 +4,7 @@
  * 含直播管理历史 / 开播创建 / 结束直播 / 直播浏览列表 / 礼物 / 评论
  */
 
-import { BaseRepository, AppConstants, PageResult } from 'common';
+import { BaseRepository, AppConstants, PageResult, SharedLiveStore } from 'common';
 import { LiveManageItem, LiveCreateForm } from '../model/FarmerModels';
 import { LiveListItem, LiveComment, Gift, LiveSortBy } from '../model/FarmerLiveModels';
 import { getMockLiveManageList } from '../mock/FarmerMock';
@@ -142,6 +142,20 @@ class LiveManageRepositoryImpl {
       category: form.category
     };
     CreatedLiveStore.add(newItem);
+    // 同步到共享直播池，用户端可实时看到新开播直播间
+    SharedLiveStore.publish({
+      liveId: result,
+      farmerId: farmerId,
+      farmerName: anchorName,
+      farmerAvatar: anchorAvatar,
+      title: form.title,
+      coverImage: form.coverImage,
+      category: form.category,
+      status: 'living',
+      onlineCount: 1,
+      totalViewUv: 0,
+      createdAt: Date.now()
+    });
     return result;
   }
 
@@ -159,6 +173,8 @@ class LiveManageRepositoryImpl {
     );
     // spec 16.10：同步内存中已创建直播的状态为 ended
     CreatedLiveStore.markEnded(liveId);
+    // 同步到共享直播池，用户端实时看到直播结束
+    SharedLiveStore.markEnded(liveId);
     return result;
   }
 

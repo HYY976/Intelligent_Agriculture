@@ -29,6 +29,10 @@ export interface PoiCoordinate {
   x: number;
   /** 纬度（真实环境） / 归一化 y（mock 环境 0-1） */
   y: number;
+  /** 真实纬度（腾讯地图使用，可选） */
+  lat?: number;
+  /** 真实经度（腾讯地图使用，可选） */
+  lng?: number;
 }
 
 /** POI 点位实体 */
@@ -156,6 +160,28 @@ export interface BookingSubmitParam {
   peopleCount: number;
   contactName: string;
   contactPhone: string;
+}
+
+/** 推荐路线（spec 5.3.1：演示用主题路线卡片） */
+export interface TravelRoute {
+  /** 路线 ID */
+  routeId: string;
+  /** 路线标题 */
+  title: string;
+  /** 封面图 key */
+  coverImage: string;
+  /** 包含的 POI ID 列表 */
+  poiIds: string[];
+  /** POI 名称列表（冗余，展示用） */
+  poiNames: string[];
+  /** 时长文案（如 "1天"、"2天1夜"） */
+  duration: string;
+  /** 价格（元/人） */
+  price: number;
+  /** 标签数组（如 采摘/亲子/生态） */
+  tags: string[];
+  /** 路线描述 */
+  description: string;
 }
 
 /** POI 分类显示名（arkts-no-untyped-obj-literals：用 switch 函数替代 Record 字面量） */

@@ -36,6 +36,8 @@ export struct PostCreate {
   @Local showImageSheet: boolean = false;
   /** 是否正在提交 */
   @Local isSubmitting: boolean = false;
+  /** spec 16.12：当前用户头像（默认 '🙂'） */
+  @Local currentAvatar: string = '🙂';
   /** 话题列表（不含"全部"） */
   private topics: Topic[] = MOCK_TOPICS.filter((t: Topic) => t.topicId !== 'all');
 
@@ -125,7 +127,7 @@ export struct PostCreate {
     }
     this.isSubmitting = true;
     try {
-      createMockPost(this.title.trim(), this.content.trim(), this.currentTopicId, this.currentTopicName(), this.selectedImages);
+      createMockPost(this.title.trim(), this.content.trim(), this.currentTopicId, this.currentTopicName(), this.selectedImages, this.currentAvatar);
       ToastUtil.success('发布成功');
       Logger.info(AppConstants.SCENE_USER, JSON.stringify({
         action: 'post_create_submit',

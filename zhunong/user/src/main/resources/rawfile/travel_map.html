@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>文旅地图</title>
+  <!--
+    地图方案：Leaflet.js + OpenStreetMap（免费、无需 API Key）
+    - CDN 加载 Leaflet CSS + JS
+    - 瓦片源使用 OSM 标准瓦片（.openstreetmap.org）
+    - 暴露 window.addMarker / window.clearMarkers / window.moveTo 供 ArkTS 调用
+    - Marker 点击通过 appBridge.onPoiClick(poiId) 回调 ArkTS
+  -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    body {
+      font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #EAF7D8;
+    }
+    #mapContainer { width: 100%; height: 100%; }
+    /* fallback 底图：浅绿渐变 + 模拟道路装饰 */
+    #fallback {
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, #EAF7D8 0%, #F0F7E8 100%);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: #7E9A4F; font-size: 14px;
+      pointer-events: none;
+      z-index: 1000;
+    }
+    #fallback .emoji { font-size: 48px; margin-bottom: 12px; opacity: 0.6; }
+    #fallback .text { opacity: 0.8; }
+    #fallback .road {
+      position: absolute; background: rgba(255,255,255,0.5);
+      height: 6px; border-radius: 3px;
+    }
+    #fallback .road.r1 { top: 30%; left: -10%; width: 120%; transform: rotate(-8deg); }
+    #fallback .road.r2 { top: 55%; left: -10%; width: 120%; transform: rotate(4deg); }
+    #fallback .road.r3 { top: 75%; left: -10%; width: 120%; transform: rotate(-3deg); }
+    #fallback .field {
+      position: absolute; border-radius: 50%;
+      background: rgba(126,211,33,0.14);
+    }
+    #fallback .field.f1 { top: 18%; left: 12%; width: 120px; height: 80px; }
+    #fallback .field.f2 { top: 60%; right: 8%; width: 140px; height: 100px; background: rgba(255,226,52,0.10); }
+    #fallback .field.f3 { bottom: 8%; left: 20%; width: 100px; height: 70px; }
+    /* 自定义 Marker 标签样式 */
+    .poi-label {
+      background: rgba(255,226,52,0.95);
+      color: #1A1A1A;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      white-space: nowrap;
+      border: 2px solid #FFFFFF;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+  </style>
+</head>
+<body>
+  <div id="mapContainer"></div>
+  <div id="fallback">
+    <div class="field f1"></div>
+    <div class="field f2"></div>
+    <div class="field f3"></div>
+    <div class="road r1"></div>
+    <div class="road r2"></div>
+    <div class="road r3"></div>
+    <div class="emoji">🗺️</div>
+    <div class="text">地图加载中...</div>
+  </div>
+
+  <script>
+    // ============================================================
+    // 全局状态
+    // ============================================================
+    var map = null;
+    var markers = [];
+    var sdkReady = false;
+
+    // ============================================================
+    // appBridge：ArkTS ← JS 回调入口
+    // ArkTS 侧通过 Web 组件 javaScriptProxy 注入同名对象到 JS 全局上下文，
+    // JS 调用 appBridge.onPoiClick(poiId) / appBridge.onMapReady() 会直接回调到 ArkTS。
+    // 这里仅当 ArkTS 未注入时降级为 no-op 占位（避免 JS 调用报错）。
+    // ============================================================
+    if (typeof window.appBridge === 'undefined') {
+      window.appBridge = {
+        onPoiClick: function (poiId) { /* no-op 占位 */ },
+        onMapReady: function () { /* no-op 占位 */ }
+      };
+    }
+
+    // ============================================================
+    // 暴露给 ArkTS 的 API
+    // ============================================================
+
+    /**
+     * 添加 POI Marker（Leaflet L.marker + 自定义图标 + 弹窗 + 标签）
+     * @param {string} poiId
+     * @param {number} lat 纬度
+     * @param {number} lng 经度
+     * @param {string} name POI 名称
+     */
+    window.addMarker = function (poiId, lat, lng, name) {
+      if (!sdkReady || !map || typeof L === 'undefined') {
+        return false;
+      }
+      try {
+        // 自定义图标：黄色圆点 + 白色边框
+        var icon = L.divIcon({
+          className: 'custom-poi-marker',
+          html: '<div style="width:24px;height:24px;border-radius:50%;background:#FFE234;border:3px solid #FFFFFF;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>',
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        });
+        var marker = L.marker([lat, lng], { icon: icon }).addTo(map);
+        marker.bindPopup('<strong>' + name + '</strong>', {
+          closeButton: false,
+          offset: [0, -8]
+        });
+        marker.on('click', function () {
+          window.appBridge.onPoiClick(poiId);
+        });
+        // 添加名称标签
+        var label = L.tooltip({
+          permanent: false,
+          direction: 'top',
+          offset: [0, -14],
+          className: 'poi-label'
+        });
+        label.setContent(name);
+        marker.bindTooltip(label);
+        markers.push(marker);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    };
+
+    /**
+     * 清空所有 Marker
+     */
+    window.clearMarkers = function () {
+      for (var i = 0; i < markers.length; i++) {
+        try { map.removeLayer(markers[i]); } catch (e) {}
+      }
+      markers = [];
+      return true;
+    };
+
+    /**
+     * 移动到指定坐标 + 缩放级别
+     */
+    window.moveTo = function (lat, lng, zoom) {
+      if (!sdkReady || !map) return false;
+      try {
+        map.setView([lat, lng], zoom || 14, { animate: true });
+        return true;
+      } catch (e) {
+        return false;
+      }
+    };
+
+    /**
+     * SDK 是否就绪
+     */
+    window.isSdkReady = function () {
+      return sdkReady;
+    };
+
+    // ============================================================
+    // Leaflet 地图初始化（OpenStreetMap 瓦片，无需 API Key）
+    // ============================================================
+    function hideFallback() {
+      var el = document.getElementById('fallback');
+      if (el) { el.style.display = 'none'; }
+    }
+    function showFallbackText(text) {
+      var el = document.getElementById('fallback');
+      if (el) {
+        var t = el.querySelector('.text');
+        if (t) t.innerText = text;
+      }
+    }
+
+    function initMap() {
+      try {
+        // 检查 Leaflet 是否加载成功
+        if (typeof L === 'undefined') {
+          showFallbackText('地图库加载失败，请检查网络');
+          sdkReady = false;
+          window.appBridge.onMapReady();
+          return;
+        }
+
+        // 杭州西湖中心坐标
+        var centerLat = 30.2741;
+        var centerLng = 120.1551;
+
+        map = L.map('mapContainer', {
+          center: [centerLat, centerLng],
+          zoom: 12,
+          zoomControl: false,
+          attributionControl: false
+        });
+
+        // 添加 OSM 瓦片层（免费，无需 Key）
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          subdomains: ['a', 'b', 'c']
+        }).addTo(map);
+
+        // 添加缩放控件到右下角
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        // 瓦片加载完成后通知 ArkTS
+        map.on('load', function () {
+          hideFallback();
+          sdkReady = true;
+          window.appBridge.onMapReady();
+        });
+
+        // 如果地图已经加载（setView 时可能立即触发），额外检查
+        if (map._loaded) {
+          hideFallback();
+          sdkReady = true;
+          window.appBridge.onMapReady();
+        }
+
+        // 瓦片错误处理：如果 3 秒后仍未加载，显示 fallback 但保持功能
+        setTimeout(function () {
+          if (!sdkReady) {
+            hideFallback();
+            sdkReady = true;
+            window.appBridge.onMapReady();
+          }
+        }, 3000);
+
+      } catch (e) {
+        showFallbackText('地图初始化异常');
+        sdkReady = false;
+        window.appBridge.onMapReady();
+      }
+    }
+
+    // 等待 DOM 和 Leaflet JS 加载完成后初始化
+    if (typeof L !== 'undefined') {
+      initMap();
+    } else {
+      // Leaflet JS 尚未加载，等待加载完成
+      var checkLeafletInterval = setInterval(function () {
+        if (typeof L !== 'undefined') {
+          clearInterval(checkLeafletInterval);
+          initMap();
+        }
+      }, 100);
+      // 10 秒超时
+      setTimeout(function () {
+        if (typeof L === 'undefined') {
+          clearInterval(checkLeafletInterval);
+          showFallbackText('地图库加载超时，请检查网络');
+          window.appBridge.onMapReady();
+        }
+      }, 10000);
+    }
+  </script>
+</body>
+</html>

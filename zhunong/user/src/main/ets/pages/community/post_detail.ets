@@ -22,6 +22,30 @@ interface PostDetailParam {
   postId: string;
 }
 
+/** spec 16.12：作者头像渲染 — emoji 用 Text，资源 key 用 Image；size 自适应（全局 @Builder 供多组件复用） */
+@Builder
+function AuthorAvatar(avatar: string, size: number) {
+  if (avatar.startsWith('avatar_')) {
+    Image(ImageUtil.get(avatar))
+      .width(size)
+      .height(size)
+      .borderRadius(size / 2)
+      .objectFit(ImageFit.Cover)
+      .backgroundColor($r('app.color.color_fill'))
+  } else {
+    Row() {
+      Text(avatar)
+        .fontSize(Math.floor(size * 0.55))
+    }
+    .width(size)
+    .height(size)
+    .borderRadius(size / 2)
+    .backgroundColor($r('app.color.color_yellow_soft'))
+    .justifyContent(FlexAlign.Center)
+    .alignItems(VerticalAlign.Center)
+  }
+}
+
 @ComponentV2
 export struct PostDetailPage {
   /** 帖子 ID */
@@ -42,6 +66,8 @@ export struct PostDetailPage {
   @Local currentImageIndex: number = 0;
   /** 当前昵称（Mock） */
   @Local currentNickname: string = '我';
+  /** spec 16.12：当前用户头像（从 TokenStore 同步，默认 '🙂'） */
+  @Local currentAvatar: string = '🙂';
   /** 是否已关注作者 */
   @Local isFollowing: boolean = false;
 
@@ -108,7 +134,7 @@ export struct PostDetailPage {
 
   /** 提交举报 */
   private onSubmitReport(reason: ReportReason): void {
-    submitMockReport(this.postId, reason.label, '');
+    submitMockReport(this.postId, reason.label);
     this.showReportSheet = false;
     ToastUtil.success('举报已提交，将进入审核队列');
     Logger.info(AppConstants.SCENE_USER, JSON.stringify({
@@ -151,14 +177,14 @@ export struct PostDetailPage {
     if (this.replyTarget) {
       const replyToNickname: string = this.replyTarget.authorNickname;
       const newReply: Comment | null = addMockReply(
-        this.postId, this.replyTarget.commentId, replyToNickname, text, this.currentNickname
+        this.postId, this.replyTarget.commentId, replyToNickname, text, this.currentNickname, this.currentAvatar
       );
       if (newReply) {
         this.comments = getMockComments(this.postId);
         ToastUtil.success('回复成功');
       }
     } else {
-      addMockComment(this.postId, text, this.currentNickname);
+      addMockComment(this.postId, text, this.currentNickname, this.currentAvatar);
       this.comments = getMockComments(this.postId);
       ToastUtil.success('评论成功');
     }
@@ -290,15 +316,10 @@ export struct PostDetailPage {
   @Builder
   PostContent(post: PostDetail) {
     Column({ space: 0 }) {
-      // 作者信息行（对齐设计稿 pd-author）
+      // 作者信息行（对齐设计稿 pd-author；spec 16.12：emoji 头像用 Text，资源 key 用 Image）
       Row({ space: 10 }) {
         // 头像（36×36 圆形）
-        Image(ImageUtil.get(post.authorAvatar))
-          .width(36)
-          .height(36)
-          .borderRadius(AppConstants.RADIUS_PILL)
-          .objectFit(ImageFit.Cover)
-          .backgroundColor($r('app.color.color_fill'))
+        AuthorAvatar(post.authorAvatar, 36)
 
         // 昵称 + 认证徽标 + 时间（对齐设计稿 pd-author-meta）
         Row({ space: 5 }) {
@@ -740,18 +761,15 @@ struct CommentItemView {
     return `${count}`;
   }
 
+  /** spec 16.12：作者头像渲染已提取为全局 @Builder AuthorAvatar */
+
   build() {
     Column({ space: 0 }) {
       if (this.comment) {
-        // 评论主体（对齐设计稿 pd-cmt）
+        // 评论主体（对齐设计稿 pd-cmt；spec 16.12：emoji 头像用 Text，资源 key 用 Image）
         Row({ space: 10 }) {
           // 头像（28×28 圆形）
-          Image(ImageUtil.get(this.comment.authorAvatar))
-            .width(28)
-            .height(28)
-            .borderRadius(AppConstants.RADIUS_PILL)
-            .objectFit(ImageFit.Cover)
-            .backgroundColor($r('app.color.color_fill'))
+          AuthorAvatar(this.comment.authorAvatar, 28)
 
           // 评论内容区（对齐设计稿 pd-c-main）
           Column({ space: 0 }) {

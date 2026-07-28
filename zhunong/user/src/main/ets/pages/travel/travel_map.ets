@@ -1,33 +1,48 @@
 /**
- * travel_map - 文旅地图页（spec 3.1.4.3 / 2.4.6.4）
- * 对齐设计稿 pages/travel-map.html：
- *  - 全屏地图底（CSS 模拟：浅绿渐变 + SVG 道路/河流装饰）
- *  - 顶部渐隐遮罩（保白字状态栏可读）
- *  - POI Marker 层（黄色定位针 SVG + 选中态脉冲圆点）
- *  - 右侧悬浮按钮（定位 + 图层）
- *  - 顶栏浮层（圆形半透明返回键 + 白色胶囊搜索栏）
- *  - 分类筛选条（横向滚动胶囊：全部/农庄/民宿/景点/采摘园/市集，黄色选中态）
- *  - 底部上拉面板（白色圆角 24 + 拖动条 + 标题/计数 + 横滑 POI 卡片）
+ * travel_map - 文旅地图页（spec 5.2 / 2.4.6.4）
+ * 对齐 spec 5.2 整体布局（Stack 分层）：
+ *  1. 底层：腾讯地图 WebView（全屏）+ fallback 渐变底图
+ *  2. 顶部浮层：渐隐遮罩 + 返回按钮 + 搜索栏
+ *  3. 分类筛选条：横向滚动胶囊（全部/农庄/民宿/景点/采摘园/市集）
+ *  4. 右侧悬浮按钮：定位 + 图层切换
+ *  5. 底部内容面板（Scroll 可滚动，白色圆角顶部）：
+ *     - 拖动条 + 标题栏
+ *     - 推荐路线列表（spec 5.3.1：3 条主题路线卡片）
+ *     - 横滑 POI 卡片列表
+ *     - 热门景点瀑布流（双列 WaterFlow）
+ *     - 预订入口卡片（精选体验预订横幅）
  *
- * 百度地图 SDK 集成点（Phase 6）：
- *   1) user/oh-package.json5 添加 "@bdmap/map": "^x.x.x" 等依赖
- *   2) 将 MockMapView 替换为 MapComponent({ mapType: MapType.MAP_TYPE_NORMAL })
- *   3) 将 getMockPoiList 替换为 PoiSearch.requestAsyncSearch
- *   4) POI Marker 改用 MarkerOptions.position(LatLng)
- *   5) 信息窗改用 mapController.showPopView(PopInfoOptions)
+ * 腾讯地图接入（spec 5.1）：Web 组件加载 rawfile/travel_map.html
+ *  - 通过 runJavaScript 调用 window.addMarker / clearMarkers / moveTo
+ *  - 通过 javaScriptProxy 注入 appBridge，JS 侧 appBridge.onPoiClick / onMapReady 直接回调 ArkTS
+ *  - 无 Key 时 HTML 自动走 fallback 模式，POI 列表仍正常展示
  */
 
-import { RouteName, NavigationHelper, Logger, AppConstants, ToastUtil, ConfigUtil } from 'common';
-import { PoiInfo, PoiCategory, PoiListParam, PoiListResult, getPoiCategoryLabel } from '../../model/TravelModels';
-import { getMockPoiList } from '../../mock/TravelMock';
+import { webview } from '@kit.ArkWeb';
+import { RouteName, NavigationHelper, Logger, AppConstants, ToastUtil } from 'common';
+import {
+  PoiInfo,
+  PoiCategory,
+  PoiListParam,
+  PoiListResult,
+  TravelRoute,
+  getPoiCategoryLabel
+} from '../../model/TravelModels';
+import { getMockPoiList, MOCK_ROUTES, getMockBookingByPoiId } from '../../mock/TravelMock';
 import { ImageUtil } from '../../utils/ImageUtil';
+import { BookingExperience } from '../../model/TravelModels';
 
-/** 跳转 POI 详情的路由参数（spec 10.12：ArkTS 严格模式要求具体 interface） */
+/** 跳转 POI 详情的路由参数 */
 interface PoiDetailParam {
   poiId: string;
 }
 
-/** 分类筛选 Chip 配置项（对齐设计稿 map-chip 6 项） */
+/** 跳转体验预约的路由参数 */
+interface BookingRouteParam {
+  poiId: string;
+}
+
+/** 分类筛选 Chip 配置项 */
 interface CategoryChipConfig {
   /** chip 标签 */
   label: string;
@@ -35,33 +50,80 @@ interface CategoryChipConfig {
   category: PoiCategory | null;
 }
 
+/** 热门景点瀑布流数据项（复用 PoiInfo） */
+interface WaterfallItem {
+  poi: PoiInfo;
+  /** 卡片高度类型（用于瀑布流错落） */
+  size: 'small' | 'medium' | 'large';
+}
+
+/**
+ * JS → ArkTS 桥接对象（通过 Web 组件 javaScriptProxy 注入到 HTML 的 appBridge）。
+ * HTML 中 window.appBridge.onPoiClick / onMapReady 调用会直接回调到此处。
+ */
+class TravelMapBridge {
+  private readonly onPoiClickHandler: (poiId: string) => void;
+  private readonly onMapReadyHandler: () => void;
+
+  constructor(onPoiClick: (poiId: string) => void, onMapReady: () => void) {
+    this.onPoiClickHandler = onPoiClick;
+    this.onMapReadyHandler = onMapReady;
+  }
+
+  /** JS Marker 点击回调 */
+  onPoiClick(poiId: string): void {
+    this.onPoiClickHandler(poiId);
+  }
+
+  /** JS 地图就绪回调 */
+  onMapReady(): void {
+    this.onMapReadyHandler();
+  }
+}
+
 @ComponentV2
 export struct TravelMap {
-  /** POI 列表（对齐设计稿 6 条 POI Marker + 卡片） */
+  /** POI 列表 */
   @Local poiList: PoiInfo[] = [];
-  /** 当前选中的 POI（用于地图 Marker 高亮 + 信息窗） */
+  /** 推荐路线列表（spec 5.3.1） */
+  @Local routeList: TravelRoute[] = [];
+  /** 热门景点瀑布流数据 */
+  @Local waterfallItems: WaterfallItem[] = [];
+  /** 精选体验预订数据（spec 5.3.3） */
+  @Local featuredBooking: BookingExperience | null = null;
+  /** 当前选中的 POI（用于地图 Marker 高亮） */
   @Local selectedPoiId: string = '';
-  /** 当前类型筛选（对齐设计稿 map-chip is-active） */
+  /** 当前类型筛选 */
   @Local currentCategory: PoiCategory | null = null;
   /** 当前搜索关键字 */
   @Local searchKeyword: string = '';
-  /** 6 类分类筛选（对齐设计稿：全部/农庄/民宿/景点/采摘园/市集） */
+  /** 6 类分类筛选 */
   @Local categoryChips: CategoryChipConfig[] = [];
-  /** 画布宽度（px，用于将归一化坐标乘以实际尺寸） */
-  @Local canvasWidth: number = 360;
-  /** 画布高度（px） */
-  @Local canvasHeight: number = 640;
+  /** Web 控制器（腾讯地图） */
+  private webController: webview.WebviewController = new webview.WebviewController();
+  /** 地图 SDK 是否就绪 */
+  @Local mapSdkReady: boolean = false;
+  /** 待注入的 Marker 队列（SDK ready 前缓存） */
+  private pendingMarkers: PoiInfo[] = [];
+  /** JS → ArkTS 桥接对象（javaScriptProxy 注入到 HTML 的 appBridge） */
+  private bridge: TravelMapBridge = new TravelMapBridge(
+    (poiId: string): void => { this.handlePoiClickFromJs(poiId); },
+    (): void => { this.handleMapReadyFromJs(); }
+  );
 
   async aboutToAppear(): Promise<void> {
     this.categoryChips = this.buildCategoryChips();
+    this.routeList = MOCK_ROUTES;
+    this.featuredBooking = getMockBookingByPoiId('poi001');
     await this.refreshPoiList();
-    // 默认选中第一个 POI（脉冲高亮）
     if (this.poiList.length > 0) {
       this.selectedPoiId = this.poiList[0].poiId;
     }
+    this.buildWaterfallItems();
     Logger.info(AppConstants.SCENE_USER, {
       action: 'travel_map_appear',
-      count: this.poiList.length
+      count: this.poiList.length,
+      total: this.routeList.length
     });
   }
 
@@ -78,6 +140,15 @@ export struct TravelMap {
     return chips;
   }
 
+  /** 构建热门景点瀑布流数据（复用 POI 列表，按 distance 交替分配尺寸） */
+  private buildWaterfallItems(): void {
+    const items: WaterfallItem[] = this.poiList.map((poi: PoiInfo, idx: number): WaterfallItem => {
+      const size: 'small' | 'medium' | 'large' = idx % 3 === 0 ? 'large' : (idx % 3 === 1 ? 'medium' : 'small');
+      return { poi: poi, size: size };
+    });
+    this.waterfallItems = items;
+  }
+
   /** 刷新 POI 列表 */
   private async refreshPoiList(): Promise<void> {
     const param: PoiListParam = {
@@ -90,6 +161,8 @@ export struct TravelMap {
     };
     const result: PoiListResult = getMockPoiList(param);
     this.poiList = result.list;
+    // 同步更新 Marker
+    this.injectMarkers();
   }
 
   /** 返回 */
@@ -107,9 +180,10 @@ export struct TravelMap {
     });
   }
 
-  /** 点击地图 Marker / 列表卡片 → 选中 + 高亮 */
+  /** 点击 POI（Marker / 列表卡片） → 选中 + 高亮 + 移动地图 */
   private onPoiSelect(poi: PoiInfo): void {
     this.selectedPoiId = poi.poiId;
+    this.moveMapToPoi(poi);
     Logger.info(AppConstants.SCENE_USER, {
       action: 'poi_select',
       poiId: poi.poiId
@@ -120,6 +194,12 @@ export struct TravelMap {
   private gotoPoiDetail(poiId: string): void {
     const param: PoiDetailParam = { poiId: poiId };
     NavigationHelper.push(RouteName.USER_POI_DETAIL, param);
+  }
+
+  /** 跳转体验预约（spec 5.3.3 预订入口） */
+  private gotoBooking(poiId: string): void {
+    const param: BookingRouteParam = { poiId: poiId };
+    NavigationHelper.push(RouteName.USER_BOOKING, param);
   }
 
   /** 点击定位按钮 */
@@ -141,28 +221,99 @@ export struct TravelMap {
     ToastUtil.info(`搜索到 ${this.poiList.length} 个结果`);
   }
 
+  /** ============================================================
+   *  腾讯地图 WebView 交互
+   *  ============================================================ */
+
+  /** Web 页面加载完成（触发 Marker 注入尝试） */
+  private onWebPageFinish(): void {
+    // SDK 就绪由 JS 主动回调 handleMapReadyFromJs 通知
+    // 这里先尝试注入一次（fallback 模式下 runJavaScript 调用会被忽略）
+    this.injectMarkers();
+  }
+
+  /** JS 回调：地图 SDK 就绪 */
+  private handleMapReadyFromJs(): void {
+    this.mapSdkReady = true;
+    this.injectMarkers();
+    Logger.info(AppConstants.SCENE_USER, {
+      action: 'travel_map_sdk_ready'
+    });
+  }
+
+  /** JS 回调：Marker 被点击 */
+  private handlePoiClickFromJs(poiId: string): void {
+    this.selectedPoiId = poiId;
+    Logger.info(AppConstants.SCENE_USER, {
+      action: 'poi_marker_click',
+      poiId: poiId
+    });
+  }
+
+  /** 注入 POI Marker 到地图 */
+  private injectMarkers(): void {
+    if (!this.mapSdkReady) {
+      this.pendingMarkers = this.poiList.slice();
+      return;
+    }
+    try {
+      this.webController.runJavaScript('window.clearMarkers()');
+      for (let i = 0; i < this.poiList.length; i++) {
+        const poi: PoiInfo = this.poiList[i];
+        if (poi.coordinate.lat !== undefined && poi.coordinate.lng !== undefined) {
+          const lat: number = poi.coordinate.lat;
+          const lng: number = poi.coordinate.lng;
+          const name: string = poi.name.replace(/'/g, '');
+          const poiId: string = poi.poiId;
+          this.webController.runJavaScript(
+            `window.addMarker('${poiId}', ${lat}, ${lng}, '${name}')`
+          );
+        }
+      }
+    } catch (err) {
+      Logger.error(AppConstants.SCENE_USER, {
+        action: 'travel_inject_markers_fail',
+        error: (err as Error).message
+      });
+    }
+  }
+
+  /** 移动地图到指定 POI */
+  private moveMapToPoi(poi: PoiInfo): void {
+    if (!this.mapSdkReady) return;
+    if (poi.coordinate.lat !== undefined && poi.coordinate.lng !== undefined) {
+      const lat: number = poi.coordinate.lat;
+      const lng: number = poi.coordinate.lng;
+      try {
+        this.webController.runJavaScript(`window.moveTo(${lat}, ${lng}, 14)`);
+      } catch (err) {
+        Logger.error(AppConstants.SCENE_USER, {
+          action: 'travel_move_map_fail',
+          error: (err as Error).message
+        });
+      }
+    }
+  }
+
   build() {
     NavDestination() {
       Stack({ alignContent: Alignment.TopStart }) {
-        // ===== 1. 全屏地图底（Mock 自绘） =====
-        this.MapBackground()
+        // ===== 1. 底层：腾讯地图 WebView（全屏） =====
+        this.MapWebView()
 
-        // ===== 2. POI Marker 层 =====
-        this.PoiMarkerLayer()
-
-        // ===== 3. 右侧悬浮按钮（定位/图层） =====
-        this.SideButtons()
-
-        // ===== 4. 顶部渐隐遮罩（保白字状态栏可读） =====
+        // ===== 2. 顶部渐隐遮罩 =====
         this.TopScrim()
 
-        // ===== 5. 顶栏浮层：返回 + 搜索栏 =====
+        // ===== 3. 顶栏浮层：返回 + 搜索栏 =====
         this.TopBar()
 
-        // ===== 6. 分类筛选条 =====
+        // ===== 4. 分类筛选条 =====
         this.CategoryFilterBar()
 
-        // ===== 7. 底部上拉面板 =====
+        // ===== 5. 右侧悬浮按钮（定位/图层） =====
+        this.SideButtons()
+
+        // ===== 6. 底部内容面板（路线 + POI + 瀑布流 + 预订入口） =====
         this.BottomSheet()
       }
       .width('100%')
@@ -172,47 +323,27 @@ export struct TravelMap {
     .hideTitleBar(true)
   }
 
-  /** 全屏地图底（CSS 模拟：浅绿渐变 + 道路 + 区块，对齐设计稿 .map-bg + SVG） */
+  /** 底层腾讯地图 WebView（spec 5.1：Web 组件加载 rawfile/travel_map.html） */
   @Builder
-  MapBackground() {
-    Stack() {
-      // 浅绿渐变底
-      Column()
-        .width('100%')
-        .height('100%')
-        .linearGradient({
-          direction: GradientDirection.Bottom,
-          colors: [['#EAF7D8', 0], ['#F0F7E8', 1]]
-        })
-
-      // 模拟区域色块（田地/林地，对齐设计稿 ellipse）
-      Column()
-        .width('100%')
-        .height('100%')
-        .linearGradient({
-          angle: 135,
-          colors: [
-            ['rgba(126,211,33,0.14)', 0],
-            ['rgba(255,226,52,0.10)', 0.4],
-            ['rgba(126,211,33,0.12)', 0.7],
-            ['rgba(255,226,52,0.08)', 1]
-          ]
-        })
-
-      // 模拟道路（白色粗线 + 浅灰描边）
-      Column()
-        .width('100%')
-        .height('100%')
-        .linearGradient({
-          angle: 0,
-          colors: [['rgba(255,255,255,0.6)', 0], ['rgba(255,255,255,0)', 0.3]]
-        })
-    }
-    .width('100%')
-    .height('100%')
+  MapWebView() {
+    Web({ src: $rawfile('travel_map.html'), controller: this.webController })
+      .width('100%')
+      .height('100%')
+      .javaScriptAccess(true)
+      .domStorageAccess(true)
+      .fileAccess(true)
+      .javaScriptProxy({
+        object: this.bridge,
+        name: 'appBridge',
+        methodList: ['onPoiClick', 'onMapReady'],
+        controller: this.webController
+      })
+      .onPageEnd(() => {
+        this.onWebPageFinish();
+      })
   }
 
-  /** 顶部渐隐遮罩（对齐设计稿 .map-scrim，150px 高度黑色渐隐） */
+  /** 顶部渐隐遮罩 */
   @Builder
   TopScrim() {
     Column()
@@ -229,80 +360,7 @@ export struct TravelMap {
       .hitTestBehavior(HitTestMode.Transparent)
   }
 
-  /** POI Marker 层（对齐设计稿 6 个 .poi-pin 黄色定位针） */
-  @Builder
-  PoiMarkerLayer() {
-    ForEach(this.poiList, (poi: PoiInfo) => {
-      this.PoiMarker(poi)
-    }, (poi: PoiInfo) => poi.poiId)
-  }
-
-  /** 单个 POI Marker（黄色定位针 + 选中态脉冲圆点 + 名称气泡） */
-  @Builder
-  PoiMarker(poi: PoiInfo) {
-    Stack() {
-      // 选中态：底部脉冲圆点（绿色扩散，对齐设计稿 .poi-pulse）
-      if (this.selectedPoiId === poi.poiId) {
-        Column()
-          .width(12)
-          .height(12)
-          .borderRadius(6)
-          .backgroundColor('rgba(126,211,33,0.55)')
-          .position({ x: '50%', y: '100%' })
-          .markAnchor({ x: '50%', y: '50%' })
-      }
-
-      // 选中态：名称气泡（黑底白字，对齐设计稿 qn-msg-tag 风格）
-      if (this.selectedPoiId === poi.poiId) {
-        Text(poi.name)
-          .fontSize(11)
-          .fontColor(Color.White)
-          .fontWeight(FontWeight.Bold)
-          .backgroundColor($r('app.color.color_ink'))
-          .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-          .borderRadius(AppConstants.RADIUS_PILL)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .position({ x: '50%', y: -8 })
-          .markAnchor({ x: '50%', y: '100%' })
-      }
-
-      // 黄色定位针 SVG（对齐设计稿 path + 黑色圆心）
-      Column() {
-        // 用 Column + 圆形模拟定位针上半部分（黄色圆）
-        Column()
-          .width(30)
-          .height(30)
-          .borderRadius(15)
-          .backgroundColor($r('app.color.color_yellow'))
-          .border({ width: 1.2, color: '#E6C200' })
-          .shadow({ radius: 4, color: 'rgba(26,26,26,0.28)', offsetX: 0, offsetY: 3 })
-
-        // 定位针下半部分（黑色小圆心）
-        Column()
-          .width(11)
-          .height(11)
-          .borderRadius(5.5)
-          .backgroundColor($r('app.color.color_ink'))
-          .position({ x: '50%', y: 9 })
-          .markAnchor({ x: '50%', y: '50%' })
-      }
-      .width(30)
-      .height(30)
-    }
-    .width(30)
-    .height(38)
-    .position({
-      x: `${(poi.coordinate.x * 100).toFixed(2)}%`,
-      y: `${(poi.coordinate.y * 100).toFixed(2)}%`
-    })
-    .markAnchor({ x: '50%', y: '100%' })
-    .onClick(() => {
-      this.onPoiSelect(poi);
-    })
-  }
-
-  /** 右侧悬浮按钮组（定位 + 图层，对齐设计稿 .map-side） */
+  /** 右侧悬浮按钮组（定位 + 图层） */
   @Builder
   SideButtons() {
     Column({ space: 12 }) {
@@ -336,14 +394,14 @@ export struct TravelMap {
       .alignItems(VerticalAlign.Center)
       .onClick(() => { this.onLayerToggle(); })
     }
-    .position({ right: 16, bottom: 296 })
+    .position({ right: 16, bottom: 420 })
   }
 
-  /** 顶栏浮层（对齐设计稿 .map-topbar：返回 + 搜索栏） */
+  /** 顶栏浮层（返回 + 搜索栏） */
   @Builder
   TopBar() {
     Row({ space: 10 }) {
-      // 返回按钮（圆形半透明白底 + 阴影，对齐设计稿 .map-back）
+      // 返回按钮
       Row() {
         Text('‹')
           .fontSize(24)
@@ -359,7 +417,7 @@ export struct TravelMap {
       .alignItems(VerticalAlign.Center)
       .onClick(() => { this.goBack(); })
 
-      // 搜索栏（白色胶囊 + 阴影，对齐设计稿 .map-search）
+      // 搜索栏
       Row({ space: 8 }) {
         Text('🔍')
           .fontSize(14)
@@ -393,7 +451,7 @@ export struct TravelMap {
     .alignItems(VerticalAlign.Center)
   }
 
-  /** 分类筛选条（对齐设计稿 .map-filter：横向滚动 6 胶囊） */
+  /** 分类筛选条 */
   @Builder
   CategoryFilterBar() {
     Scroll() {
@@ -419,58 +477,231 @@ export struct TravelMap {
     .position({ left: 0, top: 100 })
   }
 
-  /** 底部上拉面板（对齐设计稿 .map-sheet：圆角 24 白底 + 拖动条 + 标题 + 横滑卡片） */
+  /** 底部内容面板（spec 5.2：路线 + POI + 瀑布流 + 预订入口） */
   @Builder
   BottomSheet() {
-    Column({ space: 0 }) {
-      // 拖动条（对齐设计稿 .map-handle 40×4 圆角灰）
-      Row()
-        .width(40)
-        .height(4)
-        .borderRadius(2)
-        .backgroundColor($r('app.color.color_line_2'))
-        .margin({ top: 14, bottom: 14 })
+    Scroll() {
+      Column({ space: 0 }) {
+        // 拖动条
+        Row()
+          .width(40)
+          .height(4)
+          .borderRadius(2)
+          .backgroundColor($r('app.color.color_line_2'))
+          .margin({ top: 14, bottom: 14 })
 
-      // 标题栏（对齐设计稿 .map-sheet-head：附近农庄 + N个结果）
-      Row({ space: 8 }) {
-        Text('附近农庄')
-          .fontSize(16)
-          .fontColor($r('app.color.color_ink'))
-          .fontWeight(FontWeight.Bold)
-        Text(`${this.poiList.length}个结果`)
-          .fontSize(12)
-          .fontColor($r('app.color.color_text_3'))
-      }
-      .width('100%')
-      .padding({ left: 16, right: 16, bottom: 12 })
-      .alignItems(VerticalAlign.Bottom)
-
-      // 横滑 POI 卡片列表（对齐设计稿 .poi-list）
-      Scroll() {
-        Row({ space: 10 }) {
-          ForEach(this.poiList, (poi: PoiInfo) => {
-            this.PoiCard(poi)
-          }, (poi: PoiInfo) => poi.poiId)
+        // 标题栏
+        Row({ space: 8 }) {
+          Text('附近农庄')
+            .fontSize(16)
+            .fontColor($r('app.color.color_ink'))
+            .fontWeight(FontWeight.Bold)
+          Text(`${this.poiList.length}个结果`)
+            .fontSize(12)
+            .fontColor($r('app.color.color_text_3'))
         }
-        .padding({ left: 16, right: 16, bottom: 24 })
+        .width('100%')
+        .padding({ left: 16, right: 16, bottom: 12 })
+        .alignItems(VerticalAlign.Bottom)
+
+        // ===== 推荐路线列表（spec 5.3.1） =====
+        this.RecommendRoutesSection()
+
+        // ===== 横滑 POI 卡片列表 =====
+        this.PoiCardListSection()
+
+        // ===== 热门景点瀑布流（spec 5.3.2） =====
+        this.HotSpotsWaterfallSection()
+
+        // ===== 预订入口卡片（spec 5.3.3） =====
+        this.BookingEntrySection()
       }
-      .scrollable(ScrollDirection.Horizontal)
-      .scrollBar(BarState.Off)
       .width('100%')
-      .layoutWeight(1)
+      .padding({ bottom: 40 })
     }
+    .scrollable(ScrollDirection.Vertical)
+    .scrollBar(BarState.Off)
     .width('100%')
+    .height(460)
     .backgroundColor($r('app.color.color_bg_card'))
     .borderRadius({ topLeft: AppConstants.RADIUS_XL, topRight: AppConstants.RADIUS_XL })
     .shadow({ radius: 20, color: 'rgba(26,26,26,0.08)', offsetX: 0, offsetY: -4 })
     .position({ left: 0, bottom: 0 })
   }
 
-  /** POI 卡片（对齐设计稿 .poi-card 240 宽：图 100 高 + 名 + 黄色 pill 标签 + 评分/距离/价格） */
+  /** 推荐路线列表（spec 5.3.1：3 条主题路线卡片） */
+  @Builder
+  RecommendRoutesSection() {
+    Column({ space: 0 }) {
+      // 段头
+      Row({ space: 6 }) {
+        Text('🎯')
+          .fontSize(14)
+        Text('推荐路线')
+          .fontSize(15)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, bottom: 10 })
+
+      // 路线卡片列表（垂直）
+      Column({ space: 12 }) {
+        ForEach(this.routeList, (route: TravelRoute) => {
+          this.RouteCard(route)
+        }, (route: TravelRoute) => route.routeId)
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, bottom: 16 })
+    }
+    .width('100%')
+  }
+
+  /** 单个路线卡片（封面图 + 标题 + 路线点 + 时长/价格 + 标签） */
+  @Builder
+  RouteCard(route: TravelRoute) {
+    Column({ space: 0 }) {
+      // 封面图 + 时长胶囊
+      Stack({ alignContent: Alignment.TopEnd }) {
+        Image(ImageUtil.get(route.coverImage))
+          .width('100%')
+          .height(120)
+          .objectFit(ImageFit.Cover)
+          .borderRadius({ topLeft: AppConstants.RADIUS_MD, topRight: AppConstants.RADIUS_MD })
+          .backgroundColor($r('app.color.color_fill'))
+
+        Text(route.duration)
+          .fontSize(11)
+          .fontColor(Color.White)
+          .backgroundColor('rgba(26,26,26,0.6)')
+          .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+          .borderRadius(AppConstants.RADIUS_PILL)
+          .margin({ top: 10, right: 10 })
+      }
+      .width('100%')
+      .height(120)
+
+      // 内容区
+      Column({ space: 8 }) {
+        Text(route.title)
+          .fontSize(15)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+        // 路线点（POI 名称串联）
+        Row({ space: 4 }) {
+          ForEach(route.poiNames, (name: string, idx: number) => {
+            Text(name)
+              .fontSize(11)
+              .fontColor($r('app.color.color_text_2'))
+            if (idx < route.poiNames.length - 1) {
+              Text('→')
+                .fontSize(11)
+                .fontColor($r('app.color.color_text_4'))
+            }
+          }, (name: string, idx: number) => `${name}-${idx}`)
+        }
+        .width('100%')
+
+        // 描述
+        Text(route.description)
+          .fontSize(12)
+          .fontColor($r('app.color.color_text_3'))
+          .maxLines(2)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+        // 标签 + 价格行
+        Row({ space: 6 }) {
+          ForEach(route.tags, (tag: string) => {
+            Text(tag)
+              .fontSize(10)
+              .fontColor($r('app.color.color_yellow_text'))
+              .backgroundColor($r('app.color.color_yellow_soft'))
+              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+              .borderRadius(AppConstants.RADIUS_PILL)
+          }, (tag: string) => tag)
+
+          Blank()
+
+          // 价格
+          Row({ space: 1 }) {
+            Text('¥')
+              .fontSize(11)
+              .fontColor($r('app.color.color_live'))
+              .fontWeight(FontWeight.Bold)
+            Text(`${route.price}`)
+              .fontSize(15)
+              .fontColor($r('app.color.color_live'))
+              .fontWeight(FontWeight.Bold)
+            Text('/人')
+              .fontSize(10)
+              .fontColor($r('app.color.color_text_3'))
+          }
+          .alignItems(VerticalAlign.Bottom)
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
+      }
+      .width('100%')
+      .padding(12)
+      .alignItems(HorizontalAlign.Start)
+    }
+    .width('100%')
+    .borderRadius(AppConstants.RADIUS_MD)
+    .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
+    .onClick(() => {
+      // 跳转第一个 POI 详情（演示用）
+      if (route.poiIds.length > 0) {
+        this.gotoPoiDetail(route.poiIds[0]);
+      }
+    })
+  }
+
+  /** 横滑 POI 卡片列表 */
+  @Builder
+  PoiCardListSection() {
+    Column({ space: 0 }) {
+      // 段头
+      Row({ space: 6 }) {
+        Text('📍')
+          .fontSize(14)
+        Text('附近农庄')
+          .fontSize(15)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+        Blank()
+        Text('查看全部 ›')
+          .fontSize(12)
+          .fontColor($r('app.color.color_text_3'))
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, bottom: 10 })
+
+      // 横滑卡片
+      Scroll() {
+        Row({ space: 10 }) {
+          ForEach(this.poiList, (poi: PoiInfo) => {
+            this.PoiCard(poi)
+          }, (poi: PoiInfo) => poi.poiId)
+        }
+        .padding({ left: 16, right: 16 })
+      }
+      .scrollable(ScrollDirection.Horizontal)
+      .scrollBar(BarState.Off)
+      .width('100%')
+      .padding({ bottom: 16 })
+    }
+    .width('100%')
+  }
+
+  /** POI 卡片（240 宽：图 + 名 + 标签 + 评分/距离/价格） */
   @Builder
   PoiCard(poi: PoiInfo) {
     Column({ space: 0 }) {
-      // 顶部图片（100 高，对齐设计稿 .poi-card-img）
+      // 顶部图片
       Image(ImageUtil.get(poi.images.length > 0 ? poi.images[0] : 'farm_picking'))
         .width('100%')
         .height(100)
@@ -478,9 +709,8 @@ export struct TravelMap {
         .objectFit(ImageFit.Cover)
         .backgroundColor($r('app.color.color_fill'))
 
-      // 内容区（对齐设计稿 .poi-card-body）
+      // 内容区
       Column({ space: 6 }) {
-        // 名称（对齐设计稿 .poi-card-name）
         Text(poi.name)
           .fontSize(15)
           .fontColor($r('app.color.color_ink'))
@@ -488,7 +718,6 @@ export struct TravelMap {
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
 
-        // 分类标签（对齐设计稿 .poi-card-tags → qn-pill qn-pill-yellow）
         Text(getPoiCategoryLabel(poi.category))
           .fontSize(11)
           .fontColor($r('app.color.color_yellow_text'))
@@ -497,9 +726,8 @@ export struct TravelMap {
           .borderRadius(AppConstants.RADIUS_PILL)
           .backgroundColor($r('app.color.color_yellow_soft'))
 
-        // 元信息行：评分 + 距离 + 价格（对齐设计稿 .poi-card-meta）
+        // 元信息行：评分 + 距离 + 价格
         Row({ space: 8 }) {
-          // 评分
           Row({ space: 2 }) {
             Text('★')
               .fontSize(13)
@@ -511,12 +739,10 @@ export struct TravelMap {
           }
           .alignItems(VerticalAlign.Center)
 
-          // 距离
           Text(this.formatDistance(poi.distance))
             .fontSize(12)
             .fontColor($r('app.color.color_text_3'))
 
-          // 价格（右对齐，红色，对齐设计稿 .poi-price）
           Row({ space: 1 }) {
             Text('¥')
               .fontSize(12)
@@ -553,7 +779,237 @@ export struct TravelMap {
     })
   }
 
-  /** 格式化距离（米 → km，对齐设计稿 "2.3km"） */
+  /** 热门景点瀑布流（spec 5.3.2：双列 WaterFlow） */
+  @Builder
+  HotSpotsWaterfallSection() {
+    Column({ space: 0 }) {
+      // 段头
+      Row({ space: 6 }) {
+        Text('🔥')
+          .fontSize(14)
+        Text('热门景点')
+          .fontSize(15)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, bottom: 10 })
+
+      // 瀑布流
+      WaterFlow() {
+        ForEach(this.waterfallItems, (item: WaterfallItem) => {
+          FlowItem() {
+            this.WaterfallCard(item)
+          }
+        }, (item: WaterfallItem) => item.poi.poiId)
+      }
+      .columnsTemplate('1fr 1fr')
+      .columnsGap(10)
+      .rowsGap(10)
+      .padding({ left: 16, right: 16 })
+      .width('100%')
+      .height(560)
+    }
+    .width('100%')
+    .padding({ top: 8, bottom: 16 })
+  }
+
+  /** 瀑布流卡片（错落高度：small=140 / medium=170 / large=200） */
+  @Builder
+  WaterfallCard(item: WaterfallItem) {
+    Column({ space: 0 }) {
+      // 封面图（高度随 size 变化）
+      Image(ImageUtil.get(item.poi.images.length > 0 ? item.poi.images[0] : 'farm_picking'))
+        .width('100%')
+        .height(item.size === 'large' ? 160 : (item.size === 'medium' ? 130 : 100))
+        .objectFit(ImageFit.Cover)
+        .borderRadius({ topLeft: AppConstants.RADIUS_MD, topRight: AppConstants.RADIUS_MD })
+        .backgroundColor($r('app.color.color_fill'))
+
+      Column({ space: 6 }) {
+        Text(item.poi.name)
+          .fontSize(14)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+        Text(getPoiCategoryLabel(item.poi.category))
+          .fontSize(10)
+          .fontColor($r('app.color.color_yellow_text'))
+          .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+          .borderRadius(AppConstants.RADIUS_PILL)
+          .backgroundColor($r('app.color.color_yellow_soft'))
+
+        Row({ space: 4 }) {
+          Text('★')
+            .fontSize(11)
+            .fontColor('#FFB300')
+          Text(item.poi.rating.toFixed(1))
+            .fontSize(11)
+            .fontColor($r('app.color.color_ink'))
+            .fontWeight(FontWeight.Bold)
+          Text(this.formatDistance(item.poi.distance))
+            .fontSize(11)
+            .fontColor($r('app.color.color_text_3'))
+          Blank()
+          Text(`¥${item.poi.avgPrice}`)
+            .fontSize(12)
+            .fontColor($r('app.color.color_live'))
+            .fontWeight(FontWeight.Bold)
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
+      }
+      .width('100%')
+      .padding(10)
+      .alignItems(HorizontalAlign.Start)
+    }
+    .width('100%')
+    .borderRadius(AppConstants.RADIUS_MD)
+    .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
+    .onClick(() => {
+      this.onPoiSelect(item.poi);
+      this.gotoPoiDetail(item.poi.poiId);
+    })
+  }
+
+  /** 预订入口卡片（spec 5.3.3：精选体验预订横幅） */
+  @Builder
+  BookingEntrySection() {
+    Column({ space: 0 }) {
+      // 段头
+      Row({ space: 6 }) {
+        Text('🎟️')
+          .fontSize(14)
+        Text('精选体验预订')
+          .fontSize(15)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, bottom: 10 })
+
+      if (this.featuredBooking !== null) {
+        this.BookingBanner(this.featuredBooking as BookingExperience)
+      }
+    }
+    .width('100%')
+    .padding({ top: 8, bottom: 24 })
+  }
+
+  /** 预订横幅卡片（封面 + 标题 + 距离 + 标签 + 评分 + 价格 + 立即预订按钮） */
+  @Builder
+  BookingBanner(booking: BookingExperience) {
+    Column({ space: 0 }) {
+      // 封面图 + 距离胶囊
+      Stack({ alignContent: Alignment.TopStart }) {
+        Image(ImageUtil.get(booking.coverImage))
+          .width('100%')
+          .height(140)
+          .objectFit(ImageFit.Cover)
+          .borderRadius({ topLeft: AppConstants.RADIUS_MD, topRight: AppConstants.RADIUS_MD })
+          .backgroundColor($r('app.color.color_fill'))
+
+        Text(booking.distanceText)
+          .fontSize(11)
+          .fontColor(Color.White)
+          .backgroundColor('rgba(26,26,26,0.6)')
+          .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+          .borderRadius(AppConstants.RADIUS_PILL)
+          .margin({ top: 10, left: 10 })
+      }
+      .width('100%')
+      .height(140)
+
+      // 内容区
+      Column({ space: 10 }) {
+        // 标题
+        Text(booking.poiName)
+          .fontSize(16)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+
+        // 标签行
+        Row({ space: 6 }) {
+          ForEach(booking.tags, (tag: string) => {
+            Text(tag)
+              .fontSize(10)
+              .fontColor($r('app.color.color_yellow_text'))
+              .backgroundColor($r('app.color.color_yellow_soft'))
+              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+              .borderRadius(AppConstants.RADIUS_PILL)
+          }, (tag: string) => tag)
+        }
+        .width('100%')
+
+        // 评分 + 已预约
+        Row({ space: 12 }) {
+          Row({ space: 2 }) {
+            Text('★')
+              .fontSize(13)
+              .fontColor('#FFB300')
+            Text(booking.rating.toFixed(1))
+              .fontSize(12)
+              .fontColor($r('app.color.color_ink'))
+              .fontWeight(FontWeight.Bold)
+          }
+          .alignItems(VerticalAlign.Center)
+
+          Text(booking.bookingCountText)
+            .fontSize(11)
+            .fontColor($r('app.color.color_text_3'))
+        }
+        .width('100%')
+
+        // 价格行
+        Row({ space: 4 }) {
+          Text('¥')
+            .fontSize(12)
+            .fontColor($r('app.color.color_live'))
+            .fontWeight(FontWeight.Bold)
+          Text(`${booking.pricePerPerson}`)
+            .fontSize(18)
+            .fontColor($r('app.color.color_live'))
+            .fontWeight(FontWeight.Bold)
+          Text('/人')
+            .fontSize(11)
+            .fontColor($r('app.color.color_text_3'))
+          Blank()
+          Text(booking.priceSubtitle)
+            .fontSize(11)
+            .fontColor($r('app.color.color_text_3'))
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Bottom)
+
+        // 立即预订按钮
+        Text('立即预订')
+          .width('100%')
+          .height(42)
+          .borderRadius(AppConstants.RADIUS_PILL)
+          .backgroundColor($r('app.color.color_ink'))
+          .fontColor(Color.White)
+          .fontSize(14)
+          .fontWeight(FontWeight.Bold)
+          .textAlign(TextAlign.Center)
+          .onClick(() => {
+            this.gotoBooking(booking.poiId);
+          })
+      }
+      .width('100%')
+      .padding(14)
+      .alignItems(HorizontalAlign.Start)
+    }
+    .width('100%')
+    .borderRadius(AppConstants.RADIUS_MD)
+    .backgroundColor($r('app.color.color_bg_card'))
+    .shadow(AppConstants.SHADOW_CARD)
+    .padding({ left: 16, right: 16 })
+  }
+
+  /** 格式化距离（米 → km） */
   private formatDistance(distance: number): string {
     if (distance >= 1000) {
       return `${(distance / 1000).toFixed(1)}km`;

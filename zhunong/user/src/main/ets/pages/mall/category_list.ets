@@ -1,4 +1,4 @@
-﻿/**
+/**
  * category_list - 商品分类页
  * 遵循 spec 3.1.4.1：三级分类树（左侧一级分类Tab + 右侧二三级分类网格）
  * 点击末级分类跳转商品列表页
@@ -114,7 +114,7 @@ export struct CategoryList {
           .height('100%')
           .backgroundColor($r('app.color.color_bg_page'))
 
-          // 右侧二三级分类
+          // 右侧二三级分类（spec 16.12：标签紧贴顶端，不遮盖顶栏）
           Scroll() {
             Column({ space: 16 }) {
               if (this.dataSource.totalCount() > 0 && this.currentTopIndex < this.dataSource.totalCount()) {
@@ -161,12 +161,13 @@ export struct CategoryList {
               }
             }
             .width('100%')
-            .padding(12)
+            .padding({ left: 12, right: 12, top: 0, bottom: 12 })
           }
           .layoutWeight(1)
           .height('100%')
           .backgroundColor($r('app.color.color_bg_card'))
           .scrollBar(BarState.Off)
+          .align(Alignment.Top)
         }
         .width('100%')
         .layoutWeight(1)

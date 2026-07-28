@@ -1,45 +1,47 @@
 /**
- * user_register - 用户端注册页（UI 复刻 v4.0，对齐 user-register.html 设计稿）
- * 遵循 spec 15.5.1：整页重写，1:1 还原设计稿
- *  - 顶部装饰气泡 + 状态栏 + 返回按钮
- *  - 品牌 Logo 区（黄色渐变方块 + 吉祥物装饰）
- *  - 手机号 + 密码 + 确认密码表单（带眼睛切换）
- *  - 注册按钮 + 去登录链接
- *  - 底部黄色波浪装饰
- * 业务逻辑保留：HttpUtil.post /user/register + TokenStore + NavigationHelper
+ * user_register - 用户端注册页
+ * 对齐农户端 farmer_register.ets 格式：
+ *  - 奶油白背景 + 顶部装饰气泡（黄/绿径向渐变模拟）
+ *  - 返回按钮栏（圆形白底阴影返回键）
+ *  - 品牌Logo区：黄色渐变 80×80 圆角Logo + 萌芽图标 + 右侧吉祥物 + "趣农"标题 + 副标题
+ *  - 表单区：手机号/密码/确认密码输入卡（白底圆角14+阴影+描边+左侧图标）
+ *  - 注册按钮（墨黑底白字 + 右箭头图标）
+ *  - "去登录"下划线链接
+ *  - 底部区域：用户协议文字
+ * spec 15.5.1：账号（手机号）+ 密码 + 确认密码注册，密码至少6位，两次密码必须一致
  */
 
 import { Logger, AppConstants, HttpUtil, TokenStore, ToastUtil, RouteName, NavigationHelper } from 'common';
 import { ApiResponse, UserInfo } from 'common';
 
-/** 注册请求参数 */
-interface RegisterRequest {
+/** 注册请求体（spec 15.5.1 ArkTS 严格模式要求具体 interface） */
+interface UserRegisterRequest {
   phone: string;
   password: string;
   nickname: string;
-  userType: string;
+  userType: 'user';
 }
 
-/** 注册响应数据 */
-interface RegisterResponse {
+/** 注册响应体 */
+interface UserRegisterResponse {
   token: string;
   userInfo: UserInfo;
 }
 
 @ComponentV2
 export struct UserRegister {
-  /** 手机号 */
+  /** 账号（手机号） */
   @Local phone: string = '';
   /** 密码 */
   @Local password: string = '';
   /** 确认密码 */
   @Local confirmPassword: string = '';
-  /** 是否显示密码 */
-  @Local showPassword: boolean = false;
-  /** 是否显示确认密码 */
-  @Local showConfirmPassword: boolean = false;
   /** 是否正在注册 */
   @Local isSubmitting: boolean = false;
+  /** 密码是否明文显示 */
+  @Local passwordVisible: boolean = false;
+  /** 确认密码是否明文显示 */
+  @Local confirmPasswordVisible: boolean = false;
 
   /** 校验手机号格式 */
   private isPhoneValid(): boolean {
@@ -63,13 +65,13 @@ export struct UserRegister {
     }
     this.isSubmitting = true;
     try {
-      const req: RegisterRequest = {
+      const req: UserRegisterRequest = {
         phone: this.phone,
         password: this.password,
         nickname: '',
         userType: 'user'
       };
-      const resp: ApiResponse<RegisterResponse> = await HttpUtil.post<RegisterResponse>('/user/register', req, {
+      const resp: ApiResponse<UserRegisterResponse> = await HttpUtil.post<UserRegisterResponse>('/user/register', req, {
         withAuth: false
       });
       if (resp.code === AppConstants.CODE_SUCCESS && resp.data) {
@@ -96,314 +98,292 @@ export struct UserRegister {
 
   build() {
     NavDestination() {
-      Stack({ alignContent: Alignment.TopStart }) {
+      Stack({ alignContent: Alignment.BottomStart }) {
+        // 主内容滚动区
         Scroll() {
           Column() {
             // 1. 顶部装饰气泡
-            this.DecoBubbles()
-
-            // 2. 返回按钮
+            this.Decorations()
+            // 2. 返回按钮栏
             this.BackBar()
-
-            // 3. 品牌 Logo 区
+            // 3. 品牌Logo区
             this.BrandHero()
-
             // 4. 表单区
             this.FormSection()
-
-            // 5. 注册按钮
-            this.RegisterButton()
-
-            // 6. 去登录链接
-            this.GoLoginLink()
-
-            // 7. 底部协议文字
-            this.AgreementText()
+            // 5. 底部区域
+            this.FooterSection()
           }
           .width('100%')
-          .padding({ left: 24, right: 24, bottom: 32 })
+          .padding({ left: 24, right: 24, bottom: 24 })
           .alignItems(HorizontalAlign.Center)
         }
         .width('100%')
         .height('100%')
         .scrollBar(BarState.Off)
-        .align(Alignment.Top)
-
-        // 8. 底部黄色波浪装饰
-        this.WaveDecoration()
+        .backgroundColor($r('app.color.color_bg_page'))
       }
       .width('100%')
       .height('100%')
-      .backgroundColor($r('app.color.color_cream'))
+      .backgroundColor($r('app.color.color_bg_page'))
     }
     .hideTitleBar(true)
   }
 
-  /** 顶部装饰气泡 */
+  /** 顶部装饰气泡（对齐设计稿 qn-deco-1/2） */
   @Builder
-  DecoBubbles() {
+  Decorations() {
     Stack() {
-      // 黄色气泡（右上）
+      // 黄色气泡（右上角）
       Column()
-        .width(130)
-        .height(130)
-        .borderRadius(AppConstants.RADIUS_PILL)
-        .linearGradient({
-          angle: 0,
-          colors: [['rgba(255,226,52,0.32)', 0.0], ['rgba(255,226,52,0)', 0.7]]
-        })
-        .position({ x: '68%', y: -36 })
+        .width(70)
+        .height(70)
+        .borderRadius(35)
+        .backgroundColor('rgba(255,226,52,0.28)')
+        .position({ right: -24, top: -24 })
 
-      // 绿色气泡（左中）
+      // 绿色气泡（左侧）
       Column()
-        .width(96)
-        .height(96)
-        .borderRadius(AppConstants.RADIUS_PILL)
-        .linearGradient({
-          angle: 0,
-          colors: [['rgba(126,211,33,0.20)', 0.0], ['rgba(126,211,33,0)', 0.7]]
-        })
-        .position({ x: -34, y: 200 })
+        .width(48)
+        .height(48)
+        .borderRadius(24)
+        .backgroundColor('rgba(126,211,33,0.18)')
+        .position({ left: -20, top: 30 })
     }
     .width('100%')
-    .height(300)
+    .height(80)
+    .hitTestBehavior(HitTestMode.Transparent)
   }
 
-  /** 返回按钮 */
+  /** 返回按钮栏（对齐设计稿 qn-back-bar + qn-back-btn） */
   @Builder
   BackBar() {
     Row() {
-      Text('‹')
-        .fontSize(24)
-        .fontWeight(FontWeight.Bold)
-        .fontColor($r('app.color.color_ink'))
-        .width(36)
-        .height(36)
-        .borderRadius(AppConstants.RADIUS_PILL)
-        .backgroundColor($r('app.color.color_bg_card'))
-        .shadow(AppConstants.SHADOW_CARD)
-        .textAlign(TextAlign.Center)
-        .onClick(() => this.gotoLogin())
+      Row() {
+        Text('‹')
+          .fontSize(22)
+          .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
+      }
+      .width(36)
+      .height(36)
+      .borderRadius(AppConstants.RADIUS_PILL)
+      .backgroundColor($r('app.color.color_bg_card'))
+      .shadow(AppConstants.SHADOW_CARD)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .onClick(() => { this.gotoLogin(); })
     }
     .width('100%')
-    .height(40)
-    .padding({ top: 4 })
+    .padding({ top: 8, bottom: 0 })
+    .alignItems(VerticalAlign.Center)
   }
 
-  /** 品牌 Logo 区 */
+  /** 品牌Logo区（对齐设计稿 qn-brand-hero） */
   @Builder
   BrandHero() {
     Stack({ alignContent: Alignment.TopEnd }) {
+      // 主内容居中
       Column({ space: 6 }) {
-        // 黄色渐变 Logo 方块 + 萌芽图标
-        Text('🌱')
-          .fontSize(36)
-          .fontColor($r('app.color.color_ink'))
-          .width(80)
-          .height(80)
-          .borderRadius(AppConstants.RADIUS_XL)
-          .linearGradient({
-            angle: 135,
-            colors: [[$r('app.color.color_yellow'), 0.0], [$r('app.color.color_yellow_deep'), 1.0]]
-          })
-          .shadow({
-            radius: 26,
-            color: 'rgba(255,217,61,0.42)',
-            offsetX: 0,
-            offsetY: 10
-          })
-          .border({ width: 3, color: $r('app.color.color_bg_card') })
-          .textAlign(TextAlign.Center)
-          .margin({ top: 24 })
+        // 黄色渐变Logo + 萌芽图标
+        Column() {
+          Text('🌱')
+            .fontSize(40)
+            .fontColor($r('app.color.color_ink'))
+        }
+        .width(80)
+        .height(80)
+        .borderRadius(AppConstants.RADIUS_XL)
+        .linearGradient({
+          angle: 135,
+          colors: [['#FFE234', 0], ['#FFD93D', 1]]
+        })
+        .border({ width: 3, color: $r('app.color.color_bg_card') })
+        .shadow({ radius: 26, color: 'rgba(255,217,61,0.42)', offsetX: 0, offsetY: 10 })
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
 
-        // 品牌标题
+        // 标题"趣农"
         Text('趣农')
           .fontSize(24)
-          .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.color_ink'))
+          .fontWeight(FontWeight.Bold)
           .letterSpacing(1)
-          .margin({ top: 16 })
+          .margin({ top: 10 })
 
         // 副标题
-        Text('新鲜农货 产地直发')
+        Text('新鲜直达 · 助农优选')
           .fontSize(13)
           .fontColor($r('app.color.color_text_3'))
           .letterSpacing(0.5)
-          .margin({ top: 6 })
       }
       .width('100%')
+      .margin({ top: 0 })
       .alignItems(HorizontalAlign.Center)
 
-      // 右上角吉祥物装饰
+      // 右侧吉祥物装饰
       Image($r('app.media.mascot_farmer'))
         .width(60)
         .height(60)
         .borderRadius(AppConstants.RADIUS_PILL)
+        .objectFit(ImageFit.Cover)
         .backgroundColor($r('app.color.color_yellow_tint'))
         .border({ width: 3, color: $r('app.color.color_bg_card') })
-        .shadow(AppConstants.SHADOW_FLOAT)
-        .objectFit(ImageFit.Cover)
-        .position({ x: '82%', y: 0 })
+        .shadow({ radius: 18, color: 'rgba(26,26,26,0.12)', offsetX: 0, offsetY: 6 })
+        .position({ right: 8, top: 0 })
     }
     .width('100%')
+    .margin({ bottom: 28 })
   }
 
-  /** 表单区 */
+  /** 表单区（对齐设计稿 qn-form，3 个输入字段） */
   @Builder
   FormSection() {
     Column({ space: 14 }) {
-      // 手机号输入框
-      Row() {
+      // a) 手机号输入框
+      Row({ space: 12 }) {
         Text('📱')
           .fontSize(18)
-          .margin({ right: 12 })
+          .fontColor($r('app.color.color_text_3'))
         TextInput({ text: this.phone, placeholder: '请输入手机号' })
-          .layoutWeight(1)
           .type(InputType.PhoneNumber)
+          .fontSize(14)
+          .fontColor($r('app.color.color_ink'))
+          .placeholderFont({ size: 14 })
+          .placeholderColor($r('app.color.color_text_4'))
+          .backgroundColor(Color.Transparent)
+          .layoutWeight(1)
+          .height(52)
+          .padding({ left: 0, right: 0 })
           .maxLength(11)
-          .backgroundColor(Color.Transparent)
-          .borderRadius(0)
-          .fontSize(14)
-          .fontColor($r('app.color.color_ink'))
-          .placeholderColor($r('app.color.color_text_4'))
-          .placeholderFont({ size: 14 })
-          .onChange((val: string) => { this.phone = val; })
+          .onChange((value: string) => {
+            this.phone = value;
+          })
       }
       .width('100%')
       .height(52)
+      .padding({ left: 16, right: 16 })
       .borderRadius(AppConstants.RADIUS_MD)
       .backgroundColor($r('app.color.color_bg_card'))
       .border({ width: 1, color: $r('app.color.color_line') })
       .shadow(AppConstants.SHADOW_CARD)
-      .padding({ left: 16, right: 16 })
       .alignItems(VerticalAlign.Center)
-      .margin({ top: 36 })
 
-      // 密码输入框
-      Row() {
+      // b) 密码输入框（含左侧锁图标，系统 Password 类型自带显隐切换）
+      Row({ space: 12 }) {
         Text('🔒')
           .fontSize(18)
-          .margin({ right: 12 })
+          .fontColor($r('app.color.color_text_3'))
         TextInput({ text: this.password, placeholder: '请输入密码' })
-          .layoutWeight(1)
-          .type(this.showPassword ? InputType.Normal : InputType.Password)
-          .maxLength(32)
-          .backgroundColor(Color.Transparent)
-          .borderRadius(0)
+          .type(this.passwordVisible ? InputType.Normal : InputType.Password)
           .fontSize(14)
           .fontColor($r('app.color.color_ink'))
-          .placeholderColor($r('app.color.color_text_4'))
           .placeholderFont({ size: 14 })
-          .onChange((val: string) => { this.password = val; })
-        Text(this.showPassword ? '👁️' : '🙈')
-          .fontSize(18)
-          .width(28)
-          .height(28)
-          .textAlign(TextAlign.Center)
-          .margin({ left: 8 })
-          .onClick(() => { this.showPassword = !this.showPassword; })
+          .placeholderColor($r('app.color.color_text_4'))
+          .backgroundColor(Color.Transparent)
+          .layoutWeight(1)
+          .height(52)
+          .padding({ left: 0, right: 0 })
+          .maxLength(32)
+          .onChange((value: string) => {
+            this.password = value;
+          })
       }
       .width('100%')
       .height(52)
+      .padding({ left: 16, right: 16 })
       .borderRadius(AppConstants.RADIUS_MD)
       .backgroundColor($r('app.color.color_bg_card'))
       .border({ width: 1, color: $r('app.color.color_line') })
       .shadow(AppConstants.SHADOW_CARD)
-      .padding({ left: 16, right: 16 })
       .alignItems(VerticalAlign.Center)
 
-      // 确认密码输入框
-      Row() {
+      // c) 确认密码输入框（含左侧锁图标，系统 Password 类型自带显隐切换）
+      Row({ space: 12 }) {
         Text('🔒')
           .fontSize(18)
-          .margin({ right: 12 })
+          .fontColor($r('app.color.color_text_3'))
         TextInput({ text: this.confirmPassword, placeholder: '请再次输入密码' })
-          .layoutWeight(1)
-          .type(this.showConfirmPassword ? InputType.Normal : InputType.Password)
-          .maxLength(32)
-          .backgroundColor(Color.Transparent)
-          .borderRadius(0)
+          .type(this.confirmPasswordVisible ? InputType.Normal : InputType.Password)
           .fontSize(14)
           .fontColor($r('app.color.color_ink'))
-          .placeholderColor($r('app.color.color_text_4'))
           .placeholderFont({ size: 14 })
-          .onChange((val: string) => { this.confirmPassword = val; })
-        Text(this.showConfirmPassword ? '👁️' : '🙈')
-          .fontSize(18)
-          .width(28)
-          .height(28)
-          .textAlign(TextAlign.Center)
-          .margin({ left: 8 })
-          .onClick(() => { this.showConfirmPassword = !this.showConfirmPassword; })
+          .placeholderColor($r('app.color.color_text_4'))
+          .backgroundColor(Color.Transparent)
+          .layoutWeight(1)
+          .height(52)
+          .padding({ left: 0, right: 0 })
+          .maxLength(32)
+          .onChange((value: string) => {
+            this.confirmPassword = value;
+          })
       }
       .width('100%')
       .height(52)
+      .padding({ left: 16, right: 16 })
       .borderRadius(AppConstants.RADIUS_MD)
       .backgroundColor($r('app.color.color_bg_card'))
       .border({ width: 1, color: $r('app.color.color_line') })
       .shadow(AppConstants.SHADOW_CARD)
-      .padding({ left: 16, right: 16 })
       .alignItems(VerticalAlign.Center)
-    }
-    .width('100%')
-  }
 
-  /** 注册按钮 */
-  @Builder
-  RegisterButton() {
-    Row({ space: 6 }) {
-      Text(this.isSubmitting ? '注册中...' : '注册')
-        .fontSize(15)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(Color.White)
-        .letterSpacing(1)
-      if (!this.isSubmitting) {
+      // d) 注册按钮（墨黑底白字，对齐 qn-register-btn）
+      Row({ space: 6 }) {
+        Text('注册')
+          .fontSize(15)
+          .fontColor(Color.White)
+          .fontWeight(FontWeight.Bold)
+          .letterSpacing(1)
         Text('→')
           .fontSize(18)
           .fontColor(Color.White)
+          .fontWeight(FontWeight.Bold)
       }
+      .width('100%')
+      .height(48)
+      .borderRadius(AppConstants.RADIUS_MD)
+      .backgroundColor(this.isSubmitting ? $r('app.color.color_button_disabled') : $r('app.color.color_ink'))
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .opacity(this.isSubmitting ? 0.7 : 1)
+      .margin({ top: 6 })
+      .onClick(() => { this.doRegister(); })
+
+      // e) 去登录链接
+      Text('去登录')
+        .fontSize(13)
+        .fontColor($r('app.color.color_text_2'))
+        .margin({ top: 12 })
+        .decoration({ type: TextDecorationType.Underline, color: $r('app.color.color_text_2') })
+        .onClick(() => { this.gotoLogin(); })
     }
     .width('100%')
-    .height(48)
-    .borderRadius(AppConstants.RADIUS_MD)
-    .backgroundColor(this.isSubmitting ? $r('app.color.color_button_disabled') : $r('app.color.color_ink'))
-    .justifyContent(FlexAlign.Center)
-    .alignItems(VerticalAlign.Center)
-    .margin({ top: 8 })
-    .onClick(() => { if (!this.isSubmitting) this.doRegister(); })
+    .alignItems(HorizontalAlign.Center)
   }
 
-  /** 去登录链接 */
+  /** 底部区域（对齐设计稿 qn-foot） */
   @Builder
-  GoLoginLink() {
-    Text('去登录')
-      .fontSize(13)
-      .fontColor($r('app.color.color_text_2'))
-      .decoration({ type: TextDecorationType.Underline })
-      .margin({ top: 16 })
-      .onClick(() => this.gotoLogin())
-  }
-
-  /** 底部协议文字 */
-  @Builder
-  AgreementText() {
-    Text('注册即同意《用户协议》和《隐私政策》')
-      .fontSize(11)
-      .fontColor($r('app.color.color_text_3'))
-      .textAlign(TextAlign.Center)
-      .margin({ top: 24 })
-  }
-
-  /** 底部黄色波浪装饰 */
-  @Builder
-  WaveDecoration() {
-    Column()
+  FooterSection() {
+    Column({ space: 16 }) {
+      // 用户协议文字
+      Row() {
+        Text('注册即同意')
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_3'))
+        Text('《用户协议》')
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_2'))
+        Text('和')
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_3'))
+        Text('《隐私政策》')
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_2'))
+      }
       .width('100%')
-      .height(50)
-      .linearGradient({
-        angle: 0,
-        colors: [['rgba(255,226,52,0.5)', 0.0], ['rgba(255,217,61,0.8)', 1.0]]
-      })
-      .position({ x: 0, y: '90%' })
+      .justifyContent(FlexAlign.Center)
+    }
+    .width('100%')
+    .margin({ top: 8 })
+    .alignItems(HorizontalAlign.Center)
   }
 }

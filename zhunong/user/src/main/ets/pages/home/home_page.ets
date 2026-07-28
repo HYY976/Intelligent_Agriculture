@@ -32,11 +32,6 @@ interface ProductDetailParam {
   productId: string;
 }
 
-/** 跳转分类商品列表的路由参数 */
-interface CategoryListParam {
-  categoryId: string;
-}
-
 /** 跳转直播间路由参数 */
 interface LiveRoomParam {
   liveId: string;
@@ -141,30 +136,30 @@ export struct HomePage {
     this.productPairs = pairs;
   }
 
-  /** 构建 4 快捷入口数据（对齐设计稿 .qn-cat-grid） */
+  /** 构建 4 快捷入口数据（对齐设计稿 .qn-cat-grid；spec 16.12：助农改为商城） */
   private buildQuickEntries(): QuickEntry[] {
     const entries: QuickEntry[] = [
       { label: '分类', icon: '📦', entryKey: 'category', colorKey: 'green' },
       { label: '直播', icon: '🎥', entryKey: 'live', colorKey: 'red' },
-      { label: '助农', icon: '🌱', entryKey: 'aid', colorKey: 'yellow' },
+      { label: '商城', icon: '🏪', entryKey: 'mall', colorKey: 'yellow' },
       { label: '旅游', icon: '🗺️', entryKey: 'travel', colorKey: 'blue' }
     ];
     return entries;
   }
 
-  /** 快捷入口图标背景色 → 资源色值（对齐 .qn-cat-ico.c-* ） */
+  /** spec 16.12：快捷入口图标背景色 → 对齐个人中心"更多功能"按钮色系（替换莫兰迪色） */
   private getQuickEntryBgColor(colorKey: QuickEntryColor): ResourceColor {
     switch (colorKey) {
       case 'green':
-        return $r('app.color.color_green');
+        return $r('app.color.color_green_soft'); // 绿色软底
       case 'yellow':
-        return $r('app.color.color_yellow_deep');
+        return $r('app.color.color_yellow_soft'); // 黄色软底
       case 'red':
-        return $r('app.color.color_live');
+        return $r('app.color.color_live_soft'); // 红色软底
       case 'blue':
-        return $r('app.color.color_info');
+        return $r('app.color.color_info_soft'); // 蓝色软底
       default:
-        return $r('app.color.color_green');
+        return $r('app.color.color_green_soft');
     }
   }
 
@@ -205,7 +200,7 @@ export struct HomePage {
     NavigationHelper.push(RouteName.USER_LIVE_ROOM, param);
   }
 
-  /** 快捷入口点击 → 路由跳转（对齐设计稿 4 入口） */
+  /** 快捷入口点击 → 路由跳转（对齐设计稿 4 入口；spec 16.12：助农改为商城，跳商品列表实时同步农户端商品） */
   private onQuickEntryClick(entryKey: string): void {
     switch (entryKey) {
       case 'category':
@@ -214,11 +209,10 @@ export struct HomePage {
       case 'live':
         NavigationHelper.push(RouteName.USER_LIVE_LIST);
         break;
-      case 'aid': {
-        const param: CategoryListParam = { categoryId: 'aid' };
-        NavigationHelper.push(RouteName.USER_CATEGORY_LIST, param);
+      case 'mall':
+        // spec 16.12：商城入口跳商品列表（不传 categoryId 显示全部，含 SharedProductStore 农户发布商品）
+        NavigationHelper.push(RouteName.USER_PRODUCT_LIST);
         break;
-      }
       case 'travel':
         NavigationHelper.push(RouteName.USER_TRAVEL_MAP);
         break;
@@ -351,6 +345,16 @@ export struct HomePage {
       .backgroundColor($r('app.color.color_cream'))
     }
     .hideTitleBar(true)
+    .onShown(() => {
+      // 页面显示时刷新推荐流（实时同步农户端发布的商品）
+      this.refreshRecommendIfNeeded();
+    })
+  }
+
+  /** 页面重新显示时刷新推荐流数据（实时同步共享商品池） */
+  private async refreshRecommendIfNeeded(): Promise<void> {
+    await this.recommendDataSource.refresh();
+    this.rebuildProductPairs();
   }
 
   /** 首页 Tab 内容：固定顶栏 + 可滚动区（List 单列：首个 ListItem 承载头部，后续为商品对行） */
@@ -390,10 +394,10 @@ export struct HomePage {
             .width('100%')
           }
 
-          // 商品对行（双列 ProductCard）
+          // 商品对行（双列 ProductCard；spec 16.12：对齐农户端商城排版 columnsGap/rowsGap=10）
           ForEach(this.productPairs, (pair: ProductPair, index: number) => {
             ListItem() {
-              Row({ space: 12 }) {
+              Row({ space: 10 }) {
                 ProductCard({
                   item: pair.left,
                   onCardClick: (pid: string) => {
@@ -414,8 +418,8 @@ export struct HomePage {
                 }
               }
               .width('100%')
-              .padding({ left: 16, right: 16 })
-              .margin({ bottom: 12 })
+              .padding({ left: 12, right: 12 })
+              .margin({ bottom: 10 })
             }
           }, (pair: ProductPair) => pair.left.productId)
         }
@@ -803,7 +807,7 @@ export struct HomePage {
     })
   }
 
-  /** 商品区段头（对齐 .qn-section-head："为你推荐" + 更多好物） */
+  /** 商品区段头（对齐农户端"我的商品"段头排版："为你推荐" + 查看全部） */
   @Builder
   ProductSectionHead() {
     Row() {
@@ -815,7 +819,7 @@ export struct HomePage {
       Blank()
 
       Row({ space: 2 }) {
-        Text('更多好物')
+        Text('查看全部')
           .fontSize(12)
           .fontColor($r('app.color.color_text_3'))
         Text('›')

@@ -16,7 +16,8 @@ import {
   BookingExperience,
   BookingDate,
   BookingSlot,
-  BookingInclude
+  BookingInclude,
+  TravelRoute
 } from '../model/TravelModels';
 
 /** 支持的城市列表（Mock） */
@@ -33,7 +34,7 @@ export const MOCK_POIS: PoiInfo[] = [
     poiId: 'poi001',
     name: '山田农庄',
     category: 'farm',
-    coordinate: { x: 0.18, y: 0.30 },
+    coordinate: { x: 0.18, y: 0.30, lat: 30.3255, lng: 119.9520 },
     city: '杭州',
     district: '余杭区',
     address: '浙江省杭州市余杭区径山镇山田路1号',
@@ -53,7 +54,7 @@ export const MOCK_POIS: PoiInfo[] = [
     poiId: 'poi002',
     name: '金穗民宿',
     category: 'homestay',
-    coordinate: { x: 0.72, y: 0.34 },
+    coordinate: { x: 0.72, y: 0.34, lat: 30.1860, lng: 120.0980 },
     city: '杭州',
     district: '西湖区',
     address: '浙江省杭州市西湖区龙坞茶镇金穗路8号',
@@ -73,7 +74,7 @@ export const MOCK_POIS: PoiInfo[] = [
     poiId: 'poi003',
     name: '桃源采摘园',
     category: 'picking_garden',
-    coordinate: { x: 0.43, y: 0.48 },
+    coordinate: { x: 0.43, y: 0.48, lat: 30.1650, lng: 120.2880 },
     city: '杭州',
     district: '萧山区',
     address: '浙江省杭州市萧山区所前镇桃源基地',
@@ -93,7 +94,7 @@ export const MOCK_POIS: PoiInfo[] = [
     poiId: 'poi004',
     name: '茶山人家',
     category: 'rural_tourism',
-    coordinate: { x: 0.26, y: 0.60 },
+    coordinate: { x: 0.26, y: 0.60, lat: 30.2180, lng: 120.0750 },
     city: '杭州',
     district: '西湖区',
     address: '浙江省杭州市西湖区龙坞茶镇茶山路',
@@ -113,7 +114,7 @@ export const MOCK_POIS: PoiInfo[] = [
     poiId: 'poi005',
     name: '阳光生态农庄',
     category: 'farm',
-    coordinate: { x: 0.67, y: 0.58 },
+    coordinate: { x: 0.67, y: 0.58, lat: 30.3520, lng: 119.9680 },
     city: '杭州',
     district: '余杭区',
     address: '浙江省杭州市余杭区径山镇阳光大道8号',
@@ -133,7 +134,7 @@ export const MOCK_POIS: PoiInfo[] = [
     poiId: 'poi006',
     name: '古城农耕文化村',
     category: 'rural_tourism',
-    coordinate: { x: 0.50, y: 0.66 },
+    coordinate: { x: 0.50, y: 0.66, lat: 30.2480, lng: 119.7250 },
     city: '杭州',
     district: '临安区',
     address: '浙江省杭州市临安区天目山镇古城村',
@@ -148,6 +149,45 @@ export const MOCK_POIS: PoiInfo[] = [
     isFeatured: false,
     tags: ['乡村文旅', '古村'],
     bookable: false
+  }
+];
+
+/**
+ * 推荐路线 Mock 数据（spec 5.3.1：3 条主题路线演示）
+ */
+export const MOCK_ROUTES: TravelRoute[] = [
+  {
+    routeId: 'route001',
+    title: '余杭生态采摘一日游',
+    coverImage: 'farm_picking',
+    poiIds: ['poi001', 'poi003', 'poi005'],
+    poiNames: ['山田农庄', '桃源采摘园', '阳光生态农庄'],
+    duration: '1天',
+    price: 168,
+    tags: ['采摘', '亲子', '生态'],
+    description: '余杭径山生态采摘路线，串联山田农庄、桃源采摘园与阳光生态农庄，一日内体验有机采摘、农事课堂与田园午餐，适合亲子家庭出行。'
+  },
+  {
+    routeId: 'route002',
+    title: '龙坞茶文化体验游',
+    coverImage: 'prod_tea_1',
+    poiIds: ['poi002', 'poi004'],
+    poiNames: ['金穗民宿', '茶山人家'],
+    duration: '2天1夜',
+    price: 388,
+    tags: ['茶文化', '民宿', '深度体验'],
+    description: '龙坞茶镇深度茶文化体验，入住金穗民宿品鉴龙井，次日探访茶山人家体验采茶制茶全过程，感受宋韵点茶与茶道课程。'
+  },
+  {
+    routeId: 'route003',
+    title: '临安古村落文化游',
+    coverImage: 'hero_harvest',
+    poiIds: ['poi006'],
+    poiNames: ['古城农耕文化村'],
+    duration: '1天',
+    price: 128,
+    tags: ['古村', '文化', '助农'],
+    description: '临安天目山千年古村落文化游，参观古农具展、体验传统酿酒与制茶工艺，入住明清古宅民宿，助力乡村振兴。'
   }
 ];
 
