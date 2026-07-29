@@ -26,7 +26,7 @@
 - **HarmonyOS NEXT** (API 24, SDK 6.1.1)
 - **ArkTS** + **ArkUI** 声明式 UI（`@ComponentV2` / `@ObservedV2` / `@Local` / `@Param`）
 - **状态管理**：`AppStorageV2` + `@ObservedV2` 单例（`SharedProductStore` / `SharedLiveStore` / `SharedPostStore`）
-- **列表渲染**：`LazyForEach` + `BaseDataSource<T>` 4 态状态机（loading / error / empty / data）
+- **列表渲染**：`LazyForEach` + `BaseDataSource<T>`4 种状态机（loading / error / empty / data）
 - **路由导航**：`NavPathStack` 声明式路由（`NavigationHelper` + `RouteName` 常量表）
 
 ### 后端
@@ -271,7 +271,7 @@ hdc install entry-default-signed.hap
 ### 7.2 模块规范
 
 - HAR 模块 `module.json5` 中 `type` 必须为 `har`，`hvigorfile.ts` 使用 `harTasks`
-- HAR 模块 `module.json5` 不得包含 `deliveryWithInstall` 或 `pages` 字段
+- HAR 模块 `module.json5` 不得包含 `deliveryWithInstall` 或 `页面` 字段
 - HAP 模块 `type` 为 `entry`/`feature`，使用 `hapTasks`
 - `entry` 模块已废弃，项目模块为 `user` / `farmer` / `admin` / `common`
 
@@ -314,7 +314,7 @@ hdc install entry-default-signed.hap
 
 ---
 
-## 十、License
+##十、许可证
 
 Apache-2.0
 
