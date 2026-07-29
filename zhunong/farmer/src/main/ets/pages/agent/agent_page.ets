@@ -212,8 +212,8 @@ export struct AgentPage {
   @Builder
   AgentIntroCard() {
     Row({ space: 12 }) {
-      // AI 头像
-      Image(ImageUtil.get('mascot_farmer'))
+      // AI 头像（品牌头像）
+      Image(ImageUtil.get('avatar_brand'))
         .width(48)
         .height(48)
         .borderRadius(24)
@@ -278,8 +278,8 @@ export struct AgentPage {
   @Builder
   AiMessage(msg: ChatMessage) {
     Row({ space: 8 }) {
-      // AI 头像
-      Image(ImageUtil.get('mascot_farmer'))
+      // AI 头像（品牌头像）
+      Image(ImageUtil.get('avatar_brand'))
         .width(32)
         .height(32)
         .borderRadius(16)
@@ -423,7 +423,7 @@ export struct AgentPage {
   @Builder
   ThinkingIndicator() {
     Row({ space: 8 }) {
-      Image(ImageUtil.get('mascot_farmer'))
+      Image(ImageUtil.get('avatar_brand'))
         .width(32)
         .height(32)
         .borderRadius(16)
