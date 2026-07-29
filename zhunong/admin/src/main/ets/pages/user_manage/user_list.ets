@@ -130,9 +130,31 @@ export struct UserList {
     return phone.substring(0, 3) + '****' + phone.substring(7);
   }
 
-  /** 获取用户头像资源（按类型返回不同头像） */
+  /** 获取用户头像资源（按 userId 返回不同真实头像，v2.0 替换原先固定头像） */
   private getAvatarResource(user: UserRecord): Resource {
-    return user.userType === 'farmer' ? $r('app.media.avatar_farmer') : $r('app.media.avatar_customer');
+    switch (user.userId) {
+      case 'u_001': return $r('app.media.avatar_u001');
+      case 'u_002': return $r('app.media.avatar_u002');
+      case 'u_003': return $r('app.media.avatar_u003');
+      case 'u_004': return $r('app.media.avatar_u004');
+      case 'u_005': return $r('app.media.avatar_u005');
+      case 'u_006': return $r('app.media.avatar_u006');
+      case 'u_007': return $r('app.media.avatar_u007');
+      case 'u_008': return $r('app.media.avatar_u008');
+      case 'u_009': return $r('app.media.avatar_u009');
+      case 'u_010': return $r('app.media.avatar_u010');
+      case 'u_011': return $r('app.media.avatar_u011');
+      case 'f_001': return $r('app.media.avatar_f001');
+      case 'f_002': return $r('app.media.avatar_f002');
+      case 'f_003': return $r('app.media.avatar_f003');
+      case 'f_004': return $r('app.media.avatar_f004');
+      case 'f_005': return $r('app.media.avatar_f005');
+      case 'f_006': return $r('app.media.avatar_f006');
+      case 'f_007': return $r('app.media.avatar_f007');
+      case 'f_008': return $r('app.media.avatar_f008');
+      case 'f_009': return $r('app.media.avatar_f009');
+      default: return user.userType === 'farmer' ? $r('app.media.avatar_farmer') : $r('app.media.avatar_customer');
+    }
   }
 
   /** 是否为待审核用户（Mock：userId 以 "pending_" 开头或 farmer 类型且未认证） */
@@ -153,7 +175,7 @@ export struct UserList {
         } else if (this.dataSource.getIsFirstLoad()) {
           ListStateView({ state: 'loading' })
         } else if (this.dataSource.totalCount() === 0) {
-          ListStateView({ state: 'empty', emptyUseEmoji: true, emptyEmoji: '📋', emptyText: '暂无用户数据', emptyActionText: '刷新', onEmptyAction: () => this.refresh() })
+          this.EmptyState()
         } else {
           this.UserListView()
         }
@@ -219,9 +241,10 @@ export struct UserList {
   @Builder
   SearchBar() {
     Row({ space: 8 }) {
-      Text('🔍')
-        .fontSize(14)
-        .fontColor($r('app.color.color_text_3'))
+      Image($r('app.media.icon_search'))
+        .width(16)
+        .height(16)
+        .fillColor($r('app.color.color_text_3'))
       TextInput({ text: this.keyword, placeholder: '搜索用户昵称/手机号' })
         .layoutWeight(1)
         .height(40)
@@ -534,5 +557,30 @@ export struct UserList {
           this.gotoDetail(user.userId);
         })
     }
+  }
+
+  /** 空状态（自定义，替代 ListStateView emptyEmoji） */
+  @Builder
+  EmptyState() {
+    Column({ space: 12 }) {
+      Image($r('app.media.icon_clipboard'))
+        .width(48)
+        .height(48)
+        .fillColor($r('app.color.color_text_4'))
+      Text('暂无用户数据')
+        .fontSize(13)
+        .fontColor($r('app.color.color_text_3'))
+      Text('刷新')
+        .fontSize(13)
+        .fontColor($r('app.color.color_info'))
+        .fontWeight(FontWeight.Bold)
+        .padding({ left: 16, right: 16, top: 6, bottom: 6 })
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .backgroundColor($r('app.color.color_info_soft'))
+        .onClick(() => this.refresh())
+    }
+    .width('100%')
+    .padding({ top: 64, bottom: 64 })
+    .alignItems(HorizontalAlign.Center)
   }
 }

@@ -1,0 +1,230 @@
+[2026-07-29T22:11:48.057] [DEBUG] debug-file - env: nodejsVersion=v24.12.0
+[2026-07-29T22:11:49.716] [DEBUG] debug-file - Hvigor init with startParameters:{
+  hvigorfileTypeCheck: false,
+  parallelExecution: true,
+  incrementalExecution: true,
+  printStackTrace: false,
+  daemon: false,
+  analyze: 0,
+  logLevel: Level { level: 20000, levelStr: 'INFO', colour: 'green' },
+  optimizationStrategy: 'memory',
+  hotCompile: undefined,
+  hotReloadBuild: undefined,
+  customizedParam: undefined
+}
+[2026-07-29T22:12:28.099] [DEBUG] debug-file - hvigorfile, require result:  { default: { system: [Function: appTasks], plugins: [] } }
+[2026-07-29T22:12:28.100] [DEBUG] debug-file - Starting plugin build process
+[2026-07-29T22:12:28.290] [DEBUG] debug-file - App plugin register hook start...
+[2026-07-29T22:11:48.057] [DEBUG] debug-file - env: hvigor-config.json5 content = {
+  modelVersion: '6.0.0',
+  dependencies: {},
+  execution: {},
+  logging: {},
+  debugging: {},
+  nodeOptions: {}
+}
+[2026-07-29T22:12:28.318] [DEBUG] debug-file - hvigor build process will be closed with an error.
+[2026-07-29T22:12:28.292] [DEBUG] debug-file - Start initialize project's product build option map with build mode debug.
+[2026-07-29T22:11:49.716] [DEBUG] debug-file - Since current hvigor version 6.24.3 differs from last hvigor version 
+      undefined, delete file-cache.json and task-cache.json.
+[2026-07-29T22:12:28.353] [DEBUG] debug-file - Create  resident worker with id: 0.
+[2026-07-29T22:12:28.099] [DEBUG] debug-file - hvigorfile, binding system plugins [Function: appTasks]
+[2026-07-29T22:12:28.100] [DEBUG] debug-file - App plugin prepare start...
+[2026-07-29T22:12:28.290] [DEBUG] debug-file - App plugin register hook end...
+[2026-07-29T22:11:48.058] [DEBUG] debug-file - env: daemon=false
+[2026-07-29T22:12:28.340] [ERROR] debug-file - [31m00303217 Configuration Error
+Error Message: Invalid value of 'DEVECO_SDK_HOME' in the system environment path.
+
+* Try the following:
+  > Correct the value, run hvigorw --stop-daemon to stop the daemon process, and then try again.
+[39m
+
+[31m* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --debug option to get more log output.
+
+[2026-07-29T22:11:49.718] [DEBUG] debug-file - Cache service initialization finished in 1 ms 
+[2026-07-29T22:12:28.292] [DEBUG] debug-file - Picking option from product 'default' with build mode 'debug'.
+[2026-07-29T22:12:28.360] [DEBUG] debug-file - Create  resident worker with id: 1.
+[2026-07-29T22:12:28.100] [DEBUG] debug-file - App plugin prepare end...
+[2026-07-29T22:12:28.290] [DEBUG] debug-file - Plugin build process completed
+[2026-07-29T22:11:48.058] [DEBUG] debug-file - no-daemon, use the parent process.execArgv --max-old-space-size=8192,--max-semi-space-size=16,--expose-gc
+[2026-07-29T22:12:28.292] [DEBUG] debug-file - Product 'default' build option initialized
+[2026-07-29T22:12:28.340] [DEBUG] debug-file - ERROR: stacktrace = AdaptorError: [31m00303217 Configuration Error
+Error Message: Invalid value of 'DEVECO_SDK_HOME' in the system environment path.
+
+* Try the following:
+  > Correct the value, run hvigorw --stop-daemon to stop the daemon process, and then try again.
+[39m
+    at OhosLogger.printErrorExit (D:\Harmony\DevEco Studio\tools\hvigor\hvigor\src\base\log\hvigor-log.js:1:5087)
+    at Property.validatePath (D:\Harmony\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\sdk\lib\property-get.js:1:2027)
+    at Property.getHosSdkDir (D:\Harmony\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\sdk\lib\property-get.js:1:1395)
+    at SdkLoader.getSdkInfo (D:\Harmony\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\sdk\sdk-loader.js:1:668)
+    at new ProjectTaskService (D:\Harmony\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\tasks\service\project-task-service.js:1:2057)
+    at AppPlugin.initTaskService (D:\Harmony\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\plugin\app-plugin.js:1:715)
+    at ProjectImpl.<anonymous> (D:\Harmony\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\plugin\builder\app-plugin-builder.js:1:2286)
+    at ProjectImpl.executeAfterBindSystemPluginsHook (D:\Harmony\DevEco Studio\tools\hvigor\hvigor\src\base\internal\lifecycle\hvigor-node-impl\default-node-impl.js:1:5577)
+    at evaluateNodeVigorFile (D:\Harmony\DevEco Studio\tools\hvigor\hvigor\src\base\internal\lifecycle\configuration.js:1:9617)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[2026-07-29T22:12:28.363] [DEBUG] debug-file - Current worker pool is stopped or closed.
+[2026-07-29T22:11:49.719] [DEBUG] debug-file - hvigorfile, resolving D:\project111111\-\zhunong\hvigorfile.ts
+[2026-07-29T22:12:28.100] [DEBUG] debug-file - App plugin creating...
+[2026-07-29T22:12:28.292] [DEBUG] debug-file - End initialize project's product build option map with build mode 'debug'.
+[2026-07-29T22:12:28.340] [ERROR] debug-file - AdaptorError: [31m00303217 Configuration Error
+Error Message: Invalid value of 'DEVECO_SDK_HOME' in the system environment path.
+
+* Try the following:
+  > Correct the value, run hvigorw --stop-daemon to stop the daemon process, and then try again.
+[39m
+    at OhosLogger.printErrorExit (D:\Harmony\DevEco Studio\tools\hvigor\hvigor\src\base\log\hvigor-log.js:1:5087)
+    at Property.validatePath (D:\Harmony\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\sdk\lib\property-get.js:1:2027)
+    at Property.getHosSdkDir (D:\Harmony\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\sdk\lib\property-get.js:1:1395)
+    at SdkLoader.getSdkInfo (D:\Harmony\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\sdk\sdk-loader.js:1:668)
+    at new ProjectTaskService (D:\Harmony\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\tasks\service\project-task-service.js:1:2057)
+    at AppPlugin.initTaskService (D:\Harmony\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\plugin\app-plugin.js:1:715)
+    at ProjectImpl.<anonymous> (D:\Harmony\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\plugin\builder\app-plugin-builder.js:1:2286)
+    at ProjectImpl.executeAfterBindSystemPluginsHook (D:\Harmony\DevEco Studio\tools\hvigor\hvigor\src\base\internal\lifecycle\hvigor-node-impl\default-node-impl.js:1:5577)
+    at evaluateNodeVigorFile (D:\Harmony\DevEco Studio\tools\hvigor\hvigor\src\base\internal\lifecycle\configuration.js:1:9617)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[2026-07-29T22:12:28.363] [DEBUG] debug-file - Clear worker 0.
+[2026-07-29T22:12:28.341] [ERROR] debug-file - BUILD FAILED in 38 s 647 ms 
+[2026-07-29T22:12:28.351] [DEBUG] debug-file - Since there is no instance or instance is terminated, create a new worker pool.
+[2026-07-29T22:12:28.363] [DEBUG] debug-file - Worker 0 has been cleared.
+[2026-07-29T22:12:28.351] [DEBUG] debug-file - Worker pool is initialized with config:  {
+  minPoolNum: 2,
+  maxPoolNum: undefined,
+  maxCoreSize: undefined,
+  cacheCapacity: undefined,
+  cacheTtl: undefined
+}
+[2026-07-29T22:12:28.363] [DEBUG] debug-file - Current idle worker size: 1.
+[2026-07-29T22:12:28.363] [DEBUG] debug-file - Current busy worker size: 0.
+[2026-07-29T22:12:28.363] [DEBUG] debug-file - Clear worker 1.
+[2026-07-29T22:12:28.367] [DEBUG] debug-file - Worker 1 has been cleared.
+[2026-07-29T22:12:28.367] [DEBUG] debug-file - Current idle worker size: 0.
+[2026-07-29T22:12:28.367] [DEBUG] debug-file - Current busy worker size: 0.
+[2026-07-29T22:12:28.381] [DEBUG] debug-file - hvigor build process will be closed.
+[2026-07-29T22:12:28.384] [DEBUG] debug-file - worker[1] exits with exit code 0.
+[2026-07-29T22:12:28.385] [DEBUG] debug-file - worker[0] exits with exit code 0.
+[2026-07-29T22:12:28.385] [DEBUG] debug-file - Current worker pool is terminated.
+[2026-07-29T22:13:06.484] [DEBUG] debug-file - env: nodejsVersion=v24.12.0
+[2026-07-29T22:13:06.748] [DEBUG] debug-file - Hvigor init with startParameters:{
+  hvigorfileTypeCheck: false,
+  parallelExecution: true,
+  incrementalExecution: true,
+  printStackTrace: false,
+  daemon: false,
+  analyze: 0,
+  logLevel: Level { level: 20000, levelStr: 'INFO', colour: 'green' },
+  optimizationStrategy: 'memory',
+  hotCompile: undefined,
+  hotReloadBuild: undefined,
+  customizedParam: undefined
+}
+[2026-07-29T22:13:08.049] [DEBUG] debug-file - Starting plugin build process
+[2026-07-29T22:13:08.047] [DEBUG] debug-file - hvigorfile, require result:  { default: { system: [Function: appTasks], plugins: [] } }
+[2026-07-29T22:13:08.186] [DEBUG] debug-file - Start initialize project's product build option map with build mode debug.
+[2026-07-29T22:13:08.185] [DEBUG] debug-file - App plugin register hook start...
+[2026-07-29T22:13:06.485] [DEBUG] debug-file - env: hvigor-config.json5 content = {
+  modelVersion: '6.0.0',
+  dependencies: {},
+  execution: {},
+  logging: {},
+  debugging: {},
+  nodeOptions: {}
+}
+[2026-07-29T22:13:06.749] [DEBUG] debug-file - Since current hvigor version 6.24.3 differs from last hvigor version 
+      undefined, delete file-cache.json and task-cache.json.
+[2026-07-29T22:13:08.049] [DEBUG] debug-file - App plugin prepare start...
+[2026-07-29T22:13:08.048] [DEBUG] debug-file - hvigorfile, binding system plugins [Function: appTasks]
+[2026-07-29T22:13:08.186] [DEBUG] debug-file - Picking option from product 'default' with build mode 'debug'.
+[2026-07-29T22:13:08.185] [DEBUG] debug-file - App plugin register hook end...
+[2026-07-29T22:13:06.486] [DEBUG] debug-file - env: daemon=false
+[2026-07-29T22:13:06.752] [DEBUG] debug-file - Cache service initialization finished in 4 ms 
+[2026-07-29T22:13:08.049] [DEBUG] debug-file - App plugin prepare end...
+[2026-07-29T22:13:08.187] [DEBUG] debug-file - Product 'default' build option initialized
+[2026-07-29T22:13:08.185] [DEBUG] debug-file - Plugin build process completed
+[2026-07-29T22:13:06.486] [DEBUG] debug-file - no-daemon, use the parent process.execArgv --max-old-space-size=8192,--max-semi-space-size=16,--expose-gc
+[2026-07-29T22:13:06.753] [DEBUG] debug-file - hvigorfile, resolving D:\project111111\-\zhunong\hvigorfile.ts
+[2026-07-29T22:13:08.049] [DEBUG] debug-file - App plugin creating...
+[2026-07-29T22:13:08.187] [DEBUG] debug-file - End initialize project's product build option map with build mode 'debug'.
+[2026-07-29T22:13:08.664] [DEBUG] debug-file - Create  resident worker with id: 0.
+[2026-07-29T22:13:08.667] [DEBUG] debug-file - Create  resident worker with id: 1.
+[2026-07-29T22:13:08.669] [DEBUG] debug-file - Current worker pool is stopped or closed.
+[2026-07-29T22:13:08.670] [DEBUG] debug-file - Clear worker 0.
+[2026-07-29T22:13:08.670] [DEBUG] debug-file - Worker 0 has been cleared.
+[2026-07-29T22:13:08.670] [DEBUG] debug-file - Current idle worker size: 1.
+[2026-07-29T22:13:08.670] [DEBUG] debug-file - Current busy worker size: 0.
+[2026-07-29T22:13:08.670] [DEBUG] debug-file - Clear worker 1.
+[2026-07-29T22:13:08.670] [DEBUG] debug-file - Worker 1 has been cleared.
+[2026-07-29T22:13:08.670] [DEBUG] debug-file - Current idle worker size: 0.
+[2026-07-29T22:13:08.670] [DEBUG] debug-file - Current busy worker size: 0.
+[2026-07-29T22:13:08.687] [DEBUG] debug-file - hvigor build process will be closed.
+[2026-07-29T22:13:08.690] [DEBUG] debug-file - worker[1] exits with exit code 0.
+[2026-07-29T22:13:08.691] [DEBUG] debug-file - worker[0] exits with exit code 0.
+[2026-07-29T22:13:08.691] [DEBUG] debug-file - Current worker pool is terminated.
+[2026-07-29T22:13:08.191] [DEBUG] debug-file - Obtain build option for product 'default'in this build.
+[2026-07-29T22:13:08.193] [DEBUG] debug-file - not found resModel json file in : D:\project111111\-\zhunong\user\src\ohosTest\module.json5
+[2026-07-29T22:13:08.200] [DEBUG] debug-file - not found resModel json file in : D:\project111111\-\zhunong\farmer\src\ohosTest\module.json5
+[2026-07-29T22:13:08.201] [DEBUG] debug-file - not found resModel json file in : D:\project111111\-\zhunong\admin\src\ohosTest\module.json5
+[2026-07-29T22:13:08.203] [DEBUG] debug-file - No signingConfig found, initRemoteHspCache failed.
+[2026-07-29T22:13:08.215] [DEBUG] debug-file - Local scan or download HarmonyOS sdk components toolchains,ets,js,native,previewer
+[2026-07-29T22:13:08.652] [DEBUG] debug-file - hvigor build process will be closed with an error.
+[2026-07-29T22:13:08.655] [ERROR] debug-file - [31m00303168 Configuration Error
+Error Message: SDK component missing.
+
+* Try the following:
+  > Please verify the integrity of your SDK.
+  > Please update the SDK at the download link below.
+  > More info: https://developer.huawei.com/consumer/cn/download
+[39m
+
+[31m* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --debug option to get more log output.
+
+[2026-07-29T22:13:08.655] [DEBUG] debug-file - ERROR: stacktrace = AdaptorError: [31m00303168 Configuration Error
+Error Message: SDK component missing.
+
+* Try the following:
+  > Please verify the integrity of your SDK.
+  > Please update the SDK at the download link below.
+  > More info: https://developer.huawei.com/consumer/cn/download
+[39m
+    at OhosLogger.printErrorExit (D:\Harmony\DevEco Studio\tools\hvigor\hvigor\src\base\log\hvigor-log.js:1:5087)
+    at HmosSdkLoader.getHmosSdkComponents (D:\Harmony\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\sdk\hmos-sdk-loader.js:1:1895)
+    at HosSdkInfo.setup (D:\Harmony\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\sdk\info\hos-sdk-info.js:1:1537)
+    at ProjectTaskService.setup (D:\Harmony\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\tasks\service\project-task-service.js:1:2525)
+    at ProjectImpl.<anonymous> (D:\Harmony\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\plugin\builder\app-plugin-builder.js:1:2361)
+    at ProjectImpl.executeAfterBindSystemPluginsHook (D:\Harmony\DevEco Studio\tools\hvigor\hvigor\src\base\internal\lifecycle\hvigor-node-impl\default-node-impl.js:1:5577)
+    at evaluateNodeVigorFile (D:\Harmony\DevEco Studio\tools\hvigor\hvigor\src\base\internal\lifecycle\configuration.js:1:9617)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async evalProject (D:\Harmony\DevEco Studio\tools\hvigor\hvigor\src\base\internal\lifecycle\configuration.js:1:3608)
+    at async configuration (D:\Harmony\DevEco Studio\tools\hvigor\hvigor\src\base\internal\lifecycle\configuration.js:1:2352)
+[2026-07-29T22:13:08.655] [ERROR] debug-file - AdaptorError: [31m00303168 Configuration Error
+Error Message: SDK component missing.
+
+* Try the following:
+  > Please verify the integrity of your SDK.
+  > Please update the SDK at the download link below.
+  > More info: https://developer.huawei.com/consumer/cn/download
+[39m
+    at OhosLogger.printErrorExit (D:\Harmony\DevEco Studio\tools\hvigor\hvigor\src\base\log\hvigor-log.js:1:5087)
+    at HmosSdkLoader.getHmosSdkComponents (D:\Harmony\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\sdk\hmos-sdk-loader.js:1:1895)
+    at HosSdkInfo.setup (D:\Harmony\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\sdk\info\hos-sdk-info.js:1:1537)
+    at ProjectTaskService.setup (D:\Harmony\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\tasks\service\project-task-service.js:1:2525)
+    at ProjectImpl.<anonymous> (D:\Harmony\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\plugin\builder\app-plugin-builder.js:1:2361)
+    at ProjectImpl.executeAfterBindSystemPluginsHook (D:\Harmony\DevEco Studio\tools\hvigor\hvigor\src\base\internal\lifecycle\hvigor-node-impl\default-node-impl.js:1:5577)
+    at evaluateNodeVigorFile (D:\Harmony\DevEco Studio\tools\hvigor\hvigor\src\base\internal\lifecycle\configuration.js:1:9617)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async evalProject (D:\Harmony\DevEco Studio\tools\hvigor\hvigor\src\base\internal\lifecycle\configuration.js:1:3608)
+    at async configuration (D:\Harmony\DevEco Studio\tools\hvigor\hvigor\src\base\internal\lifecycle\configuration.js:1:2352)
+[2026-07-29T22:13:08.656] [ERROR] debug-file - BUILD FAILED in 1 s 915 ms 
+[2026-07-29T22:13:08.662] [DEBUG] debug-file - Since there is no instance or instance is terminated, create a new worker pool.
+[2026-07-29T22:13:08.663] [DEBUG] debug-file - Worker pool is initialized with config:  {
+  minPoolNum: 2,
+  maxPoolNum: undefined,
+  maxCoreSize: undefined,
+  cacheCapacity: undefined,
+  cacheTtl: undefined
+}

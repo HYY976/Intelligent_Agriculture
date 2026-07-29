@@ -48,6 +48,8 @@ export interface LogInfo {
   adminId?: string;
   /** 角色（super_admin/user_admin/content_reviewer/api_admin） */
   role?: string;
+  /** 用户类型（user/farmer，Mock 鉴权日志） */
+  userType?: string;
   /** 数量统计 */
   count?: number;
   /** 主题（light/dark/system） */

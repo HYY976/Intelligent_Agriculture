@@ -641,9 +641,10 @@ export struct AdsList {
   AdListView() {
     if (this.ads.length === 0) {
       Column({ space: 8 }) {
-        Text('📢')
-          .fontSize(40)
-          .fontColor($r('app.color.color_text_4'))
+        Image($r('app.media.icon_megaphone'))
+          .width(40)
+          .height(40)
+          .fillColor($r('app.color.color_text_4'))
         Text('暂无广告数据')
           .fontSize(13)
           .fontColor($r('app.color.color_text_3'))
@@ -663,13 +664,24 @@ export struct AdsList {
     }
   }
 
+  /** 获取广告封面图片资源（v2.0：根据 adId 返回不同真实封面） */
+  private getAdCover(adId: string): Resource {
+    switch (adId) {
+      case 'ad_001': return $r('app.media.ad_cover_001');
+      case 'ad_002': return $r('app.media.ad_cover_002');
+      case 'ad_003': return $r('app.media.ad_cover_003');
+      case 'ad_004': return $r('app.media.ad_cover_004');
+      default: return $r('app.media.hero_harvest');
+    }
+  }
+
   /** 单个广告卡 */
   @Builder
   AdCard(ad: AdRecord) {
     Column() {
       // 1. 封面图（100h）+ 左上广告位标
       Stack({ alignContent: Alignment.Start }) {
-        Image($r('app.media.hero_harvest'))
+        Image(this.getAdCover(ad.adId))
           .width('100%')
           .height(100)
           .objectFit(ImageFit.Cover)
@@ -747,9 +759,10 @@ export struct AdsList {
 
         // 4. 投放时间
         Row({ space: 4 }) {
-          Text('📅')
-            .fontSize(12)
-            .fontColor($r('app.color.color_text_3'))
+          Image($r('app.media.icon_calendar'))
+            .width(12)
+            .height(12)
+            .fillColor($r('app.color.color_text_3'))
           Text(this.formatAdTime(ad))
             .fontSize(11)
             .fontColor($r('app.color.color_text_2'))
@@ -798,9 +811,10 @@ export struct AdsList {
       // 表单头：黄色图标 + "新建广告"标题
       Row({ space: 8 }) {
         Stack() {
-          Text('✨')
-            .fontSize(16)
-            .fontColor($r('app.color.color_yellow_text'))
+          Image($r('app.media.icon_sparkles'))
+            .width(16)
+            .height(16)
+            .fillColor($r('app.color.color_yellow_text'))
         }
         .width(30)
         .height(30)
@@ -901,9 +915,10 @@ export struct AdsList {
         // 上传区
         Column({ space: 3 }) {
           Stack() {
-            Text('⬆')
-              .fontSize(18)
-              .fontColor($r('app.color.color_text_2'))
+            Image($r('app.media.icon_upload'))
+              .width(18)
+              .height(18)
+              .fillColor($r('app.color.color_text_2'))
           }
           .width(38)
           .height(38)
@@ -950,9 +965,10 @@ export struct AdsList {
         Row({ space: 8 }) {
           // 开始日期
           Row({ space: 8 }) {
-            Text('📅')
-              .fontSize(14)
-              .fontColor($r('app.color.color_text_3'))
+            Image($r('app.media.icon_calendar'))
+              .width(14)
+              .height(14)
+              .fillColor($r('app.color.color_text_3'))
             TextInput({ text: this.formStartDate, placeholder: '开始日期' })
               .layoutWeight(1)
               .height(46)
@@ -977,9 +993,10 @@ export struct AdsList {
 
           // 结束日期
           Row({ space: 8 }) {
-            Text('📅')
-              .fontSize(14)
-              .fontColor($r('app.color.color_text_3'))
+            Image($r('app.media.icon_calendar'))
+              .width(14)
+              .height(14)
+              .fillColor($r('app.color.color_text_3'))
             TextInput({ text: this.formEndDate, placeholder: '结束日期' })
               .layoutWeight(1)
               .height(46)

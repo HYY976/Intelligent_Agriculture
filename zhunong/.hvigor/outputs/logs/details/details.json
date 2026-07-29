@@ -1,0 +1,41 @@
+{
+  "HVIGOR": {
+    "IS_INCREMENTAL": true,
+    "IS_DAEMON": false,
+    "IS_PARALLEL": true,
+    "IS_HVIGORFILE_TYPE_CHECK": false,
+    "IS_EXECUTION_OHPM_BY_HVIGOR": false,
+    "BUILD_ANALYSIS_MODE": "normal",
+    "TASK_TIME": {},
+    "CUSTOM_TASK_TIME": {},
+    "CUSTOM_PLUGIN_TIME": {},
+    "APIS": [],
+    "CONFIG_EXPERIMENT": {
+      "ENABLE_MODULE_SKIP": false,
+      "ENABLE_CPP_FUNCTION_LEVEL_INCREMENTAL": false
+    },
+    "CONFIG_PROPERTIES": {},
+    "BUILD_ID": "202607292213067400",
+    "ERROR_MESSAGE": [
+      {
+        "CODE": "00303168",
+        "MESSAGE": "SDK component missing.",
+        "SOLUTIONS": [
+          "Please verify the integrity of your SDK.",
+          "Please update the SDK at the download link below."
+        ],
+        "MORE_INFO": {
+          "cn": "https://developer.huawei.com/consumer/cn/download",
+          "en": "https://developer.huawei.com/consumer/en/download"
+        },
+        "TIMESTAMP": "1785334388648"
+      },
+      {
+        "CODE": "00303168",
+        "STACK": "00303168 Configuration Error\n...\n    at OhosLogger.printErrorExit (***\\tools\\hvigor\\hvigor\\src\\base\\log\\hv***g.js:1:5087)\n    at HmosSdkLoader.getHmosSdkComponents (***\\tools\\hvigor\\hvigor-ohos-plugin\\src\\sdk\\hm***r.js:1:1895)\n    at HosSdkInfo.setup (***\\tools\\hvigor\\hvigor-ohos-plugin\\src\\sdk\\info\\ho***o.js:1:1537)\n    at ProjectTaskService.setup (***\\tools\\hvigor\\hvigor-ohos-plugin\\src\\tasks\\service\\pr***e.js:1:2525)\n    at ProjectImpl.<anonymous> (***\\tools\\hvigor\\hvigor-ohos-plugin\\src\\plugin\\builder\\ap***r.js:1:2361)\n    at ProjectImpl.executeAfterBindSystemPluginsHook (***\\tools\\hvigor\\hvigor\\src\\base\\internal\\lifecycle\\hvigor-node-impl\\de***l.js:1:5577)\n    at evaluateNodeVigorFile (***\\tools\\hvigor\\hvigor\\src\\base\\internal\\lifecycle\\co***n.js:1:9617)\n...\n    at async evalProject (***\\tools\\hvigor\\hvigor\\src\\base\\internal\\lifecycle\\co***n.js:1:3608)\n    at async configuration (***\\tools\\hvigor\\hvigor\\src\\base\\internal\\lifecycle\\co***n.js:1:2352)",
+        "PROJECT_CONFIG": {}
+      }
+    ],
+    "TOTAL_TIME": 1914767200
+  }
+}

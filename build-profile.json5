@@ -1,19 +1,6 @@
 {
   "app": {
     "signingConfigs": [
-      {
-        "name": "default",
-        "type": "HarmonyOS",
-        "material": {
-          "certpath": "C:\\Users\\21132\\.ohos\\config\\default_Project_foomywtd6VRxDnbHDa64V4yrib-xnGZPIRhEBkxpZcs=.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001B51C7C3FB00737139CC4875912AA50013AE5CA07A180DA22595EAAD6F68D9CEB76206FE8FDDF132",
-          "profile": "C:\\Users\\21132\\.ohos\\config\\default_Project_foomywtd6VRxDnbHDa64V4yrib-xnGZPIRhEBkxpZcs=.p7b",
-          "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\21132\\.ohos\\config\\default_Project_foomywtd6VRxDnbHDa64V4yrib-xnGZPIRhEBkxpZcs=.p12",
-          "storePassword": "0000001BA88062C9E83F4B261B847505DEC9B8B46BDFE763B8E274CAF97F62CE14711CE5F478EB9774AB84"
-        }
-      }
     ],
     "products": [
       {
@@ -43,6 +30,18 @@
     {
       "name": "common",
       "srcPath": "./zhunong/common",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "entry",
+      "srcPath": "./zhunong/entry",
       "targets": [
         {
           "name": "default",

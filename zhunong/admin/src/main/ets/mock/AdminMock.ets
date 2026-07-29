@@ -188,67 +188,23 @@ export const MOCK_DASHBOARD_STATS: DashboardStats = {
   todayOrders: 892
 };
 
-// ===== Mock API 接口列表（12 条，覆盖 GET/POST/PUT/DELETE） =====
+// ===== Mock API 接口列表（3 条，均为 farmer 端真实接入的 GET 接口） =====
+// 数据来源：farmer 端 FarmerRepository / ProductManageRepository / LiveManageRepository
 export const MOCK_APIS: ApiInfo[] = [
   {
-    apiId: 'api_001', path: '/api/user/login', method: 'POST', description: '用户登录',
-    todayRequestCount: 5680, errorRate: 0.12, avgResponseTime: 85,
+    apiId: 'api_001', path: '/api/farmer/profile', method: 'GET', description: '农户资料查询（farmer端接入）',
+    todayRequestCount: 3280, errorRate: 0.08, avgResponseTime: 72,
     createdAt: NOW - 100 * DAY
   },
   {
-    apiId: 'api_002', path: '/api/user/register', method: 'POST', description: '用户注册',
-    todayRequestCount: 320, errorRate: 0.05, avgResponseTime: 120,
+    apiId: 'api_002', path: '/api/farmer/products', method: 'GET', description: '卖家商品列表（farmer端接入）',
+    todayRequestCount: 8650, errorRate: 0.03, avgResponseTime: 65,
     createdAt: NOW - 100 * DAY
   },
   {
-    apiId: 'api_003', path: '/api/home/recommend', method: 'GET', description: '首页推荐流',
-    todayRequestCount: 18650, errorRate: 0.08, avgResponseTime: 95,
-    createdAt: NOW - 95 * DAY
-  },
-  {
-    apiId: 'api_004', path: '/api/product/list', method: 'GET', description: '商品列表',
-    todayRequestCount: 9820, errorRate: 0.03, avgResponseTime: 78,
-    createdAt: NOW - 90 * DAY
-  },
-  {
-    apiId: 'api_005', path: '/api/product/detail', method: 'GET', description: '商品详情',
-    todayRequestCount: 12340, errorRate: 0.02, avgResponseTime: 65,
-    createdAt: NOW - 90 * DAY
-  },
-  {
-    apiId: 'api_006', path: '/api/cart/add', method: 'POST', description: '加入购物车',
-    todayRequestCount: 4520, errorRate: 0.15, avgResponseTime: 110,
-    createdAt: NOW - 85 * DAY
-  },
-  {
-    apiId: 'api_007', path: '/api/order/create', method: 'POST', description: '创建订单',
-    todayRequestCount: 892, errorRate: 0.25, avgResponseTime: 230,
-    createdAt: NOW - 80 * DAY
-  },
-  {
-    apiId: 'api_008', path: '/api/order/list', method: 'GET', description: '订单列表',
-    todayRequestCount: 3210, errorRate: 0.04, avgResponseTime: 105,
-    createdAt: NOW - 80 * DAY
-  },
-  {
-    apiId: 'api_009', path: '/api/order/cancel', method: 'PUT', description: '取消订单',
-    todayRequestCount: 156, errorRate: 0.18, avgResponseTime: 145,
-    createdAt: NOW - 75 * DAY
-  },
-  {
-    apiId: 'api_010', path: '/api/live/list', method: 'GET', description: '直播列表',
+    apiId: 'api_003', path: '/api/farmer/lives', method: 'GET', description: '直播管理列表（farmer端接入）',
     todayRequestCount: 2100, errorRate: 0.06, avgResponseTime: 88,
-    createdAt: NOW - 70 * DAY
-  },
-  {
-    apiId: 'api_011', path: '/api/community/posts', method: 'GET', description: '社区帖子列表',
-    todayRequestCount: 5430, errorRate: 0.04, avgResponseTime: 72,
-    createdAt: NOW - 65 * DAY
-  },
-  {
-    apiId: 'api_012', path: '/api/admin/user/ban', method: 'PUT', description: '封禁用户',
-    todayRequestCount: 12, errorRate: 0.0, avgResponseTime: 95,
-    createdAt: NOW - 60 * DAY
+    createdAt: NOW - 95 * DAY
   }
 ];
 
@@ -263,15 +219,15 @@ export const MOCK_API_TREND_7D: ApiRequestTrendPoint[] = [
   { date: '2026-07-18', requestCount: 42100, errorCount: 48 }
 ];
 
-// ===== Mock API 错误日志（最近 20 条） =====
+// ===== Mock API 错误日志（最近 5 条，关联 farmer 端 3 个真实 API） =====
 export const MOCK_API_ERROR_LOGS: ApiErrorLog[] = [
   {
-    logId: 'log_001', apiId: 'api_007', statusCode: 500,
+    logId: 'log_001', apiId: 'api_002', statusCode: 500,
     errorMessage: 'Database connection timeout',
     clientIp: '192.168.1.55', occurredAt: NOW - 1 * 3600000
   },
   {
-    logId: 'log_002', apiId: 'api_006', statusCode: 429,
+    logId: 'log_002', apiId: 'api_003', statusCode: 429,
     errorMessage: 'Rate limit exceeded',
     clientIp: '192.168.1.88', occurredAt: NOW - 2 * 3600000
   },
@@ -281,13 +237,13 @@ export const MOCK_API_ERROR_LOGS: ApiErrorLog[] = [
     clientIp: '10.0.0.12', occurredAt: NOW - 3 * 3600000
   },
   {
-    logId: 'log_004', apiId: 'api_007', statusCode: 400,
-    errorMessage: 'Missing required field: addressId',
+    logId: 'log_004', apiId: 'api_002', statusCode: 400,
+    errorMessage: 'Missing required field: farmerId',
     clientIp: '192.168.1.92', occurredAt: NOW - 5 * 3600000
   },
   {
-    logId: 'log_005', apiId: 'api_009', statusCode: 500,
-    errorMessage: 'Order status transition invalid',
+    logId: 'log_005', apiId: 'api_003', statusCode: 500,
+    errorMessage: 'Live status transition invalid',
     clientIp: '192.168.1.77', occurredAt: NOW - 8 * 3600000
   }
 ];
@@ -661,7 +617,7 @@ export const MOCK_ADS: AdRecord[] = [
     slot: 'home_banner',
     status: 'running',
     enabled: true,
-    coverKey: 'hero_harvest',
+    coverKey: 'ad_cover_001',
     impressions: 125000,
     clicks: 3860,
     ctr: 0.031,
@@ -678,7 +634,7 @@ export const MOCK_ADS: AdRecord[] = [
     slot: 'splash',
     status: 'running',
     enabled: true,
-    coverKey: 'hero_harvest',
+    coverKey: 'ad_cover_002',
     impressions: 82000,
     clicks: 2140,
     ctr: 0.026,
@@ -695,7 +651,7 @@ export const MOCK_ADS: AdRecord[] = [
     slot: 'live_patch',
     status: 'paused',
     enabled: false,
-    coverKey: 'hero_harvest',
+    coverKey: 'ad_cover_003',
     impressions: 56000,
     clicks: 1820,
     ctr: 0.033,
@@ -712,7 +668,7 @@ export const MOCK_ADS: AdRecord[] = [
     slot: 'community',
     status: 'pending',
     enabled: true,
-    coverKey: 'hero_harvest',
+    coverKey: 'ad_cover_004',
     impressions: 30000, // 预估曝光
     clicks: 0,
     ctr: 0,

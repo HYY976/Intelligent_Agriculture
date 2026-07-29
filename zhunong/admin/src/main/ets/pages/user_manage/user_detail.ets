@@ -579,8 +579,10 @@ export struct UserDetail {
       ForEach(devices, (device: LoginDeviceRecord, index: number) => {
         Row({ space: 12 }) {
           Stack() {
-            Text('📱')
-              .fontSize(22)
+            Image($r('app.media.icon_phone'))
+              .width(22)
+              .height(22)
+              .fillColor($r('app.color.color_text_3'))
           }
           .width(40)
           .height(40)
@@ -618,8 +620,10 @@ export struct UserDetail {
   @Builder
   PlaceholderContent() {
     Column({ space: 12 }) {
-      Text('📊')
-        .fontSize(64)
+      Image($r('app.media.icon_chart'))
+        .width(64)
+        .height(64)
+        .fillColor($r('app.color.color_text_4'))
       Text('该 Tab 数据待后端接入')
         .fontSize(14)
         .fontColor($r('app.color.color_text_2'))

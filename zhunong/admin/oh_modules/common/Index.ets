@@ -15,6 +15,8 @@ export type { LogInfo } from './src/main/ets/utils/Logger';
 export { ConfigUtil } from './src/main/ets/utils/ConfigUtil';
 export { PreferencesUtil } from './src/main/ets/utils/PreferencesUtil';
 export { HttpUtil } from './src/main/ets/utils/HttpUtil';
+/** 本地 Mock 鉴权工具（无后端时使用，spec 11.x：账号密码登录注册） */
+export { MockAuthUtil } from './src/main/ets/utils/MockAuthUtil';
 export { ToastUtil } from './src/main/ets/utils/ToastUtil';
 /** spec 10.9.2：声明式路由跳转工具（替代 router.pushUrl/replaceUrl/back/getParams） */
 export { NavigationHelper } from './src/main/ets/utils/NavigationHelper';
@@ -65,8 +67,10 @@ export type {
   UserType,
   AccountStatus,
   SortOrder,
-  KeyValue,
-  /** spec 10.9.3：AppStorageV2 Key 类型定义 */
+  KeyValue
+} from './src/main/ets/model/CommonModels';
+/** spec 10.9.3：AppStorageV2 Key 类（class 既是类型也是值，需用 export 导出） */
+export {
   AuthTokenKey,
   UserInfoKey,
   AdminInfoKey,

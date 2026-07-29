@@ -133,7 +133,7 @@ export struct ApiList {
         } else if (this.dataSource.getIsFirstLoad()) {
           ListStateView({ state: 'loading' })
         } else if (this.dataSource.totalCount() === 0) {
-          ListStateView({ state: 'empty', emptyUseEmoji: true, emptyEmoji: '🔌', emptyText: '暂无 API 数据', emptyActionText: '刷新', onEmptyAction: () => this.refresh() })
+          this.EmptyState()
         } else {
           this.ApiListView()
         }
@@ -187,9 +187,10 @@ export struct ApiList {
   @Builder
   SearchBar() {
     Row({ space: 8 }) {
-      Text('🔍')
-        .fontSize(14)
-        .fontColor($r('app.color.color_text_3'))
+      Image($r('app.media.icon_search'))
+        .width(16)
+        .height(16)
+        .fillColor($r('app.color.color_text_3'))
       TextInput({ text: this.inputText, placeholder: '搜索接口路径/名称' })
         .layoutWeight(1)
         .height(40)
@@ -382,6 +383,31 @@ export struct ApiList {
     .onClick(() => {
       this.gotoDetail(api.apiId);
     })
+  }
+
+  /** 空状态（自定义，替代 ListStateView emptyEmoji） */
+  @Builder
+  EmptyState() {
+    Column({ space: 12 }) {
+      Image($r('app.media.icon_api'))
+        .width(48)
+        .height(48)
+        .fillColor($r('app.color.color_text_4'))
+      Text('暂无 API 数据')
+        .fontSize(13)
+        .fontColor($r('app.color.color_text_3'))
+      Text('刷新')
+        .fontSize(13)
+        .fontColor($r('app.color.color_info'))
+        .fontWeight(FontWeight.Bold)
+        .padding({ left: 16, right: 16, top: 6, bottom: 6 })
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .backgroundColor($r('app.color.color_info_soft'))
+        .onClick(() => this.refresh())
+    }
+    .width('100%')
+    .padding({ top: 64, bottom: 64 })
+    .alignItems(HorizontalAlign.Center)
   }
 
 }

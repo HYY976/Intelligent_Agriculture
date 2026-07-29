@@ -226,7 +226,7 @@ export struct ReviewList {
         } else if (this.dataSource.getIsFirstLoad()) {
           ListStateView({ state: 'loading' })
         } else if (this.dataSource.totalCount() === 0) {
-          ListStateView({ state: 'empty', emptyUseEmoji: true, emptyEmoji: '📭', emptyText: '暂无审核内容', emptyActionText: '刷新', onEmptyAction: () => this.refresh() })
+          this.EmptyState()
         } else {
           this.ReviewListView()
         }
@@ -408,13 +408,64 @@ export struct ReviewList {
     .onReachEnd(() => this.dataSource.loadMore())
   }
 
+  /** 获取提交者头像资源（v2.0：根据 submitterId 返回不同真实头像） */
+  private getSubmitterAvatar(submitterId: string): Resource {
+    switch (submitterId) {
+      case 'u_001': return $r('app.media.avatar_u001');
+      case 'u_002': return $r('app.media.avatar_u002');
+      case 'u_003': return $r('app.media.avatar_u003');
+      case 'u_004': return $r('app.media.avatar_u004');
+      case 'u_005': return $r('app.media.avatar_u005');
+      case 'u_006': return $r('app.media.avatar_u006');
+      case 'u_008': return $r('app.media.avatar_u008');
+      case 'f_001': return $r('app.media.avatar_f001');
+      case 'f_002': return $r('app.media.avatar_f002');
+      case 'f_003': return $r('app.media.avatar_f003');
+      case 'f_004': return $r('app.media.avatar_f004');
+      case 'f_007': return $r('app.media.avatar_f007');
+      case 'f_008': return $r('app.media.avatar_f008');
+      default: return $r('app.media.avatar_farmer');
+    }
+  }
+
+  /** 是否有内容图片（v3.0：全部 15 条审核记录均有真实内容图片，一一匹配标题） */
+  private hasContentImage(reviewId: string): boolean {
+    return reviewId === 'r_001' || reviewId === 'r_002' || reviewId === 'r_003' ||
+      reviewId === 'r_004' || reviewId === 'r_005' || reviewId === 'r_006' ||
+      reviewId === 'r_007' || reviewId === 'r_008' || reviewId === 'r_009' ||
+      reviewId === 'r_010' || reviewId === 'r_011' || reviewId === 'r_012' ||
+      reviewId === 'r_013' || reviewId === 'r_014' || reviewId === 'r_015';
+  }
+
+  /** 获取内容图片资源（v3.0：根据 reviewId 返回与标题严格匹配的真实图片） */
+  private getContentImage(reviewId: string): Resource {
+    switch (reviewId) {
+      case 'r_001': return $r('app.media.review_r001'); // 红富士苹果
+      case 'r_002': return $r('app.media.review_r002'); // 农家自种大米
+      case 'r_003': return $r('app.media.review_r003'); // 果园采摘直播
+      case 'r_004': return $r('app.media.review_r004'); // 分享种植经验
+      case 'r_005': return $r('app.media.review_r005'); // 举报虚假宣传
+      case 'r_006': return $r('app.media.review_r006'); // 土鸡蛋
+      case 'r_007': return $r('app.media.review_r007'); // 新茶龙井
+      case 'r_008': return $r('app.media.review_r008'); // 茶艺直播
+      case 'r_009': return $r('app.media.review_r009'); // 乡村生活记录
+      case 'r_010': return $r('app.media.review_r010'); // 违规词商品
+      case 'r_011': return $r('app.media.review_r011'); // 图片不清晰商品
+      case 'r_012': return $r('app.media.review_r012'); // 描述不符直播
+      case 'r_013': return $r('app.media.review_r013'); // 涉嫌违规帖子
+      case 'r_014': return $r('app.media.review_r014'); // 恶意刷单举报
+      case 'r_015': return $r('app.media.review_r015'); // 坚果大礼包
+      default: return $r('app.media.hero_harvest');
+    }
+  }
+
   /** 审核项卡片（完整设计：头像 + 作者 + pill + 时间 + 封面图 + 标题 + 描述 + 要点 + 操作栏） */
   @Builder
   ReviewItemCard(review: ContentReview) {
     Column({ space: 12 }) {
       // 1. 头部：头像 + 作者 + 类型 pill + 时间
       Row({ space: 8 }) {
-        Image($r('app.media.avatar_farmer'))
+        Image(this.getSubmitterAvatar(review.submitterId))
           .width(32)
           .height(32)
           .borderRadius(16)
@@ -436,11 +487,19 @@ export struct ReviewList {
       .width('100%')
       .alignItems(VerticalAlign.Center)
 
-      // 2. 封面图（140h，圆角）
+      // 2. 封面图（140h，圆角，v2.0 渲染真实内容图片）
       Stack() {
-        Text('🖼️')
-          .fontSize(40)
-          .fontColor($r('app.color.color_text_4'))
+        if (this.hasContentImage(review.reviewId)) {
+          Image(this.getContentImage(review.reviewId))
+            .width('100%')
+            .height('100%')
+            .objectFit(ImageFit.Cover)
+        } else {
+          Image($r('app.media.icon_image'))
+            .width(40)
+            .height(40)
+            .fillColor($r('app.color.color_text_4'))
+        }
         // 内容类型角标
         Stack() {
           Text(this.getCoverBadge(review.contentType))
@@ -458,6 +517,7 @@ export struct ReviewList {
       .borderRadius(AppConstants.RADIUS_MD)
       .backgroundColor($r('app.color.color_fill'))
       .alignContent(Alignment.Center)
+      .clip(true)
 
       // 3. 标题
       Text(review.contentTitle)
@@ -559,8 +619,10 @@ export struct ReviewList {
     Column({ space: 6 }) {
       // 标题行
       Row({ space: 4 }) {
-        Text('📋')
-          .fontSize(12)
+        Image($r('app.media.icon_clipboard'))
+          .width(12)
+          .height(12)
+          .fillColor($r('app.color.color_yellow_text'))
         Text('审核要点')
           .fontSize(12)
           .fontColor($r('app.color.color_yellow_text'))
@@ -618,5 +680,30 @@ export struct ReviewList {
       return $r('app.color.color_info');
     }
     return $r('app.color.color_warn');
+  }
+
+  /** 空状态（SVG 图标 + 文字 + 刷新按钮） */
+  @Builder
+  EmptyState() {
+    Column({ space: 12 }) {
+      Image($r('app.media.icon_empty_box'))
+        .width(48)
+        .height(48)
+        .fillColor($r('app.color.color_text_4'))
+      Text('暂无审核内容')
+        .fontSize(13)
+        .fontColor($r('app.color.color_text_3'))
+      Text('刷新')
+        .fontSize(13)
+        .fontColor($r('app.color.color_info'))
+        .fontWeight(FontWeight.Bold)
+        .padding({ left: 16, right: 16, top: 6, bottom: 6 })
+        .borderRadius(AppConstants.RADIUS_PILL)
+        .backgroundColor($r('app.color.color_info_soft'))
+        .onClick(() => this.refresh())
+    }
+    .width('100%')
+    .padding({ top: 64, bottom: 64 })
+    .alignItems(HorizontalAlign.Center)
   }
 }

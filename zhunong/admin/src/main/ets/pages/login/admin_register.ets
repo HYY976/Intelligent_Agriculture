@@ -13,7 +13,7 @@
  *  - 底部黄色波浪装饰
  */
 
-import { Logger, AppConstants, HttpUtil, TokenStore, ToastUtil, NavigationHelper, RouteName } from 'common';
+import { Logger, AppConstants, MockAuthUtil, TokenStore, ToastUtil, NavigationHelper, RouteName } from 'common';
 import { ApiResponse, AdminInfo } from 'common';
 
 /** 管理员角色枚举 */
@@ -23,7 +23,7 @@ type AdminRole = 'super_admin' | 'user_admin' | 'content_reviewer' | 'api_admin'
 interface RoleOption {
   value: AdminRole;
   label: string;
-  icon: string;
+  icon: Resource;
 }
 
 interface AdminRegisterRequest {
@@ -55,10 +55,10 @@ export struct AdminRegister {
   @Local showConfirmPassword: boolean = false;
   /** 角色选项列表（2×2 网格） */
   private roleOptions: RoleOption[] = [
-    { value: 'super_admin', label: '超级管理员', icon: '🛡️' },
-    { value: 'user_admin', label: '用户管理员', icon: '👥' },
-    { value: 'content_reviewer', label: '内容审核员', icon: '📝' },
-    { value: 'api_admin', label: 'API管理员', icon: '🔌' }
+    { value: 'super_admin', label: '超级管理员', icon: $r('app.media.icon_shield') },
+    { value: 'user_admin', label: '用户管理员', icon: $r('app.media.icon_users') },
+    { value: 'content_reviewer', label: '内容审核员', icon: $r('app.media.icon_clipboard') },
+    { value: 'api_admin', label: 'API管理员', icon: $r('app.media.icon_api') }
   ];
 
   /** 校验表单 */
@@ -86,24 +86,16 @@ export struct AdminRegister {
     return true;
   }
 
-  /** 注册（后端未部署时走 Mock 兜底，与登录页 admin/123456 测试模式一致） */
+  /** 注册（走本地 MockAuthUtil，无需后端） */
   private async doRegister(): Promise<void> {
     if (!this.validateForm()) {
       return;
     }
     this.isRegistering = true;
     try {
-      const req: AdminRegisterRequest = {
-        username: this.username,
-        password: this.password,
-        role: this.selectedRole
-      };
-      const resp: ApiResponse<AdminRegisterResponse> = await HttpUtil.post<AdminRegisterResponse>('/admin/register', req, {
-        withAuth: false,
-        showErrorToast: false
-      });
-
-      // 后端部署成功：走真实流程
+      const resp: ApiResponse<AdminRegisterResponse> = await MockAuthUtil.registerAdmin(
+        this.username, this.password, this.selectedRole
+      );
       if (resp.code === AppConstants.CODE_SUCCESS && resp.data) {
         await TokenStore.setToken(resp.data.token);
         await TokenStore.setAdminInfo(resp.data.adminInfo);
@@ -114,37 +106,9 @@ export struct AdminRegister {
           role: resp.data.adminInfo.role
         });
         NavigationHelper.replace(RouteName.ADMIN_HOME);
-        return;
+      } else {
+        ToastUtil.error(resp.msg || '注册失败');
       }
-
-      // 后端 404/未部署：走 Mock 兜底（本地构造 Token 与 AdminInfo）
-      if (resp.code === 404 || resp.code === -1) {
-        Logger.warn(AppConstants.SCENE_ADMIN, {
-          action: 'register_mock_fallback',
-          bizCode: String(resp.code)
-        });
-        const mockAdminInfo: AdminInfo = {
-          adminId: `admin_${Date.now()}`,
-          username: this.username,
-          nickname: this.username,
-          role: this.selectedRole,
-          lastLoginAt: Date.now()
-        };
-        const mockToken: string = `mock_admin_token_${Date.now()}_${this.username}`;
-        await TokenStore.setToken(mockToken);
-        await TokenStore.setAdminInfo(mockAdminInfo);
-        ToastUtil.success('注册成功（演示模式）');
-        Logger.info(AppConstants.SCENE_ADMIN, {
-          action: 'register_mock_success',
-          adminId: mockAdminInfo.adminId,
-          role: mockAdminInfo.role
-        });
-        NavigationHelper.replace(RouteName.ADMIN_HOME);
-        return;
-      }
-
-      // 其他业务错误（如用户名已存在）
-      ToastUtil.error(resp.msg || '注册失败');
     } catch (err) {
       Logger.error(AppConstants.SCENE_ADMIN, { action: 'register_fail', error: (err as Error).message });
       ToastUtil.error('注册失败，请稍后重试');
@@ -229,9 +193,10 @@ export struct AdminRegister {
       // 黄色渐变圆角方块 Logo + 深绿小角标
       Stack() {
         Stack() {
-          Text('📝')
-            .fontSize(40)
-            .fontColor($r('app.color.color_admin_green'))
+          Image($r('app.media.icon_shield'))
+            .width(40)
+            .height(40)
+            .fillColor($r('app.color.color_admin_green'))
         }
         .width(80)
         .height(80)
@@ -303,9 +268,10 @@ export struct AdminRegister {
   @Builder
   UsernameField() {
     Row({ space: 12 }) {
-      Text('👤')
-        .fontSize(18)
-        .fontColor($r('app.color.color_text_3'))
+      Image($r('app.media.icon_user'))
+        .width(18)
+        .height(18)
+        .fillColor($r('app.color.color_text_3'))
       TextInput({ text: this.username, placeholder: '请设置用户名（至少4字符）' })
         .type(InputType.Normal)
         .maxLength(32)
@@ -334,9 +300,10 @@ export struct AdminRegister {
   @Builder
   PasswordField() {
     Row({ space: 12 }) {
-      Text('🔒')
-        .fontSize(18)
-        .fontColor($r('app.color.color_text_3'))
+      Image($r('app.media.icon_lock'))
+        .width(18)
+        .height(18)
+        .fillColor($r('app.color.color_text_3'))
       TextInput({ text: this.password, placeholder: '请设置密码（至少6位）' })
         .type(this.showPassword ? InputType.Normal : InputType.Password)
         .maxLength(32)
@@ -351,9 +318,10 @@ export struct AdminRegister {
           this.password = value;
         })
       Stack() {
-        Text(this.showPassword ? '👁️' : '🙈')
-          .fontSize(18)
-          .fontColor($r('app.color.color_text_3'))
+        Image(this.showPassword ? $r('app.media.icon_eye') : $r('app.media.icon_eye_off'))
+          .width(18)
+          .height(18)
+          .fillColor($r('app.color.color_text_3'))
       }
       .width(28)
       .height(28)
@@ -375,9 +343,10 @@ export struct AdminRegister {
   @Builder
   ConfirmPasswordField() {
     Row({ space: 12 }) {
-      Text('🔐')
-        .fontSize(18)
-        .fontColor($r('app.color.color_text_3'))
+      Image($r('app.media.icon_lock'))
+        .width(18)
+        .height(18)
+        .fillColor($r('app.color.color_text_3'))
       TextInput({ text: this.confirmPassword, placeholder: '请确认密码' })
         .type(this.showConfirmPassword ? InputType.Normal : InputType.Password)
         .maxLength(32)
@@ -392,9 +361,10 @@ export struct AdminRegister {
           this.confirmPassword = value;
         })
       Stack() {
-        Text(this.showConfirmPassword ? '👁️' : '🙈')
-          .fontSize(18)
-          .fontColor($r('app.color.color_text_3'))
+        Image(this.showConfirmPassword ? $r('app.media.icon_eye') : $r('app.media.icon_eye_off'))
+          .width(18)
+          .height(18)
+          .fillColor($r('app.color.color_text_3'))
       }
       .width(28)
       .height(28)
@@ -453,8 +423,10 @@ export struct AdminRegister {
   @Builder
   RoleTag(option: RoleOption) {
     Row({ space: 6 }) {
-      Text(option.icon)
-        .fontSize(15)
+      Image(option.icon)
+        .width(15)
+        .height(15)
+        .fillColor(this.selectedRole === option.value ? $r('app.color.color_ink') : $r('app.color.color_text_2'))
       Text(option.label)
         .fontSize(13)
         .fontColor(this.selectedRole === option.value ? $r('app.color.color_ink') : $r('app.color.color_text_2'))

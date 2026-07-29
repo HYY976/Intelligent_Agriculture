@@ -1,41 +1,21 @@
 /**
  * admin_login - 管理后台登录页（UI 复刻 qunong-harmony-app/pages/admin-login.html）
  * 遵循 spec 1.3.2 / 3.3.1 / 6.6.3：
- *  - 登录方式：用户名 + 密码 + 角色（4角色RBAC：超管/用户管理员/内容审核员/API管理员）
+ *  - 登录方式：用户名 + 密码（统一超级管理员，不区分角色）
  *  - JWT 24小时有效（后端控制，比用户/卖家的7天短）
  *  - 登录成功跳转 pages/home/admin_home（侧边栏导航）
- *  现阶段 Mock：用户名 admin + 密码 123456 + 任意角色均可登录成功（后端 Mock）
+ *  现阶段 Mock：用户名 admin + 密码 123456 即可登录成功（后端 Mock）
  *
  * UI 设计要点（对齐 admin-login.html）：
  *  - 顶部黄/绿径向渐变小气泡装饰
  *  - 黄色渐变圆角方块 Logo（80×80）+ 盾牌图标 + 右上深绿小角标
  *  - 表单区：用户名/密码字段（52高，左侧图标 + 右侧眼睛切换）
- *  - 角色选择：深绿小圆点 + "选择角色" 标题 + 2×2 胶囊网格（选中黄底墨黑）
  *  - 墨黑登录按钮（48高，箭头图标）
  *  - 黄底测试账号提示卡 + 用户协议文字
  *  - 底部黄色波浪装饰（双层 Path）
  */
-import { Logger, AppConstants, HttpUtil, TokenStore, ToastUtil, NavigationHelper, RouteName } from 'common';
+import { Logger, AppConstants, MockAuthUtil, TokenStore, ToastUtil, NavigationHelper, RouteName } from 'common';
 import { ApiResponse, AdminInfo } from 'common';
-
-/** 管理员角色枚举（spec 3.3.1：4角色RBAC） */
-type AdminRole = 'super_admin' | 'user_admin' | 'content_reviewer' | 'api_admin';
-
-/** 角色选项 */
-interface RoleOption {
-  /** 角色值 */
-  value: AdminRole;
-  /** 角色中文名 */
-  label: string;
-  /** 角色图标 emoji */
-  icon: string;
-}
-
-interface AdminLoginRequest {
-  username: string;
-  password: string;
-  role: AdminRole;
-}
 
 interface AdminLoginResponse {
   token: string;
@@ -48,19 +28,10 @@ export struct AdminLogin {
   @Local username: string = '';
   /** 密码 */
   @Local password: string = '';
-  /** 选中的角色 */
-  @Local selectedRole: AdminRole = 'super_admin';
   /** 是否正在登录 */
   @Local isLogging: boolean = false;
   /** 是否显示明文密码 */
   @Local showPassword: boolean = false;
-  /** 角色选项列表（2×2 网格） */
-  private roleOptions: RoleOption[] = [
-    { value: 'super_admin', label: '超级管理员', icon: '🛡️' },
-    { value: 'user_admin', label: '用户管理员', icon: '👥' },
-    { value: 'content_reviewer', label: '内容审核员', icon: '📝' },
-    { value: 'api_admin', label: 'API管理员', icon: '🔌' }
-  ];
 
   /** 校验表单 */
   private validateForm(): boolean {
@@ -75,21 +46,16 @@ export struct AdminLogin {
     return true;
   }
 
-  /** 登录 */
+  /** 登录（走本地 MockAuthUtil，无需后端） */
   private async doLogin(): Promise<void> {
     if (!this.validateForm()) {
       return;
     }
     this.isLogging = true;
     try {
-      const req: AdminLoginRequest = {
-        username: this.username,
-        password: this.password,
-        role: this.selectedRole
-      };
-      const resp: ApiResponse<AdminLoginResponse> = await HttpUtil.post<AdminLoginResponse>('/admin/login', req, {
-        withAuth: false
-      });
+      const resp: ApiResponse<AdminLoginResponse> = await MockAuthUtil.loginAdmin(
+        this.username, this.password, 'super_admin'
+      );
       if (resp.code === AppConstants.CODE_SUCCESS && resp.data) {
         await TokenStore.setToken(resp.data.token);
         await TokenStore.setAdminInfo(resp.data.adminInfo);
@@ -190,9 +156,10 @@ export struct AdminLogin {
       Stack() {
         // 黄色渐变方块 + 盾牌图标
         Stack() {
-          Text('🛡️')
-            .fontSize(40)
-            .fontColor($r('app.color.color_admin_green'))
+          Image($r('app.media.icon_shield'))
+            .width(40)
+            .height(40)
+            .fillColor($r('app.color.color_admin_green'))
         }
         .width(80)
         .height(80)
@@ -249,9 +216,7 @@ export struct AdminLogin {
       this.UsernameField()
       // b) 密码输入框（带眼睛切换）
       this.PasswordField()
-      // c) 角色选择区
-      this.RoleSection()
-      // d) 管理员登录按钮
+      // c) 管理员登录按钮
       this.LoginButton()
     }
     .width('100%')
@@ -263,9 +228,10 @@ export struct AdminLogin {
   UsernameField() {
     Row({ space: 12 }) {
       // 用户图标
-      Text('👤')
-        .fontSize(18)
-        .fontColor($r('app.color.color_text_3'))
+      Image($r('app.media.icon_user'))
+        .width(18)
+        .height(18)
+        .fillColor($r('app.color.color_text_3'))
       // 输入框
       TextInput({ text: this.username, placeholder: '请输入用户名' })
         .type(InputType.Normal)
@@ -296,9 +262,10 @@ export struct AdminLogin {
   PasswordField() {
     Row({ space: 12 }) {
       // 锁图标
-      Text('🔒')
-        .fontSize(18)
-        .fontColor($r('app.color.color_text_3'))
+      Image($r('app.media.icon_lock'))
+        .width(18)
+        .height(18)
+        .fillColor($r('app.color.color_text_3'))
       // 密码输入框
       TextInput({ text: this.password, placeholder: '请输入密码' })
         .type(this.showPassword ? InputType.Normal : InputType.Password)
@@ -315,9 +282,10 @@ export struct AdminLogin {
         })
       // 眼睛切换按钮
       Stack() {
-        Text(this.showPassword ? '👁️' : '🙈')
-          .fontSize(18)
-          .fontColor($r('app.color.color_text_3'))
+        Image(this.showPassword ? $r('app.media.icon_eye') : $r('app.media.icon_eye_off'))
+          .width(18)
+          .height(18)
+          .fillColor($r('app.color.color_text_3'))
       }
       .width(28)
       .height(28)
@@ -333,74 +301,6 @@ export struct AdminLogin {
     .border({ width: 1, color: $r('app.color.color_line') })
     .shadow(AppConstants.SHADOW_CARD)
     .alignItems(VerticalAlign.Center)
-  }
-
-  /** 角色选择区（2×2 胶囊网格） */
-  @Builder
-  RoleSection() {
-    Column({ space: 12 }) {
-      // 标题行（深绿小圆点 + "选择角色"）
-      Row({ space: 6 }) {
-        Column()
-          .width(6)
-          .height(6)
-          .borderRadius(AppConstants.RADIUS_PILL)
-          .backgroundColor($r('app.color.color_admin_green'))
-        Text('选择角色')
-          .fontSize(13)
-          .fontColor($r('app.color.color_ink_2'))
-          .fontWeight(FontWeight.Medium)
-          .letterSpacing(0.3)
-      }
-      .width('100%')
-      .padding({ left: 2 })
-
-      // 2×2 角色胶囊网格
-      Grid() {
-        ForEach(this.roleOptions, (option: RoleOption) => {
-          GridItem() {
-            this.RoleTag(option)
-          }
-        }, (option: RoleOption) => option.value)
-      }
-      .columnsTemplate('1fr 1fr')
-      .rowsGap(8)
-      .columnsGap(8)
-      .width('100%')
-      .height(94)
-    }
-    .width('100%')
-    .margin({ top: 8, bottom: 22 })
-    .alignItems(HorizontalAlign.Start)
-  }
-
-  /** 单个角色胶囊 */
-  @Builder
-  RoleTag(option: RoleOption) {
-    Row({ space: 6 }) {
-      Text(option.icon)
-        .fontSize(15)
-      Text(option.label)
-        .fontSize(13)
-        .fontColor(this.selectedRole === option.value ? $r('app.color.color_ink') : $r('app.color.color_text_2'))
-        .fontWeight(this.selectedRole === option.value ? FontWeight.Bold : FontWeight.Medium)
-    }
-    .width('100%')
-    .height(42)
-    .borderRadius(AppConstants.RADIUS_PILL)
-    .backgroundColor(this.selectedRole === option.value ? $r('app.color.color_yellow') : $r('app.color.color_bg_card'))
-    .border({
-      width: 1,
-      color: this.selectedRole === option.value ? $r('app.color.color_yellow_deep') : $r('app.color.color_line_2')
-    })
-    .shadow(this.selectedRole === option.value
-      ? { radius: 12, color: 'rgba(255,217,61,0.45)', offsetX: 0, offsetY: 4 }
-      : AppConstants.SHADOW_CARD)
-    .justifyContent(FlexAlign.Center)
-    .alignItems(VerticalAlign.Center)
-    .onClick(() => {
-      this.selectedRole = option.value;
-    })
   }
 
   /** 管理员登录按钮 */
@@ -437,8 +337,10 @@ export struct AdminLogin {
   @Builder
   MockTipCard() {
     Row({ space: 8 }) {
-      Text('ℹ️')
-        .fontSize(16)
+      Image($r('app.media.icon_info'))
+        .width(16)
+        .height(16)
+        .fillColor('#8A6D00')
       Text() {
         Span('测试账号：')
           .fontColor('#8A6D00')
