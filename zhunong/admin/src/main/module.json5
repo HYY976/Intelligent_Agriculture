@@ -1,7 +1,7 @@
 {
   "module": {
     "name": "admin",
-    "type": "entry",
+    "type": "feature",
     "description": "$string:module_desc",
     "mainElement": "AdminEntryAbility",
     "deviceTypes": [
@@ -21,17 +21,7 @@
         "label": "$string:AdminEntryAbility_label",
         "startWindowIcon": "$media:startIcon",
         "startWindowBackground": "$color:start_window_background",
-        "exported": true,
-        "skills": [
-          {
-            "entities": [
-              "entity.system.home"
-            ],
-            "actions": [
-              "ohos.want.action.home"
-            ]
-          }
-        ]
+        "exported": true
       }
     ],
     "requestPermissions": [

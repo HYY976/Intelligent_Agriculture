@@ -1,0 +1,11 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "助农平台统一入口模块 - 角色选择启动三端",
+  "main": "",
+  "author": "zhunong",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "common": "file:../common"
+  }
+}

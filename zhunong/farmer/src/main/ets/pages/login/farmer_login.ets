@@ -1,43 +1,36 @@
-﻿﻿﻿﻿/**
+﻿﻿﻿/**
  * farmer_login - 农户卖家端登录页
  * 对齐设计稿 pages/farmer-login.html：
+ *  v5.0 调整：
+ *  - 去掉手机号，改为账号 + 密码登录
+ *  - 所有 emoji 替换为 SVG 矢量图标
+ *  - 接入 MockAuthUtil，无后端时本地完成登录
  *  - 奶油白背景 + 顶部装饰气泡（黄/绿径向渐变模拟）
- *  - 品牌Logo区：黄色渐变 80×80 圆角Logo + 萌芽图标 + 右侧吉祥物 + "智农卖家"标题 + 副标题
- *  - 表单区：手机号/密码输入卡（白底圆角14+阴影+描边+左侧图标+密码显隐切换）
- *  - 资质承诺勾选（黄色选中态 20×20 方框 + 承诺文案）
- *  - 卖家登录按钮（墨黑底白字 + 右箭头图标）
+ *  - 品牌Logo区：黄色渐变 80×80 圆角Logo + SVG 萌芽图标 + 右侧吉祥物 + "助农卖家"标题 + 副标题
+ *  - 表单区：账号/密码输入卡（白底圆角14+阴影+描边+SVG图标+密码显隐切换）
+ *  - 资质承诺勾选（黄色选中态 20×20 方框 + SVG 对勾 + 承诺文案）
+ *  - 卖家登录按钮（墨黑底白字 + SVG 右箭头图标）
  *  - "去注册"下划线链接
  *  - 底部区域：黄色认证提示卡 + 用户协议文字
  *  - 底部黄色波浪装饰
  *
- * spec 11.2：账号（手机号）+ 密码登录，保留《卖家资质承诺》勾选
+ * spec 11.2：账号 + 密码登录，保留《卖家资质承诺》勾选
  * JWT 7天有效期，存储到 Preferences，登录成功跳转 FARMER_HOME
  */
 
-import { Logger, AppConstants, HttpUtil, TokenStore, ToastUtil, NavigationHelper, RouteName } from 'common';
+import { Logger, AppConstants, MockAuthUtil, TokenStore, ToastUtil, NavigationHelper, RouteName } from 'common';
 import { ApiResponse, UserInfo } from 'common';
-
-/** 登录请求体（spec 11.2 ArkTS 严格模式要求具体 interface） */
-interface FarmerLoginRequest {
-  phone: string;
-  password: string;
-  userType: 'farmer';
-  /** 资质认证：已勾选资质承诺 */
-  certAgreed: boolean;
-}
 
 /** 登录响应体 */
 interface FarmerLoginResponse {
   token: string;
   userInfo: UserInfo;
-  /** 资质认证状态：pending=待认证 / approved=已认证 / rejected=驳回 */
-  certStatus: 'pending' | 'approved' | 'rejected';
 }
 
 @ComponentV2
 export struct FarmerLogin {
-  /** 账号（手机号） */
-  @Local phone: string = '';
+  /** 账号（用户名） */
+  @Local username: string = '';
   /** 密码 */
   @Local password: string = '';
   /** 资质认证：是否已勾选资质承诺 */
@@ -47,16 +40,10 @@ export struct FarmerLogin {
   /** 密码是否明文显示 */
   @Local passwordVisible: boolean = false;
 
-  /** 校验手机号格式 */
-  private isPhoneValid(): boolean {
-    const phoneRegex: RegExp = /^1[3-9]\d{9}$/;
-    return phoneRegex.test(this.phone);
-  }
-
-  /** 登录 */
+  /** 登录（走本地 MockAuthUtil，无需后端） */
   private async doLogin(): Promise<void> {
-    if (!this.isPhoneValid()) {
-      ToastUtil.warning('请输入正确的手机号');
+    if (this.username.trim().length === 0) {
+      ToastUtil.warning('请输入账号');
       return;
     }
     if (this.password.length < 6) {
@@ -69,23 +56,16 @@ export struct FarmerLogin {
     }
     this.isLogging = true;
     try {
-      const req: FarmerLoginRequest = {
-        phone: this.phone,
-        password: this.password,
-        userType: 'farmer',
-        certAgreed: this.certAgreed
-      };
-      const resp: ApiResponse<FarmerLoginResponse> = await HttpUtil.post<FarmerLoginResponse>('/farmer/login', req, {
-        withAuth: false
-      });
+      const resp: ApiResponse<FarmerLoginResponse> = await MockAuthUtil.login(
+        this.username, this.password, 'farmer'
+      );
       if (resp.code === AppConstants.CODE_SUCCESS && resp.data) {
         await TokenStore.setToken(resp.data.token);
         await TokenStore.setUserInfo(resp.data.userInfo);
         ToastUtil.success('登录成功');
         Logger.info(AppConstants.SCENE_FARMER, {
           action: 'login_success',
-          userId: resp.data.userInfo.userId,
-          certStatus: resp.data.certStatus
+          userId: resp.data.userInfo.userId
         });
         NavigationHelper.replace(RouteName.FARMER_HOME);
       } else {
@@ -176,11 +156,12 @@ export struct FarmerLogin {
     Stack({ alignContent: Alignment.TopEnd }) {
       // 主内容居中
       Column({ space: 6 }) {
-        // 黄色渐变Logo + 萌芽图标（对齐 qn-brand-logo 80×80 圆角24）
-        Column() {
-          Text('🌱')
-            .fontSize(40)
-            .fontColor($r('app.color.color_ink'))
+        // 黄色渐变Logo + SVG 萌芽图标（对齐 qn-brand-logo 80×80 圆角24）
+        Stack() {
+          Image($r('app.media.icon_seedling'))
+            .width(40)
+            .height(40)
+            .fillColor($r('app.color.color_ink'))
         }
         .width(80)
         .height(80)
@@ -191,8 +172,7 @@ export struct FarmerLogin {
         })
         .border({ width: 3, color: $r('app.color.color_bg_card') })
         .shadow({ radius: 26, color: 'rgba(255,217,61,0.42)', offsetX: 0, offsetY: 10 })
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
+        .alignContent(Alignment.Center)
 
         // 标题"智农卖家"
         Text('智农卖家')
@@ -226,17 +206,19 @@ export struct FarmerLogin {
     .margin({ bottom: 32 })
   }
 
-  /** 表单区（对齐设计稿 qn-farmer-form） */
+  /** 表单区（对齐设计稿 qn-farmer-form，SVG 图标） */
   @Builder
   FormSection() {
     Column({ space: 14 }) {
-      // a) 手机号输入框（对齐 qn-farmer-field）
+      // a) 账号输入框（SVG 用户图标）
       Row({ space: 12 }) {
-        Text('📱')
-          .fontSize(18)
-          .fontColor($r('app.color.color_text_3'))
-        TextInput({ text: this.phone, placeholder: '请输入手机号' })
-          .type(InputType.PhoneNumber)
+        Image($r('app.media.icon_user'))
+          .width(18)
+          .height(18)
+          .fillColor($r('app.color.color_text_3'))
+        TextInput({ text: this.username, placeholder: '请输入账号' })
+          .type(InputType.Normal)
+          .maxLength(32)
           .fontSize(14)
           .fontColor($r('app.color.color_ink'))
           .placeholderFont({ size: 14 })
@@ -245,9 +227,8 @@ export struct FarmerLogin {
           .layoutWeight(1)
           .height(52)
           .padding({ left: 0, right: 0 })
-          .maxLength(11)
           .onChange((value: string) => {
-            this.phone = value;
+            this.username = value;
           })
       }
       .width('100%')
@@ -259,11 +240,12 @@ export struct FarmerLogin {
       .shadow(AppConstants.SHADOW_CARD)
       .alignItems(VerticalAlign.Center)
 
-      // b) 密码输入框（对齐 qn-farmer-field，系统 Password 类型自带显隐切换，无需手动添加眼睛图标）
+      // b) 密码输入框（SVG 锁图标 + 显隐切换）
       Row({ space: 12 }) {
-        Text('🔒')
-          .fontSize(18)
-          .fontColor($r('app.color.color_text_3'))
+        Image($r('app.media.icon_lock'))
+          .width(18)
+          .height(18)
+          .fillColor($r('app.color.color_text_3'))
         TextInput({ text: this.password, placeholder: '请输入密码' })
           .type(this.passwordVisible ? InputType.Normal : InputType.Password)
           .fontSize(14)
@@ -278,6 +260,11 @@ export struct FarmerLogin {
           .onChange((value: string) => {
             this.password = value;
           })
+        Image(this.passwordVisible ? $r('app.media.icon_eye') : $r('app.media.icon_eye_off'))
+          .width(20)
+          .height(20)
+          .fillColor($r('app.color.color_text_3'))
+          .onClick(() => { this.togglePasswordVisible(); })
       }
       .width('100%')
       .height(52)
@@ -288,15 +275,15 @@ export struct FarmerLogin {
       .shadow(AppConstants.SHADOW_CARD)
       .alignItems(VerticalAlign.Center)
 
-      // c) 资质承诺勾选（对齐 qn-commit）
+      // c) 资质承诺勾选（SVG 对勾图标）
       Row({ space: 8 }) {
         // 勾选框（对齐 qn-commit-check 20×20）
-        Row() {
+        Stack() {
           if (this.certAgreed) {
-            Text('✓')
-              .fontSize(12)
-              .fontColor($r('app.color.color_ink'))
-              .fontWeight(FontWeight.Bold)
+            Image($r('app.media.icon_check'))
+              .width(12)
+              .height(12)
+              .fillColor($r('app.color.color_ink'))
           }
         }
         .width(20)
@@ -304,8 +291,7 @@ export struct FarmerLogin {
         .borderRadius(AppConstants.RADIUS_XS)
         .backgroundColor(this.certAgreed ? $r('app.color.color_yellow') : $r('app.color.color_bg_card'))
         .border({ width: 1.5, color: this.certAgreed ? $r('app.color.color_yellow_deep') : $r('app.color.color_line_2') })
-        .justifyContent(FlexAlign.Center)
-        .alignItems(VerticalAlign.Center)
+        .alignContent(Alignment.Center)
         .onClick(() => { this.toggleCertAgreed(); })
 
         // 承诺文案
@@ -319,17 +305,17 @@ export struct FarmerLogin {
       .margin({ top: 2, bottom: 4 })
       .alignItems(VerticalAlign.Center)
 
-      // d) 卖家登录按钮（对齐 qn-seller-btn 墨黑底）
+      // d) 卖家登录按钮（对齐 qn-seller-btn 墨黑底 + SVG 右箭头）
       Row({ space: 6 }) {
         Text('卖家登录')
           .fontSize(15)
           .fontColor(Color.White)
           .fontWeight(FontWeight.Bold)
           .letterSpacing(1)
-        Text('→')
-          .fontSize(18)
-          .fontColor(Color.White)
-          .fontWeight(FontWeight.Bold)
+        Image($r('app.media.icon_arrow_right'))
+          .width(18)
+          .height(18)
+          .fillColor(Color.White)
       }
       .width('100%')
       .height(48)
@@ -353,16 +339,16 @@ export struct FarmerLogin {
     .alignItems(HorizontalAlign.Center)
   }
 
-  /** 底部区域（对齐设计稿 qn-farmer-foot） */
+  /** 底部区域（对齐设计稿 qn-farmer-foot，SVG 信息图标） */
   @Builder
   FooterSection() {
     Column({ space: 16 }) {
-      // 资质认证提示卡（对齐 qn-cert-tip 黄底）
+      // 资质认证提示卡（对齐 qn-cert-tip 黄底 + SVG 信息图标）
       Row({ space: 8 }) {
-        Text('ℹ')
-          .fontSize(14)
-          .fontColor($r('app.color.color_yellow_text'))
-          .fontWeight(FontWeight.Bold)
+        Image($r('app.media.icon_info'))
+          .width(16)
+          .height(16)
+          .fillColor($r('app.color.color_yellow_text'))
         Text('未认证卖家需先完成资质认证')
           .fontSize(12)
           .fontColor('#8A6D00')

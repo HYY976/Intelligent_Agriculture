@@ -349,9 +349,10 @@ export struct ReviewDetail {
 
       // 2. 封面图（140h）
       Stack() {
-        Text('🖼️')
-          .fontSize(40)
-          .fontColor($r('app.color.color_text_4'))
+        Image($r('app.media.icon_image'))
+          .width(40)
+          .height(40)
+          .fillColor($r('app.color.color_text_4'))
         Stack() {
           Text(this.getCoverBadge(this.detail!.review.contentType))
             .fontSize(10)
@@ -496,8 +497,10 @@ export struct ReviewDetail {
   ReviewPointsBox() {
     Column({ space: 6 }) {
       Row({ space: 4 }) {
-        Text('📋')
-          .fontSize(12)
+        Image($r('app.media.icon_clipboard'))
+          .width(12)
+          .height(12)
+          .fillColor($r('app.color.color_yellow_text'))
         Text('审核要点')
           .fontSize(12)
           .fontColor($r('app.color.color_yellow_text'))
