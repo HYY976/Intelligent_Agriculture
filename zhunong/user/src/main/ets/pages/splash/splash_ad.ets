@@ -1,4 +1,4 @@
-﻿/**
+﻿﻿﻿﻿﻿﻿/**
  * splash_ad - 开屏广告页（UI 复刻 v4.0，对齐 splash-ad.html 设计稿）
  * 遵循 spec 15.5.1：整页重写，1:1 还原设计稿
  *  - 全屏背景图（hero_harvest.jpg）+ 暗色渐变蒙版

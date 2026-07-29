@@ -15,6 +15,10 @@
 import { Logger, AppConstants, ToastUtil, NavigationHelper, RouteName, TokenStore } from 'common';
 import { UserInfo } from 'common';
 import { display } from '@kit.ArkUI';
+import { fileIo as fs } from '@kit.CoreFileKit';
+import { common } from '@kit.AbilityKit';
+import { buffer } from '@kit.ArkTS';
+import { HONEY_LIVE_BASE64 } from '../../utils/honey_live_base64';
 import { LiveManageItem, FarmerProductItem } from '../../model/FarmerModels';
 import { LiveComment, Gift, LiveListItem } from '../../model/FarmerLiveModels';
 import { LiveManageRepository } from '../../repository/LiveManageRepository';
@@ -56,6 +60,8 @@ export struct LiveRoom {
   @Local role: 'broadcaster' | 'viewer' = 'viewer';
   /** 直播信息 */
   @Local liveInfo: LiveManageItem | null = null;
+  /** 视频播放地址（运行时从 rawfile 复制到沙箱目录，避免 build 目录文件锁定） */
+  @Local videoSrc: string = '';
   /** 主播昵称（spec 16.9：同步注册用户信息） */
   @Local anchorName: string = '主播';
   /** 主播头像 URI（spec 16.9：同步注册用户信息） */
@@ -126,6 +132,7 @@ export struct LiveRoom {
     this.initCartPosition();
     await this.loadAnchorInfo();
     await this.loadLiveInfo();
+    await this.loadVideoSrc();
     await this.loadComments();
     await this.loadGifts();
     if (this.role === 'broadcaster') {
@@ -201,6 +208,41 @@ export struct LiveRoom {
     );
     // spec：加载小黄车商品（默认取前 3 件已上架商品作为直播间售卖商品）
     this.cartProducts = this.candidateProducts.slice(0, 3);
+  }
+
+  /**
+   * 加载视频源（运行时从 base64 解码写入沙箱目录，避免资源文件在 build 目录被锁定）
+   */
+  private async loadVideoSrc(): Promise<void> {
+    if (!this.liveInfo || !this.liveInfo.videoUrl || this.liveInfo.videoUrl.length === 0) {
+      return;
+    }
+    try {
+      const context: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+      const sandboxDir: string = context.filesDir;
+      const destPath: string = `${sandboxDir}/honey_live.mp4`;
+
+      // 检查沙箱目录是否已存在视频文件（避免重复解码）
+      try {
+        if (fs.accessSync(destPath)) {
+          this.videoSrc = `file://${destPath}`;
+          Logger.info(AppConstants.SCENE_FARMER, { action: 'video_src_cached', msg: destPath });
+          return;
+        }
+      } catch (_e) {
+        // 文件不存在，继续写入
+      }
+
+      // 从 base64 解码视频数据，写入沙箱目录
+      const buf: buffer.Buffer = buffer.from(HONEY_LIVE_BASE64, 'base64');
+      const file: fs.File = fs.openSync(destPath, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY);
+      fs.writeSync(file.fd, buf.buffer);
+      fs.closeSync(file);
+      this.videoSrc = `file://${destPath}`;
+      Logger.info(AppConstants.SCENE_FARMER, { action: 'video_src_decoded', msg: destPath, count: buf.length });
+    } catch (err) {
+      Logger.error(AppConstants.SCENE_FARMER, { action: 'load_video_src_fail', error: (err as Error).message });
+    }
   }
 
   /** 加载评论 */
@@ -436,10 +478,10 @@ export struct LiveRoom {
       Stack() {
         // 直播画面背景（spec：有视频时自动播放视频，否则显示封面图）
         Column() {
-          if (this.liveInfo && this.liveInfo.videoUrl && this.liveInfo.videoUrl.length > 0) {
-            // 蜂蜜直播间：自动循环播放视频
+          if (this.liveInfo && this.liveInfo.videoUrl && this.liveInfo.videoUrl.length > 0 && this.videoSrc.length > 0) {
+            // 蜂蜜直播间：自动循环播放视频（从沙箱目录读取，避免 build 目录文件锁定）
             Video({
-              src: $rawfile('honey_live.mp4'),
+              src: this.videoSrc,
               currentProgressRate: 1.0,
               previewUri: undefined
             })

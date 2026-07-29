@@ -29,6 +29,7 @@ interface LiveRankItem {
   farmerName: string;
   totalViewUv: number;
   status: string;
+  coverImage: string;
 }
 
 /** spec 16.7：商品编辑页跳转参数（与 product_manage.ets 保持结构一致） */
@@ -83,11 +84,11 @@ export struct SearchPage {
       { productId: 'rk006', title: '广西百香果 3斤 紫皮', price: 22.50, monthlySales: 4280, farmerName: '桂南果场', imageUrl: 'prod_passion', categoryId: 'cat_fruit', shipFrom: '广西' }
     ];
     this.liveRankList = [
-      { liveId: 'lk001', title: '高山有机青菜采摘直播', farmerName: '青禾农庄', totalViewUv: 1286, status: 'ended' },
-      { liveId: 'lk002', title: '山野好物·散养土猪直播', farmerName: '山野好物', totalViewUv: 980, status: 'living' },
-      { liveId: 'lk003', title: '当季新米品鉴专场', farmerName: '青禾农庄', totalViewUv: 856, status: 'ended' },
-      { liveId: 'lk004', title: '田园牧歌·果园采摘', farmerName: '田园牧歌', totalViewUv: 658, status: 'preview' },
-      { liveId: 'lk005', title: '明前嫩芽绿茶制作', farmerName: '青禾农庄', totalViewUv: 568, status: 'ended' }
+      { liveId: 'lk001', title: '高山有机青菜采摘直播', farmerName: '青禾农庄', totalViewUv: 1286, status: 'ended', coverImage: 'live_cover_1' },
+      { liveId: 'lk002', title: '山野好物·散养土猪直播', farmerName: '山野好物', totalViewUv: 980, status: 'living', coverImage: 'live_cover_6' },
+      { liveId: 'lk003', title: '当季新米品鉴专场', farmerName: '青禾农庄', totalViewUv: 856, status: 'ended', coverImage: 'live_cover_2' },
+      { liveId: 'lk004', title: '田园牧歌·果园采摘', farmerName: '田园牧歌', totalViewUv: 658, status: 'preview', coverImage: 'live_cover_7' },
+      { liveId: 'lk005', title: '明前嫩芽绿茶制作', farmerName: '青禾农庄', totalViewUv: 568, status: 'ended', coverImage: 'live_cover_3' }
     ];
   }
 
@@ -329,13 +330,7 @@ export struct SearchPage {
         .borderRadius(14)
         .backgroundColor(idx === 0 ? $r('app.color.color_cta_black') : (idx < 3 ? $r('app.color.color_cta_black') : $r('app.color.color_bg_page')))
         .textAlign(TextAlign.Center)
-      Text('🥬')
-        .fontSize(28)
-        .width(48)
-        .height(48)
-        .borderRadius(8)
-        .backgroundColor($r('app.color.color_card_yellow'))
-        .textAlign(TextAlign.Center)
+      ReplaceableImage({ imageKey: item.imageUrl, imgWidth: 48, imgHeight: 48, imgRadius: 8, imgFit: ImageFit.Cover })
       Column({ space: 2 }) {
         Text(item.title)
           .fontSize(13)
@@ -376,13 +371,7 @@ export struct SearchPage {
         .borderRadius(14)
         .backgroundColor(idx === 0 ? $r('app.color.color_cta_black') : (idx < 3 ? $r('app.color.color_cta_black') : $r('app.color.color_bg_page')))
         .textAlign(TextAlign.Center)
-      Text('📹')
-        .fontSize(28)
-        .width(48)
-        .height(48)
-        .borderRadius(8)
-        .backgroundColor($r('app.color.color_bg_panel_dark'))
-        .textAlign(TextAlign.Center)
+      ReplaceableImage({ imageKey: item.coverImage, imgWidth: 48, imgHeight: 48, imgRadius: 8, imgFit: ImageFit.Cover })
       Column({ space: 2 }) {
         Text(item.title)
           .fontSize(13)

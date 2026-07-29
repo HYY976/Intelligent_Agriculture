@@ -1,4 +1,4 @@
-﻿/**
+﻿﻿﻿﻿/**
  * farmer_register - 农户卖家端注册页
  * 对齐设计稿 pages/farmer-register.html：
  *  - 奶油白背景 + 顶部装饰气泡（黄/绿径向渐变模拟）

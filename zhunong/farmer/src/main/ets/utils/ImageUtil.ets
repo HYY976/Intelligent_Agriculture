@@ -19,6 +19,15 @@ export class ImageUtil {
       case 'prod_rice': return $r('app.media.prod_rice');
       case 'prod_eggs': return $r('app.media.prod_eggs');
       case 'prod_honey': return $r('app.media.prod_honey');
+      // 搜索排行榜商品图（映射到已有产品图，可通过 ReplaceableImage 📷 替换为相册图片）
+      case 'prod_apple': return $r('app.media.prod_strawberry');
+      case 'prod_pomelo': return $r('app.media.prod_honey');
+      case 'prod_date': return $r('app.media.prod_tea');
+      case 'prod_ginger': return $r('app.media.prod_rice');
+      case 'prod_potato': return $r('app.media.prod_eggs');
+      case 'prod_passion': return $r('app.media.prod_tomato');
+      case 'prod_vegetable_1': return $r('app.media.prod_tomato');
+      case 'prod_default': return $r('app.media.prod_strawberry');
       // 卖家头像
       case 'avatar_farmer': return $r('app.media.avatar_farmer');
       // 买家/粉丝头像（spec 16.8：扩展至 avatar_user_15，支持更多粉丝 Mock 数据）
